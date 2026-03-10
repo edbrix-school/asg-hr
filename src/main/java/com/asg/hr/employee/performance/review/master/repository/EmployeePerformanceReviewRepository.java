@@ -1,6 +1,6 @@
-package com.asg.hr.Employee.performance.review.master.repository;
+package com.asg.hr.employee.performance.review.master.repository;
 
-import com.asg.hr.Employee.performance.review.master.entity.EmployeePerformanceReviewEntity;
+import com.asg.hr.employee.performance.review.master.entity.EmployeePerformanceReviewEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

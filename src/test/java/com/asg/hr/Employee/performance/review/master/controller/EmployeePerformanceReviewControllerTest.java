@@ -5,12 +5,15 @@ import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.LoggingService;
-import com.asg.hr.Employee.performance.review.master.dto.EmployeePerformanceReviewRequestDto;
-import com.asg.hr.Employee.performance.review.master.dto.EmployeePerformanceReviewResponseDto;
-import com.asg.hr.Employee.performance.review.master.service.EmployeePerformanceReviewService;
+import com.asg.hr.employee.performance.review.master.controller.EmployeePerformanceReviewController;
+import com.asg.hr.employee.performance.review.master.dto.EmployeePerformanceReviewRequestDto;
+import com.asg.hr.employee.performance.review.master.dto.EmployeePerformanceReviewResponseDto;
+import com.asg.hr.employee.performance.review.master.service.EmployeePerformanceReviewService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 
@@ -20,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class EmployeePerformanceReviewControllerTest {
 
     @Test

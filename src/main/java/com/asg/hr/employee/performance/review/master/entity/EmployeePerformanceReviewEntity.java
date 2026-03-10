@@ -1,4 +1,4 @@
-package com.asg.hr.Employee.performance.review.master.entity;
+package com.asg.hr.employee.performance.review.master.entity;
 
 import com.asg.common.lib.entity.BaseEntity;
 import jakarta.persistence.*;

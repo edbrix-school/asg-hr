@@ -10,9 +10,10 @@ import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
-import com.asg.hr.Employee.performance.review.master.dto.EmployeePerformanceReviewRequestDto;
-import com.asg.hr.Employee.performance.review.master.entity.EmployeePerformanceReviewEntity;
-import com.asg.hr.Employee.performance.review.master.repository.EmployeePerformanceReviewRepository;
+import com.asg.hr.employee.performance.review.master.dto.EmployeePerformanceReviewRequestDto;
+import com.asg.hr.employee.performance.review.master.entity.EmployeePerformanceReviewEntity;
+import com.asg.hr.employee.performance.review.master.repository.EmployeePerformanceReviewRepository;
+import com.asg.hr.employee.performance.review.master.service.EmployeePerformanceReviewServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -109,13 +110,10 @@ class EmployeePerformanceReviewServiceImplTest {
 
     @Test
     void getById_whenMissing_throws() {
-        try (MockedStatic<UserContext> uc = Mockito.mockStatic(UserContext.class)) {
-            uc.when(UserContext::getGroupPoid).thenReturn(10L);
-            when(repository.findByIdAndGroupPoidAndNotDeleted(1L, 10L)).thenReturn(Optional.empty());
+        when(repository.findById(1L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> service.getById(1L))
-                    .isInstanceOf(ResourceNotFoundException.class);
-        }
+        assertThatThrownBy(() -> service.getById(1L))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -130,16 +128,13 @@ class EmployeePerformanceReviewServiceImplTest {
                 .active("Y")
                 .build();
 
-        try (MockedStatic<UserContext> uc = Mockito.mockStatic(UserContext.class)) {
-            uc.when(UserContext::getGroupPoid).thenReturn(10L);
-            when(repository.findByIdAndGroupPoidAndNotDeleted(1L, 10L)).thenReturn(Optional.of(entity));
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
 
-            var resp = service.getById(1L);
-            assertThat(resp.getCompetencyPoid()).isEqualTo(1L);
-            assertThat(resp.getGroupPoid()).isEqualTo(10L);
-            assertThat(resp.getCompetencyCode()).isEqualTo("C1");
-            assertThat(resp.getActive()).isEqualTo("Y");
-        }
+        var resp = service.getById(1L);
+        assertThat(resp.getCompetencyPoid()).isEqualTo(1L);
+        assertThat(resp.getGroupPoid()).isEqualTo(10L);
+        assertThat(resp.getCompetencyCode()).isEqualTo("C1");
+        assertThat(resp.getActive()).isEqualTo("Y");
     }
 
     @Test

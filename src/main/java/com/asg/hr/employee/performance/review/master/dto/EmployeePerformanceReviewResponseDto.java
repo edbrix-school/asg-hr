@@ -1,4 +1,4 @@
-package com.asg.hr.Employee.performance.review.master.dto;
+package com.asg.hr.employee.performance.review.master.dto;
 
 import lombok.*;
 

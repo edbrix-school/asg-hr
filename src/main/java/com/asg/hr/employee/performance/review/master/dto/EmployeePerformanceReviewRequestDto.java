@@ -1,4 +1,4 @@
-package com.asg.hr.Employee.performance.review.master.dto;
+package com.asg.hr.employee.performance.review.master.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -16,6 +16,8 @@ public class EmployeePerformanceReviewRequestDto {
     private String competencyDescription;
 
     private String competencyNarration;
+
+    private String active;
 
     private Integer seqNo;
 }

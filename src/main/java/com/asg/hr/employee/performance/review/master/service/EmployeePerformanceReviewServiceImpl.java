@@ -1,4 +1,4 @@
-package com.asg.hr.Employee.performance.review.master.service;
+package com.asg.hr.employee.performance.review.master.service;
 
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterDto;
@@ -12,10 +12,10 @@ import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.utility.PaginationUtil;
-import com.asg.hr.Employee.performance.review.master.dto.EmployeePerformanceReviewRequestDto;
-import com.asg.hr.Employee.performance.review.master.dto.EmployeePerformanceReviewResponseDto;
-import com.asg.hr.Employee.performance.review.master.entity.EmployeePerformanceReviewEntity;
-import com.asg.hr.Employee.performance.review.master.repository.EmployeePerformanceReviewRepository;
+import com.asg.hr.employee.performance.review.master.dto.EmployeePerformanceReviewRequestDto;
+import com.asg.hr.employee.performance.review.master.dto.EmployeePerformanceReviewResponseDto;
+import com.asg.hr.employee.performance.review.master.entity.EmployeePerformanceReviewEntity;
+import com.asg.hr.employee.performance.review.master.repository.EmployeePerformanceReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -52,7 +52,7 @@ public class EmployeePerformanceReviewServiceImpl implements EmployeePerformance
                 .seqNo(requestDto.getSeqNo())
                 .build();
 
-        entity.setActive("Y");
+        entity.setActive(requestDto.getActive() != null ? requestDto.getActive() : "Y");
         entity.setDeleted("N");
 
         entity = repository.save(entity);
@@ -80,8 +80,7 @@ public class EmployeePerformanceReviewServiceImpl implements EmployeePerformance
     @Override
     @Transactional(readOnly = true)
     public EmployeePerformanceReviewResponseDto getById(Long id) {
-        Long groupPoid = UserContext.getGroupPoid();
-        EmployeePerformanceReviewEntity entity = repository.findByIdAndGroupPoidAndNotDeleted(id, groupPoid)
+        EmployeePerformanceReviewEntity entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Competency", "id", id));
         
         return toResponseDto(entity);
@@ -112,6 +111,7 @@ public class EmployeePerformanceReviewServiceImpl implements EmployeePerformance
         entity.setCompetencyCode(requestDto.getCompetencyCode());
         entity.setCompetencyDescription(requestDto.getCompetencyDescription());
         entity.setCompetencyNarration(requestDto.getCompetencyNarration());
+        entity.setActive(requestDto.getActive() != null ? requestDto.getActive() : entity.getActive());
         entity.setSeqNo(requestDto.getSeqNo());
 
         entity = repository.save(entity);
