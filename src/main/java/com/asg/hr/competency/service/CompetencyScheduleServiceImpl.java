@@ -12,7 +12,6 @@ import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.utility.PaginationUtil;
-import com.asg.hr.competency.dto.CompetencyScheduleListDto;
 import com.asg.hr.competency.dto.CompetencyScheduleRequestDto;
 import com.asg.hr.competency.dto.CompetencyScheduleResponseDto;
 import com.asg.hr.competency.entity.HrCompetencySchedule;
@@ -30,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -108,16 +106,6 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
     }
     
     @Override
-    public List<CompetencyScheduleListDto> getAllSchedules() {
-        List<HrCompetencySchedule> schedules = scheduleRepository
-                .findByGroupPoidAndDeletedOrderByScheduleDescription(UserContext.getGroupPoid(), "N");
-        
-        return schedules.stream()
-                .map(this::mapToListDto)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
     public Map<String, Object> listSchedules(FilterRequestDto filterRequest, Pageable pageable) {
         String operator = documentSearchService.resolveOperator(filterRequest);
         String isDeleted = documentSearchService.resolveIsDeleted(filterRequest);
@@ -186,16 +174,6 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
                 .seqNo(schedule.getSeqNo())
                 .active(schedule.getActive())
                 .evaluationDate(schedule.getEvaluationDate())
-                .build();
-    }
-    
-    private CompetencyScheduleListDto mapToListDto(HrCompetencySchedule schedule) {
-        return CompetencyScheduleListDto.builder()
-                .schedulePoid(schedule.getSchedulePoid())
-                .scheduleDescription(schedule.getScheduleDescription())
-                .periodFrom(schedule.getPeriodFrom())
-                .periodTo(schedule.getPeriodTo())
-                .active(schedule.getActive())
                 .build();
     }
 }
