@@ -4,6 +4,7 @@ import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.dto.RawSearchResult;
+import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
@@ -20,6 +21,7 @@ import com.asg.hr.exceptions.ValidationException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -27,10 +29,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -51,9 +51,7 @@ public class HrDepartmentMasterServiceImpl implements HrDepartmentMasterService 
         String isDeleted = documentSearchService.resolveIsDeleted(filterRequestDto);
         List<FilterDto> filters = documentSearchService.resolveFilters(filterRequestDto);
 
-        RawSearchResult raw = documentSearchService.search(documentId, filters, operator, pageable, isDeleted,
-                "DEPT_NAME",
-                "DEPT_POID");
+        RawSearchResult raw = documentSearchService.search(documentId, filters, operator, pageable, isDeleted, "DEPT_NAME", "DEPT_POID");
 
         Page<Map<String, Object>> page = new PageImpl<>(raw.records(), pageable, raw.totalRecords());
 
@@ -93,6 +91,7 @@ public class HrDepartmentMasterServiceImpl implements HrDepartmentMasterService 
         entity.setDeleted("N");
 
         entity = repository.save(entity);
+        loggingService.createLogSummaryEntry(LogDetailsEnum.CREATED, UserContext.getDocumentId(), entity.getDeptPoid().toString());
         return mapToResponse(entity);
     }
 
@@ -115,6 +114,9 @@ public class HrDepartmentMasterServiceImpl implements HrDepartmentMasterService 
             throw new ValidationException("Should not select current department as parent department");
         }
 
+        HrDepartmentMaster oldEntity = new HrDepartmentMaster();
+        BeanUtils.copyProperties(entity, oldEntity);
+
         entity.setDeptName(request.getDeptName());
         entity.setSubdeptYN(StringUtils.isNotBlank(request.getSubdeptYN()) ? request.getSubdeptYN() : entity.getSubdeptYN());
         entity.setActive(StringUtils.isNotBlank(request.getActive()) ? request.getActive() : entity.getActive());
@@ -123,6 +125,7 @@ public class HrDepartmentMasterServiceImpl implements HrDepartmentMasterService 
         entity.setCostCentrePoid(request.getCostCentrePoid());
 
         entity = repository.save(entity);
+        loggingService.logChanges(oldEntity, entity, HrDepartmentMaster.class, UserContext.getDocumentId(), entity.getDeptPoid().toString(), LogDetailsEnum.MODIFIED, "DEPT_POID");
         return mapToResponse(entity);
     }
 

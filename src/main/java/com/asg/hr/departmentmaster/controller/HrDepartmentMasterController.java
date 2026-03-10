@@ -4,8 +4,10 @@ import com.asg.common.lib.annotation.AllowedAction;
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.dto.response.ApiResponse;
+import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.enums.UserRolesRightsEnum;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.departmentmaster.dto.HrDepartmentMasterRequest;
 import com.asg.hr.departmentmaster.dto.HrDepartmentMasterResponse;
 import com.asg.hr.departmentmaster.service.HrDepartmentMasterService;
@@ -35,6 +37,7 @@ import java.util.Map;
 public class HrDepartmentMasterController {
 
     private final HrDepartmentMasterService departmentService;
+    private final LoggingService loggingService;
 
     @AllowedAction(UserRolesRightsEnum.VIEW)
     @PostMapping("/list")
@@ -50,6 +53,7 @@ public class HrDepartmentMasterController {
     public ResponseEntity<?> getDepartmentById(@PathVariable @NotNull @Positive Long deptPoid
     ) {
         HrDepartmentMasterResponse response = departmentService.getDepartmentById(deptPoid);
+        loggingService.createLogSummaryEntry(LogDetailsEnum.VIEWED,UserContext.getDocumentId(),deptPoid.toString());
         return ApiResponse.success("Department retrieved successfully", response);
     }
 
