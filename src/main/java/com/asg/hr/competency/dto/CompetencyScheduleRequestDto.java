@@ -2,6 +2,8 @@ package com.asg.hr.competency.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,8 +27,10 @@ public class CompetencyScheduleRequestDto {
     private LocalDate periodTo;
     
     private Integer seqNo;
-    
-    @NotNull(message = "Active status is required")
+
+    @NotBlank(message = "Active cannot be blank")
+    @Pattern(regexp = "^[YN]$", message = "must be either 'Y' or 'N'")
+    @Size(max = 1, message = "Max character for active is 1 - 'Y' or 'N'")
     private String active;
     
     @NotNull(message = "Evaluation date is required")
