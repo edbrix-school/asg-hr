@@ -83,6 +83,8 @@ public class CompetencyMasterServiceImpl implements CompetencyMasterService {
         CompetencyMasterEntity entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Competency", "id", id));
         
+        loggingService.createLogSummaryEntry(LogDetailsEnum.VIEWED, UserContext.getDocumentId(), id.toString());
+        
         return toResponseDto(entity);
     }
 
@@ -127,7 +129,7 @@ public class CompetencyMasterServiceImpl implements CompetencyMasterService {
     public void delete(Long id, DeleteReasonDto deleteReasonDto) {
         Long groupPoid = UserContext.getGroupPoid();
 
-        CompetencyMasterEntity entity = repository.findByIdAndGroupPoidAndNotDeleted(id, groupPoid)
+        repository.findByIdAndGroupPoidAndNotDeleted(id, groupPoid)
                 .orElseThrow(() -> new ResourceNotFoundException("Competency", "id", id));
 
         documentDeleteService.deleteDocument(

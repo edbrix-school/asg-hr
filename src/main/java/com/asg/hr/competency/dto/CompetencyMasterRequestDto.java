@@ -1,6 +1,7 @@
 package com.asg.hr.competency.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.*;
 
 @Getter
@@ -17,6 +18,7 @@ public class CompetencyMasterRequestDto {
 
     private String competencyNarration;
 
+    @Pattern(regexp = "^[YN]$", message = "Active must be either 'Y' or 'N'")
     private String active;
 
     private Integer seqNo;
