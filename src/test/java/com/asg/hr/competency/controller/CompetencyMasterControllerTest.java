@@ -1,14 +1,13 @@
-package com.asg.hr.Employee.performance.review.master.controller;
+package com.asg.hr.competency.controller;
 
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.LoggingService;
-import com.asg.hr.employee.performance.review.master.controller.EmployeePerformanceReviewController;
-import com.asg.hr.employee.performance.review.master.dto.EmployeePerformanceReviewRequestDto;
-import com.asg.hr.employee.performance.review.master.dto.EmployeePerformanceReviewResponseDto;
-import com.asg.hr.employee.performance.review.master.service.EmployeePerformanceReviewService;
+import com.asg.hr.competency.dto.CompetencyMasterRequestDto;
+import com.asg.hr.competency.dto.CompetencyMasterResponseDto;
+import com.asg.hr.competency.service.CompetencyMasterService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.MockedStatic;
@@ -24,13 +23,13 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class EmployeePerformanceReviewControllerTest {
+class CompetencyMasterControllerTest {
 
     @Test
     void list_usesUserDocumentId_andReturnsSuccessResponse() {
-        EmployeePerformanceReviewService service = mock(EmployeePerformanceReviewService.class);
+        CompetencyMasterService service = mock(CompetencyMasterService.class);
         LoggingService loggingService = mock(LoggingService.class);
-        EmployeePerformanceReviewController controller = new EmployeePerformanceReviewController(service, loggingService);
+        CompetencyMasterController controller = new CompetencyMasterController(service, loggingService);
 
         Pageable pageable = mock(Pageable.class);
         FilterRequestDto filters = mock(FilterRequestDto.class);
@@ -49,14 +48,14 @@ class EmployeePerformanceReviewControllerTest {
 
     @Test
     void create_delegatesToService() {
-        EmployeePerformanceReviewService service = mock(EmployeePerformanceReviewService.class);
+        CompetencyMasterService service = mock(CompetencyMasterService.class);
         LoggingService loggingService = mock(LoggingService.class);
-        EmployeePerformanceReviewController controller = new EmployeePerformanceReviewController(service, loggingService);
+        CompetencyMasterController controller = new CompetencyMasterController(service, loggingService);
 
-        EmployeePerformanceReviewRequestDto req = EmployeePerformanceReviewRequestDto.builder()
+        CompetencyMasterRequestDto req = CompetencyMasterRequestDto.builder()
                 .competencyCode("C1")
                 .build();
-        EmployeePerformanceReviewResponseDto created = EmployeePerformanceReviewResponseDto.builder()
+        CompetencyMasterResponseDto created = CompetencyMasterResponseDto.builder()
                 .competencyPoid(1L)
                 .competencyCode("C1")
                 .build();
@@ -72,14 +71,14 @@ class EmployeePerformanceReviewControllerTest {
 
     @Test
     void update_delegatesToService() {
-        EmployeePerformanceReviewService service = mock(EmployeePerformanceReviewService.class);
+        CompetencyMasterService service = mock(CompetencyMasterService.class);
         LoggingService loggingService = mock(LoggingService.class);
-        EmployeePerformanceReviewController controller = new EmployeePerformanceReviewController(service, loggingService);
+        CompetencyMasterController controller = new CompetencyMasterController(service, loggingService);
 
-        EmployeePerformanceReviewRequestDto req = EmployeePerformanceReviewRequestDto.builder()
+        CompetencyMasterRequestDto req = CompetencyMasterRequestDto.builder()
                 .competencyCode("C2")
                 .build();
-        EmployeePerformanceReviewResponseDto updated = EmployeePerformanceReviewResponseDto.builder()
+        CompetencyMasterResponseDto updated = CompetencyMasterResponseDto.builder()
                 .competencyPoid(2L)
                 .competencyCode("C2")
                 .build();
@@ -95,11 +94,11 @@ class EmployeePerformanceReviewControllerTest {
 
     @Test
     void getById_logsViewed_andDelegatesToService() {
-        EmployeePerformanceReviewService service = mock(EmployeePerformanceReviewService.class);
+        CompetencyMasterService service = mock(CompetencyMasterService.class);
         LoggingService loggingService = mock(LoggingService.class);
-        EmployeePerformanceReviewController controller = new EmployeePerformanceReviewController(service, loggingService);
+        CompetencyMasterController controller = new CompetencyMasterController(service, loggingService);
 
-        EmployeePerformanceReviewResponseDto dto = EmployeePerformanceReviewResponseDto.builder()
+        CompetencyMasterResponseDto dto = CompetencyMasterResponseDto.builder()
                 .competencyPoid(5L)
                 .build();
         when(service.getById(5L)).thenReturn(dto);
@@ -117,9 +116,9 @@ class EmployeePerformanceReviewControllerTest {
 
     @Test
     void delete_delegatesToService_andReturnsSuccessResponse() {
-        EmployeePerformanceReviewService service = mock(EmployeePerformanceReviewService.class);
+        CompetencyMasterService service = mock(CompetencyMasterService.class);
         LoggingService loggingService = mock(LoggingService.class);
-        EmployeePerformanceReviewController controller = new EmployeePerformanceReviewController(service, loggingService);
+        CompetencyMasterController controller = new CompetencyMasterController(service, loggingService);
 
         DeleteReasonDto reason = mock(DeleteReasonDto.class);
 
@@ -130,4 +129,3 @@ class EmployeePerformanceReviewControllerTest {
         verifyNoInteractions(loggingService);
     }
 }
-

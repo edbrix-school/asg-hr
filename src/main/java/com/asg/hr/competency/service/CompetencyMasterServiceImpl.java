@@ -1,4 +1,4 @@
-package com.asg.hr.employee.performance.review.master.service;
+package com.asg.hr.competency.service;
 
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterDto;
@@ -12,10 +12,10 @@ import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.utility.PaginationUtil;
-import com.asg.hr.employee.performance.review.master.dto.EmployeePerformanceReviewRequestDto;
-import com.asg.hr.employee.performance.review.master.dto.EmployeePerformanceReviewResponseDto;
-import com.asg.hr.employee.performance.review.master.entity.EmployeePerformanceReviewEntity;
-import com.asg.hr.employee.performance.review.master.repository.EmployeePerformanceReviewRepository;
+import com.asg.hr.competency.dto.CompetencyMasterRequestDto;
+import com.asg.hr.competency.dto.CompetencyMasterResponseDto;
+import com.asg.hr.competency.entity.CompetencyMasterEntity;
+import com.asg.hr.competency.repository.CompetencyMasterRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -28,23 +28,23 @@ import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class EmployeePerformanceReviewServiceImpl implements EmployeePerformanceReviewService {
+public class CompetencyMasterServiceImpl implements CompetencyMasterService {
 
-    private final EmployeePerformanceReviewRepository repository;
+    private final CompetencyMasterRepository repository;
     private final DocumentSearchService documentSearchService;
     private final DocumentDeleteService documentDeleteService;
     private final LoggingService loggingService;
 
     @Override
     @Transactional
-    public EmployeePerformanceReviewResponseDto create(EmployeePerformanceReviewRequestDto requestDto) {
+    public CompetencyMasterResponseDto create(CompetencyMasterRequestDto requestDto) {
         Long groupPoid = UserContext.getGroupPoid();
 
         if (repository.existsByCompetencyCodeAndGroupPoid(requestDto.getCompetencyCode(), groupPoid)) {
             throw new ResourceAlreadyExistsException("Competency", requestDto.getCompetencyCode());
         }
 
-        EmployeePerformanceReviewEntity entity = EmployeePerformanceReviewEntity.builder()
+        CompetencyMasterEntity entity = CompetencyMasterEntity.builder()
                 .groupPoid(groupPoid)
                 .competencyCode(requestDto.getCompetencyCode())
                 .competencyDescription(requestDto.getCompetencyDescription())
@@ -79,8 +79,8 @@ public class EmployeePerformanceReviewServiceImpl implements EmployeePerformance
 
     @Override
     @Transactional(readOnly = true)
-    public EmployeePerformanceReviewResponseDto getById(Long id) {
-        EmployeePerformanceReviewEntity entity = repository.findById(id)
+    public CompetencyMasterResponseDto getById(Long id) {
+        CompetencyMasterEntity entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Competency", "id", id));
         
         return toResponseDto(entity);
@@ -88,17 +88,17 @@ public class EmployeePerformanceReviewServiceImpl implements EmployeePerformance
 
     @Override
     @Transactional
-    public EmployeePerformanceReviewResponseDto update(Long competencyPoid, EmployeePerformanceReviewRequestDto requestDto) {
+    public CompetencyMasterResponseDto update(Long competencyPoid, CompetencyMasterRequestDto requestDto) {
         Long groupPoid = UserContext.getGroupPoid();
 
-        EmployeePerformanceReviewEntity entity = repository.findByIdAndGroupPoidAndNotDeleted(competencyPoid, groupPoid)
+        CompetencyMasterEntity entity = repository.findByIdAndGroupPoidAndNotDeleted(competencyPoid, groupPoid)
                 .orElseThrow(() -> new ResourceNotFoundException("Competency", "id", competencyPoid));
 
         if (repository.existsByCompetencyCodeAndGroupPoidAndIdNot(requestDto.getCompetencyCode(), groupPoid, competencyPoid)) {
             throw new ResourceAlreadyExistsException("Competency", requestDto.getCompetencyCode());
         }
 
-        EmployeePerformanceReviewEntity oldEntity = EmployeePerformanceReviewEntity.builder()
+        CompetencyMasterEntity oldEntity = CompetencyMasterEntity.builder()
                 .competencyPoid(entity.getCompetencyPoid())
                 .groupPoid(entity.getGroupPoid())
                 .competencyCode(entity.getCompetencyCode())
@@ -116,7 +116,7 @@ public class EmployeePerformanceReviewServiceImpl implements EmployeePerformance
 
         entity = repository.save(entity);
         
-        loggingService.logChanges(oldEntity, entity, EmployeePerformanceReviewEntity.class, 
+        loggingService.logChanges(oldEntity, entity, CompetencyMasterEntity.class, 
                 UserContext.getDocumentId(), competencyPoid.toString(), LogDetailsEnum.MODIFIED, "COMPETENCY_POID");
         
         return toResponseDto(entity);
@@ -127,7 +127,7 @@ public class EmployeePerformanceReviewServiceImpl implements EmployeePerformance
     public void delete(Long id, DeleteReasonDto deleteReasonDto) {
         Long groupPoid = UserContext.getGroupPoid();
 
-        EmployeePerformanceReviewEntity entity = repository.findByIdAndGroupPoidAndNotDeleted(id, groupPoid)
+        CompetencyMasterEntity entity = repository.findByIdAndGroupPoidAndNotDeleted(id, groupPoid)
                 .orElseThrow(() -> new ResourceNotFoundException("Competency", "id", id));
 
         documentDeleteService.deleteDocument(
@@ -139,8 +139,8 @@ public class EmployeePerformanceReviewServiceImpl implements EmployeePerformance
         );
     }
 
-    private EmployeePerformanceReviewResponseDto toResponseDto(EmployeePerformanceReviewEntity entity) {
-        return EmployeePerformanceReviewResponseDto.builder()
+    private CompetencyMasterResponseDto toResponseDto(CompetencyMasterEntity entity) {
+        return CompetencyMasterResponseDto.builder()
                 .competencyPoid(entity.getCompetencyPoid())
                 .groupPoid(entity.getGroupPoid())
                 .competencyCode(entity.getCompetencyCode())

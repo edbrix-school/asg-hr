@@ -1,4 +1,4 @@
-package com.asg.hr.Employee.performance.review.master.service;
+package com.asg.hr.competency.service;
 
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
@@ -10,10 +10,9 @@ import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
-import com.asg.hr.employee.performance.review.master.dto.EmployeePerformanceReviewRequestDto;
-import com.asg.hr.employee.performance.review.master.entity.EmployeePerformanceReviewEntity;
-import com.asg.hr.employee.performance.review.master.repository.EmployeePerformanceReviewRepository;
-import com.asg.hr.employee.performance.review.master.service.EmployeePerformanceReviewServiceImpl;
+import com.asg.hr.competency.dto.CompetencyMasterRequestDto;
+import com.asg.hr.competency.entity.CompetencyMasterEntity;
+import com.asg.hr.competency.repository.CompetencyMasterRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -35,18 +34,18 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class EmployeePerformanceReviewServiceImplTest {
+class CompetencyMasterServiceImplTest {
 
-    @Mock private EmployeePerformanceReviewRepository repository;
+    @Mock private CompetencyMasterRepository repository;
     @Mock private DocumentSearchService documentSearchService;
     @Mock private DocumentDeleteService documentDeleteService;
     @Mock private LoggingService loggingService;
 
-    @InjectMocks private EmployeePerformanceReviewServiceImpl service;
+    @InjectMocks private CompetencyMasterServiceImpl service;
 
     @Test
     void create_whenCompetencyCodeAlreadyExists_throws() {
-        EmployeePerformanceReviewRequestDto req = EmployeePerformanceReviewRequestDto.builder()
+        CompetencyMasterRequestDto req = CompetencyMasterRequestDto.builder()
                 .competencyCode("C1")
                 .competencyDescription("Desc")
                 .competencyNarration("Nar")
@@ -64,14 +63,14 @@ class EmployeePerformanceReviewServiceImplTest {
 
     @Test
     void create_success_savesEntity_setsFlags_andLogs() {
-        EmployeePerformanceReviewRequestDto req = EmployeePerformanceReviewRequestDto.builder()
+        CompetencyMasterRequestDto req = CompetencyMasterRequestDto.builder()
                 .competencyCode("C1")
                 .competencyDescription("Desc")
                 .competencyNarration("Nar")
                 .seqNo(7)
                 .build();
 
-        EmployeePerformanceReviewEntity saved = EmployeePerformanceReviewEntity.builder()
+        CompetencyMasterEntity saved = CompetencyMasterEntity.builder()
                 .competencyPoid(99L)
                 .groupPoid(10L)
                 .competencyCode("C1")
@@ -87,13 +86,13 @@ class EmployeePerformanceReviewServiceImplTest {
             uc.when(UserContext::getDocumentId).thenReturn("DOC1");
 
             when(repository.existsByCompetencyCodeAndGroupPoid("C1", 10L)).thenReturn(false);
-            when(repository.save(any(EmployeePerformanceReviewEntity.class))).thenReturn(saved);
+            when(repository.save(any(CompetencyMasterEntity.class))).thenReturn(saved);
 
             var resp = service.create(req);
 
-            ArgumentCaptor<EmployeePerformanceReviewEntity> captor = ArgumentCaptor.forClass(EmployeePerformanceReviewEntity.class);
+            ArgumentCaptor<CompetencyMasterEntity> captor = ArgumentCaptor.forClass(CompetencyMasterEntity.class);
             verify(repository).save(captor.capture());
-            EmployeePerformanceReviewEntity toSave = captor.getValue();
+            CompetencyMasterEntity toSave = captor.getValue();
             assertThat(toSave.getGroupPoid()).isEqualTo(10L);
             assertThat(toSave.getCompetencyCode()).isEqualTo("C1");
             assertThat(toSave.getActive()).isEqualTo("Y");
@@ -118,7 +117,7 @@ class EmployeePerformanceReviewServiceImplTest {
 
     @Test
     void getById_success_mapsToResponse() {
-        EmployeePerformanceReviewEntity entity = EmployeePerformanceReviewEntity.builder()
+        CompetencyMasterEntity entity = CompetencyMasterEntity.builder()
                 .competencyPoid(1L)
                 .groupPoid(10L)
                 .competencyCode("C1")
@@ -139,7 +138,7 @@ class EmployeePerformanceReviewServiceImplTest {
 
     @Test
     void update_whenMissing_throws() {
-        EmployeePerformanceReviewRequestDto req = EmployeePerformanceReviewRequestDto.builder()
+        CompetencyMasterRequestDto req = CompetencyMasterRequestDto.builder()
                 .competencyCode("C2")
                 .build();
 
@@ -154,11 +153,11 @@ class EmployeePerformanceReviewServiceImplTest {
 
     @Test
     void update_whenDuplicateCode_throws() {
-        EmployeePerformanceReviewRequestDto req = EmployeePerformanceReviewRequestDto.builder()
+        CompetencyMasterRequestDto req = CompetencyMasterRequestDto.builder()
                 .competencyCode("C2")
                 .build();
 
-        EmployeePerformanceReviewEntity existing = EmployeePerformanceReviewEntity.builder()
+        CompetencyMasterEntity existing = CompetencyMasterEntity.builder()
                 .competencyPoid(5L)
                 .groupPoid(10L)
                 .competencyCode("C1")
@@ -176,14 +175,14 @@ class EmployeePerformanceReviewServiceImplTest {
 
     @Test
     void update_success_savesAndLogsChanges() {
-        EmployeePerformanceReviewRequestDto req = EmployeePerformanceReviewRequestDto.builder()
+        CompetencyMasterRequestDto req = CompetencyMasterRequestDto.builder()
                 .competencyCode("C2")
                 .competencyDescription("D2")
                 .competencyNarration("N2")
                 .seqNo(2)
                 .build();
 
-        EmployeePerformanceReviewEntity existing = EmployeePerformanceReviewEntity.builder()
+        CompetencyMasterEntity existing = CompetencyMasterEntity.builder()
                 .competencyPoid(5L)
                 .groupPoid(10L)
                 .competencyCode("C1")
@@ -193,7 +192,7 @@ class EmployeePerformanceReviewServiceImplTest {
                 .active("Y")
                 .build();
 
-        EmployeePerformanceReviewEntity saved = EmployeePerformanceReviewEntity.builder()
+        CompetencyMasterEntity saved = CompetencyMasterEntity.builder()
                 .competencyPoid(5L)
                 .groupPoid(10L)
                 .competencyCode("C2")
@@ -209,12 +208,12 @@ class EmployeePerformanceReviewServiceImplTest {
 
             when(repository.findByIdAndGroupPoidAndNotDeleted(5L, 10L)).thenReturn(Optional.of(existing));
             when(repository.existsByCompetencyCodeAndGroupPoidAndIdNot("C2", 10L, 5L)).thenReturn(false);
-            when(repository.save(any(EmployeePerformanceReviewEntity.class))).thenReturn(saved);
+            when(repository.save(any(CompetencyMasterEntity.class))).thenReturn(saved);
 
             var resp = service.update(5L, req);
 
-            verify(loggingService).logChanges(any(EmployeePerformanceReviewEntity.class), any(EmployeePerformanceReviewEntity.class),
-                    eq(EmployeePerformanceReviewEntity.class), eq("DOC1"), eq("5"), eq(LogDetailsEnum.MODIFIED), eq("COMPETENCY_POID"));
+            verify(loggingService).logChanges(any(CompetencyMasterEntity.class), any(CompetencyMasterEntity.class),
+                    eq(CompetencyMasterEntity.class), eq("DOC1"), eq("5"), eq(LogDetailsEnum.MODIFIED), eq("COMPETENCY_POID"));
 
             assertThat(resp.getCompetencyCode()).isEqualTo("C2");
             assertThat(resp.getCompetencyDescription()).isEqualTo("D2");
@@ -237,7 +236,7 @@ class EmployeePerformanceReviewServiceImplTest {
     @Test
     void delete_success_callsDocumentDeleteService() {
         DeleteReasonDto reason = mock(DeleteReasonDto.class);
-        EmployeePerformanceReviewEntity entity = EmployeePerformanceReviewEntity.builder()
+        CompetencyMasterEntity entity = CompetencyMasterEntity.builder()
                 .competencyPoid(7L)
                 .groupPoid(10L)
                 .competencyCode("C1")
@@ -284,4 +283,3 @@ class EmployeePerformanceReviewServiceImplTest {
                 eq("COMPETENCY_DESCRIPTION"), eq("COMPETENCY_POID"));
     }
 }
-

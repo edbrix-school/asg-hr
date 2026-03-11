@@ -1,4 +1,4 @@
-package com.asg.hr.employee.performance.review.master.controller;
+package com.asg.hr.competency.controller;
 
 import com.asg.common.lib.annotation.AllowedAction;
 import com.asg.common.lib.dto.DeleteReasonDto;
@@ -7,9 +7,9 @@ import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.enums.UserRolesRightsEnum;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.LoggingService;
-import com.asg.hr.employee.performance.review.master.dto.EmployeePerformanceReviewRequestDto;
-import com.asg.hr.employee.performance.review.master.dto.EmployeePerformanceReviewResponseDto;
-import com.asg.hr.employee.performance.review.master.service.EmployeePerformanceReviewService;
+import com.asg.hr.competency.dto.CompetencyMasterRequestDto;
+import com.asg.hr.competency.dto.CompetencyMasterResponseDto;
+import com.asg.hr.competency.service.CompetencyMasterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -26,11 +26,11 @@ import org.springframework.web.bind.annotation.*;
 import static com.asg.common.lib.dto.response.ApiResponse.*;
 
 @RestController
-@RequestMapping("/v1/competencies")
+@RequestMapping("/v1/competency/master")
 @RequiredArgsConstructor
-public class EmployeePerformanceReviewController {
+public class CompetencyMasterController {
 
-    private final EmployeePerformanceReviewService service;
+    private final CompetencyMasterService service;
     private final LoggingService loggingService;
 
     @Operation(
@@ -77,7 +77,7 @@ public class EmployeePerformanceReviewController {
                             description = "Competency created successfully",
                             content = @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(implementation = EmployeePerformanceReviewResponseDto.class)
+                                    schema = @Schema(implementation = CompetencyMasterResponseDto.class)
                             )
                     ),
                     @ApiResponse(responseCode = "400", description = "Invalid input"),
@@ -89,7 +89,7 @@ public class EmployeePerformanceReviewController {
     @PostMapping
     public ResponseEntity<?> create(
             @Parameter(description = "Competency details to be created", required = true)
-            @Valid @RequestBody EmployeePerformanceReviewRequestDto requestDto) {
+            @Valid @RequestBody CompetencyMasterRequestDto requestDto) {
         return success("Competency created successfully", service.create(requestDto));
     }
 
@@ -102,7 +102,7 @@ public class EmployeePerformanceReviewController {
                             description = "Competency updated successfully",
                             content = @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(implementation = EmployeePerformanceReviewResponseDto.class)
+                                    schema = @Schema(implementation = CompetencyMasterResponseDto.class)
                             )
                     ),
                     @ApiResponse(responseCode = "400", description = "Invalid input"),
@@ -116,7 +116,7 @@ public class EmployeePerformanceReviewController {
             @Parameter(description = "ID of the competency to update", required = true)
             @PathVariable Long competencyPoid,
             @Parameter(description = "Updated competency details", required = true)
-            @Valid @RequestBody EmployeePerformanceReviewRequestDto requestDto) {
+            @Valid @RequestBody CompetencyMasterRequestDto requestDto) {
         return success("Competency updated successfully", service.update(competencyPoid, requestDto));
     }
 
@@ -129,7 +129,7 @@ public class EmployeePerformanceReviewController {
                             description = "Competency retrieved successfully",
                             content = @Content(
                                     mediaType = "application/json",
-                                    schema = @Schema(implementation = EmployeePerformanceReviewResponseDto.class)
+                                    schema = @Schema(implementation = CompetencyMasterResponseDto.class)
                             )
                     ),
                     @ApiResponse(responseCode = "401", description = "Unauthorized"),

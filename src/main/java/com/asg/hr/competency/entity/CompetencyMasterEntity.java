@@ -1,4 +1,4 @@
-package com.asg.hr.employee.performance.review.master.entity;
+package com.asg.hr.competency.entity;
 
 import com.asg.common.lib.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -11,7 +11,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class EmployeePerformanceReviewEntity extends BaseEntity {
+public class CompetencyMasterEntity extends BaseEntity {
 
     @Id
     @GeneratedValue(generator = "trigger-generated")

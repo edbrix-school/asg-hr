@@ -1,4 +1,4 @@
-package com.asg.hr.employee.performance.review.master.dto;
+package com.asg.hr.competency.dto;
 
 import lombok.*;
 
@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class EmployeePerformanceReviewResponseDto {
+public class CompetencyMasterResponseDto {
 
     private Long competencyPoid;
     private Long groupPoid;

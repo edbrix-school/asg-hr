@@ -1,4 +1,4 @@
-package com.asg.hr.employee.performance.review.master.dto;
+package com.asg.hr.competency.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -8,7 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class EmployeePerformanceReviewRequestDto {
+public class CompetencyMasterRequestDto {
 
     @NotBlank(message = "Competency code is required")
     private String competencyCode;
