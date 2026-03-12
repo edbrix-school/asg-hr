@@ -42,6 +42,9 @@ public class HrDepartmentMasterServiceImpl implements HrDepartmentMasterService 
     private final HrDepartmentMasterRepository repository;
     private final GlCostCenterMasterRepository glCostCenterMasterRepository;
     private final LoggingService loggingService;
+    private static final String DEPT_POID = "DEPT_POID";
+    private static final String DEPARTMENT = "Department";
+    private static final String DEPARTMENTPOID = "deptPoid";
 
     @Override
     @Transactional(readOnly = true)
@@ -51,7 +54,7 @@ public class HrDepartmentMasterServiceImpl implements HrDepartmentMasterService 
         String isDeleted = documentSearchService.resolveIsDeleted(filterRequestDto);
         List<FilterDto> filters = documentSearchService.resolveFilters(filterRequestDto);
 
-        RawSearchResult raw = documentSearchService.search(documentId, filters, operator, pageable, isDeleted, "DEPT_NAME", "DEPT_POID");
+        RawSearchResult raw = documentSearchService.search(documentId, filters, operator, pageable, isDeleted, "DEPT_NAME", DEPT_POID);
 
         Page<Map<String, Object>> page = new PageImpl<>(raw.records(), pageable, raw.totalRecords());
 
@@ -61,18 +64,17 @@ public class HrDepartmentMasterServiceImpl implements HrDepartmentMasterService 
     @Override
     @Transactional(readOnly = true)
     public HrDepartmentMasterResponse getDepartmentById(Long deptPoid) {
-        HrDepartmentMaster entity = repository.findById(deptPoid).orElseThrow(() -> new ResourceNotFoundException("Department", "deptPoid", deptPoid));
+        HrDepartmentMaster entity = repository.findById(deptPoid).orElseThrow(() -> new ResourceNotFoundException(DEPARTMENT, DEPARTMENTPOID, deptPoid));
 
         return mapToResponse(entity);
     }
 
     @Override
     public HrDepartmentMasterResponse createDepartment(HrDepartmentMasterRequest request, Long groupPoid, String userId) {
-        if ("Y".equalsIgnoreCase(request.getSubdeptYN())) {
-            if (request.getParentDeptPoid() == null || !repository.existsByDeptPoid(request.getParentDeptPoid())) {
+        if ("Y".equalsIgnoreCase(request.getSubdeptYN()) && (request.getParentDeptPoid() == null || !repository.existsByDeptPoid(request.getParentDeptPoid()))) {
                 throw new ResourceNotFoundException("Parent department", "parentDeptPoid", request.getParentDeptPoid());
             }
-        }
+
         if (StringUtils.isNotBlank(request.getDeptName()) && repository.existsByDeptNameIgnoreCase(request.getDeptName())) {
             throw new ResourceAlreadyExistsException("Department name", request.getDeptName());
         }
@@ -97,13 +99,12 @@ public class HrDepartmentMasterServiceImpl implements HrDepartmentMasterService 
 
     @Override
     public HrDepartmentMasterResponse updateDepartment(Long deptPoid, HrDepartmentMasterRequest request, Long groupPoid, String userId) {
-        HrDepartmentMaster entity = repository.findById(deptPoid).orElseThrow(() -> new ResourceNotFoundException("Department", "deptPoid", deptPoid));
+        HrDepartmentMaster entity = repository.findById(deptPoid).orElseThrow(() -> new ResourceNotFoundException(DEPARTMENT, DEPARTMENTPOID, deptPoid));
 
-        if ("Y".equalsIgnoreCase(request.getSubdeptYN())) {
-            if (request.getParentDeptPoid() == null || !repository.existsByDeptPoid(request.getParentDeptPoid())) {
+        if ("Y".equalsIgnoreCase(request.getSubdeptYN()) && (request.getParentDeptPoid() == null || !repository.existsByDeptPoid(request.getParentDeptPoid()))) {
                 throw new ResourceNotFoundException("Parent department", "parentDeptPoid", request.getParentDeptPoid());
             }
-        }
+
         if (StringUtils.isNotBlank(request.getDeptName()) && repository.existsByDeptNameIgnoreCaseAndDeptPoidNot(request.getDeptName(), deptPoid)) {
             throw new ResourceAlreadyExistsException("Department name", request.getDeptName());
         }
@@ -125,18 +126,18 @@ public class HrDepartmentMasterServiceImpl implements HrDepartmentMasterService 
         entity.setCostCentrePoid(request.getCostCentrePoid());
 
         entity = repository.save(entity);
-        loggingService.logChanges(oldEntity, entity, HrDepartmentMaster.class, UserContext.getDocumentId(), entity.getDeptPoid().toString(), LogDetailsEnum.MODIFIED, "DEPT_POID");
+        loggingService.logChanges(oldEntity, entity, HrDepartmentMaster.class, UserContext.getDocumentId(), entity.getDeptPoid().toString(), LogDetailsEnum.MODIFIED, DEPT_POID);
         return mapToResponse(entity);
     }
 
     @Override
     public void deleteDepartment(Long deptPoid, Long groupPoid, String userId, @Valid DeleteReasonDto deleteReasonDto) {
-        repository.findById(deptPoid).orElseThrow(() -> new ResourceNotFoundException("Department", "deptPoid", deptPoid));
+        repository.findById(deptPoid).orElseThrow(() -> new ResourceNotFoundException(DEPARTMENT, DEPARTMENTPOID, deptPoid));
 
         documentDeleteService.deleteDocument(
                 deptPoid,
                 "HR_DEPARTMENT_MASTER",
-                "DEPT_POID",
+                DEPT_POID,
                 deleteReasonDto,
                 LocalDate.now()
         );
