@@ -83,8 +83,6 @@ public class CompetencyMasterServiceImpl implements CompetencyMasterService {
         CompetencyMasterEntity entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Competency", "id", id));
         
-        loggingService.createLogSummaryEntry(LogDetailsEnum.VIEWED, UserContext.getDocumentId(), id.toString());
-        
         return toResponseDto(entity);
     }
 

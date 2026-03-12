@@ -2,6 +2,7 @@ package com.asg.hr.competency.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 @Getter
@@ -19,6 +20,7 @@ public class CompetencyMasterRequestDto {
     private String competencyNarration;
 
     @Pattern(regexp = "^[YN]$", message = "Active must be either 'Y' or 'N'")
+    @Size(max = 1, message = "Max character for active is 1")
     private String active;
 
     private Integer seqNo;

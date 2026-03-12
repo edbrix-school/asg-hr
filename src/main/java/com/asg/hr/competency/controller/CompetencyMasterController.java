@@ -3,6 +3,7 @@ package com.asg.hr.competency.controller;
 import com.asg.common.lib.annotation.AllowedAction;
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
+import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.enums.UserRolesRightsEnum;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.LoggingService;
@@ -140,7 +141,9 @@ public class CompetencyMasterController {
     public ResponseEntity<?> getById(
             @Parameter(description = "Competency ID", required = true)
             @PathVariable Long competencyPoid) {
-        return success("Competency retrieved successfully", service.getById(competencyPoid));
+        CompetencyMasterResponseDto response = service.getById(competencyPoid);
+        loggingService.createLogSummaryEntry(LogDetailsEnum.VIEWED, UserContext.getDocumentId(), competencyPoid.toString());
+        return success("Competency retrieved successfully", response);
     }
 
     @Operation(
