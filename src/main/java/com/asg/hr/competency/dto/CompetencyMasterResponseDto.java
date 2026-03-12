@@ -1,0 +1,25 @@
+package com.asg.hr.competency.dto;
+
+import lombok.*;
+
+import java.time.LocalDateTime;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class CompetencyMasterResponseDto {
+
+    private Long competencyPoid;
+    private Long groupPoid;
+    private String competencyCode;
+    private String competencyDescription;
+    private String competencyNarration;
+    private String active;
+    private Integer seqNo;
+    private String createdBy;
+    private LocalDateTime createdDate;
+    private String lastModifiedBy;
+    private LocalDateTime lastModifiedDate;
+}

@@ -34,7 +34,14 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class CompetencyScheduleServiceImpl implements CompetencyScheduleService {
-    
+
+    private static final String DELETED_NO = "N";
+    private static final String SCHEDULE_FIELD = "Schedule";
+    private static final String SCHEDULE_POID_FIELD = "schedulePoid";
+    private static final String COMP_SCHEDULE_POID = "COMP_SCHEDULE_POID";
+    private static final String SCHEDULE_DESCRIPTION = "SCHEDULE_DESCRIPTION";
+    private static final String HR_COMPETENCY_SCHEDULE_TABLE = "HR_COMPETENCY_SCHEDULE";
+
     private final HrCompetencyScheduleRepository scheduleRepository;
     private final CompetencyScheduleProcRepository procRepository;
     private final LoggingService loggingService;
@@ -54,24 +61,24 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
                 .seqNo(requestDto.getSeqNo())
                 .active(requestDto.getActive())
                 .evaluationDate(requestDto.getEvaluationDate())
-                .deleted("N")
+                .deleted(DELETED_NO)
                 .build();
         
-        HrCompetencySchedule saved = scheduleRepository.save(schedule);
-        log.info("Created competency schedule with ID: {}", saved.getSchedulePoid());
+        schedule = scheduleRepository.save(schedule);
+        log.info("Created competency schedule with ID: {}", schedule.getSchedulePoid());
         
         // Log the creation
-        String key = saved.getSchedulePoid().toString();
+        String key = schedule.getSchedulePoid().toString();
         loggingService.createLogSummaryEntry(LogDetailsEnum.CREATED, UserContext.getDocumentId(), key);
         
-        return saved.getSchedulePoid();
+        return schedule.getSchedulePoid();
     }
     
     @Override
     @Transactional
     public Long updateSchedule(Long schedulePoid, CompetencyScheduleRequestDto requestDto) {
-        HrCompetencySchedule schedule = scheduleRepository.findBySchedulePoidAndDeleted(schedulePoid, "N")
-                .orElseThrow(() -> new ResourceNotFoundException("Schedule", "schedulePoid", schedulePoid));
+        HrCompetencySchedule schedule = scheduleRepository.findBySchedulePoidAndDeleted(schedulePoid, DELETED_NO)
+                .orElseThrow(() -> new ResourceNotFoundException(SCHEDULE_FIELD, SCHEDULE_POID_FIELD, schedulePoid));
         
         validatePeriod(requestDto, schedulePoid);
         
@@ -86,33 +93,33 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
         schedule.setActive(requestDto.getActive());
         schedule.setEvaluationDate(requestDto.getEvaluationDate());
         
-        HrCompetencySchedule updated = scheduleRepository.save(schedule);
-        log.info("Updated competency schedule with ID: {}", updated.getSchedulePoid());
+        schedule = scheduleRepository.save(schedule);
+        log.info("Updated competency schedule with ID: {}", schedule.getSchedulePoid());
         
         // Log the update with changes
-        String key = updated.getSchedulePoid().toString();
-        loggingService.logChanges(oldEntity, updated, HrCompetencySchedule.class, 
-                UserContext.getDocumentId(), key, LogDetailsEnum.MODIFIED, "COMP_SCHEDULE_POID");
+        String key = schedule.getSchedulePoid().toString();
+        loggingService.logChanges(oldEntity, schedule, HrCompetencySchedule.class,
+                UserContext.getDocumentId(), key, LogDetailsEnum.MODIFIED, COMP_SCHEDULE_POID);
         
-        return updated.getSchedulePoid();
+        return schedule.getSchedulePoid();
     }
     
     @Override
     public CompetencyScheduleResponseDto getScheduleById(Long schedulePoid) {
-        HrCompetencySchedule schedule = scheduleRepository.findBySchedulePoidAndDeleted(schedulePoid, "N")
-                .orElseThrow(() -> new ResourceNotFoundException("Schedule", "schedulePoid", schedulePoid));
+        HrCompetencySchedule schedule = scheduleRepository.findBySchedulePoidAndDeleted(schedulePoid, DELETED_NO)
+                .orElseThrow(() -> new ResourceNotFoundException(SCHEDULE_FIELD, SCHEDULE_POID_FIELD, schedulePoid));
         
         return mapToResponseDto(schedule);
     }
     
     @Override
     public Map<String, Object> listSchedules(FilterRequestDto filterRequest, Pageable pageable) {
-        String operator = documentSearchService.resolveOperator(filterRequest);
-        String isDeleted = documentSearchService.resolveIsDeleted(filterRequest);
-        List<FilterDto> filterList = documentSearchService.resolveFilters(filterRequest);
-        
-        RawSearchResult raw = documentSearchService.search(UserContext.getDocumentId(), filterList, operator, pageable, isDeleted,
-                "SCHEDULE_DESCRIPTION", "COMP_SCHEDULE_POID");
+        RawSearchResult raw = documentSearchService.search(UserContext.getDocumentId(),
+                documentSearchService.resolveFilters(filterRequest),
+                documentSearchService.resolveOperator(filterRequest),
+                pageable,
+                documentSearchService.resolveIsDeleted(filterRequest),
+                SCHEDULE_DESCRIPTION, COMP_SCHEDULE_POID);
         
         Page<Map<String, Object>> page = new PageImpl<>(raw.records(), pageable, raw.totalRecords());
         return PaginationUtil.wrapPage(page, raw.displayFields());
@@ -121,14 +128,14 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
     @Override
     @Transactional
     public void deleteSchedule(Long schedulePoid, DeleteReasonDto deleteReasonDto) {
-        HrCompetencySchedule schedule = scheduleRepository.findBySchedulePoidAndDeleted(schedulePoid, "N")
-                .orElseThrow(() -> new ResourceNotFoundException("Schedule", "schedulePoid", schedulePoid));
+        scheduleRepository.findBySchedulePoidAndDeleted(schedulePoid, DELETED_NO)
+                .orElseThrow(() -> new ResourceNotFoundException(SCHEDULE_FIELD, SCHEDULE_POID_FIELD, schedulePoid));
         
         // Use DocumentDeleteService for deletion (handles logging internally)
         documentDeleteService.deleteDocument(
                 schedulePoid,
-                "HR_COMPETENCY_SCHEDULE",
-                "COMP_SCHEDULE_POID",
+                HR_COMPETENCY_SCHEDULE_TABLE,
+                COMP_SCHEDULE_POID,
                 deleteReasonDto,
                 null
         );
@@ -139,8 +146,8 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
     @Override
     @Transactional
     public void createBatchEvaluation(Long schedulePoid, LocalDate evaluationDate, Boolean recreate) {
-        HrCompetencySchedule schedule = scheduleRepository.findBySchedulePoidAndDeleted(schedulePoid, "N")
-                .orElseThrow(() -> new ResourceNotFoundException("Schedule", "schedulePoid", schedulePoid));
+        HrCompetencySchedule schedule = scheduleRepository.findBySchedulePoidAndDeleted(schedulePoid, DELETED_NO)
+                .orElseThrow(() -> new ResourceNotFoundException(SCHEDULE_FIELD, SCHEDULE_POID_FIELD, schedulePoid));
         
         LocalDate evalDate = evaluationDate != null ? evaluationDate : schedule.getEvaluationDate();
         procRepository.createBatchEvaluation(schedulePoid, schedule.getGroupPoid(), recreate, evalDate);
