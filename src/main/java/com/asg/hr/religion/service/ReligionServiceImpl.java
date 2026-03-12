@@ -35,14 +35,14 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ReligionImplementation implements ReligionService {
+public class ReligionServiceImpl implements ReligionService {
 
 	private final ReligionRepository repository;
 	private final LoggingService loggingService;
 	private final DocumentDeleteService documentDeleteService;
 	private final DocumentSearchService documentSearchService;
 
-	private static final String RELIGIONPOID = "RELIGION_POID";
+	private static final String RELIGION_POID = "RELIGION_POID";
 
 	@Override
 	public ReligionDtoResponse getReligionById(Long religionPoid) {
@@ -112,7 +112,7 @@ public class ReligionImplementation implements ReligionService {
 		// Log the update with changes
 		String key = updated.getReligionPoid().toString();
 		loggingService.logChanges(oldEntity, updated, HrReligionMaster.class, UserContext.getDocumentId(), key,
-				LogDetailsEnum.MODIFIED, RELIGIONPOID);
+				LogDetailsEnum.MODIFIED, RELIGION_POID);
 
 		return updated.getReligionPoid();
 
@@ -124,7 +124,7 @@ public class ReligionImplementation implements ReligionService {
 				.orElseThrow(() -> new ResourceNotFoundException("Religion", "religionPoid", religionPoid));
 
 		// Use DocumentDeleteService for deletion (handles logging internally)
-		documentDeleteService.deleteDocument(religionPoid, "HR_RELIGION_MASTER", RELIGIONPOID, deleteReasonDto, null);
+		documentDeleteService.deleteDocument(religionPoid, "HR_RELIGION_MASTER", RELIGION_POID, deleteReasonDto, null);
 
 		log.info("Soft deleted Religion with ID: {}", religionPoid);
 	}
@@ -136,7 +136,7 @@ public class ReligionImplementation implements ReligionService {
 		List<FilterDto> filterList = documentSearchService.resolveFilters(filterRequest);
 
 		RawSearchResult raw = documentSearchService.search(UserContext.getDocumentId(), filterList, operator, pageable,
-				isDeleted, "RELIGION_DESCRIPTION", RELIGIONPOID);
+				isDeleted, "RELIGION_DESCRIPTION", RELIGION_POID);
 
 		Page<Map<String, Object>> page = new PageImpl<>(raw.records(), pageable, raw.totalRecords());
 		return PaginationUtil.wrapPage(page, raw.displayFields());

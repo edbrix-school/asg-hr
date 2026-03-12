@@ -34,7 +34,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class ReligionImplementationTest {
+class ReligionServiceImplTest {
 
     @Mock
     private ReligionRepository repository;
@@ -49,7 +49,7 @@ class ReligionImplementationTest {
     private DocumentSearchService documentSearchService;
 
     @InjectMocks
-    private ReligionImplementation service;
+    private ReligionServiceImpl service;
 
     private MockedStatic<UserContext> mockedUserContext;
 

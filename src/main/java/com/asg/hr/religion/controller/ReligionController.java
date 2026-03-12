@@ -67,7 +67,7 @@ public class ReligionController {
     )
     @AllowedAction(UserRolesRightsEnum.CREATE)
     @PostMapping
-    public ResponseEntity<?> createSchedule(
+    public ResponseEntity<?> createReligion(
             @Parameter(description = "Religion details to be created", required = true)
             @Valid @RequestBody ReligionDtoRequest requestDto) {
         try {
@@ -102,7 +102,7 @@ public class ReligionController {
     )
     @AllowedAction(UserRolesRightsEnum.EDIT)
     @PutMapping("/{religionPoid}")
-    public ResponseEntity<?> updateSchedule(
+    public ResponseEntity<?> updateReligion(
             @Parameter(description = "Religion Id to update", required = true)
             @PathVariable Long religionPoid,
             @Parameter(description = "Updated religion details", required = true)
@@ -138,7 +138,7 @@ public class ReligionController {
     )
     @AllowedAction(UserRolesRightsEnum.VIEW)
     @GetMapping("/{religionPoid}")
-    public ResponseEntity<?> getScheduleById(
+    public ResponseEntity<?> getReligionById(
             @Parameter(description = "Religion ID", required = true)
             @PathVariable Long religionPoid) {
         ReligionDtoResponse response = service.getReligionById(religionPoid);
@@ -177,7 +177,7 @@ public class ReligionController {
     )
     @AllowedAction(UserRolesRightsEnum.VIEW)
     @PostMapping("/search")
-    public ResponseEntity<?> listSchedules(
+    public ResponseEntity<?> listReligion(
             @ParameterObject Pageable pageable,
             @RequestBody(required = false) FilterRequestDto filterRequest
     ) {
@@ -206,7 +206,7 @@ public class ReligionController {
     )
     @AllowedAction(UserRolesRightsEnum.DELETE)
     @DeleteMapping("/{religionPoid}")
-    public ResponseEntity<?> deleteSchedule(
+    public ResponseEntity<?> deleteReligion(
             @Parameter(description = "Religion ID to delete", required = true)
             @PathVariable Long religionPoid,
             @Valid @RequestBody(required = false) DeleteReasonDto deleteReasonDto) {

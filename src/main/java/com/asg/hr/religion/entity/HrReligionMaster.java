@@ -22,19 +22,19 @@ public class HrReligionMaster extends BaseEntity {
     @AuditIgnore
     private Long groupPoid;
 
-    @Column(name = "RELIGION_CODE", unique = true)
+    @Column(name = "RELIGION_CODE", unique = true, length = 20)
     private String religionCode;
 
-    @Column(name = "RELIGION_DESCRIPTION", unique = true)
+    @Column(name = "RELIGION_DESCRIPTION", unique = true, length = 100)
     private String religionDescription;
 
-    @Column(name = "ACTIVE")
+    @Column(name = "ACTIVE", length = 1)
     private String active;
 
     @Column(name = "SEQNO")
     private Long seqNo;
 
-    @Column(name = "DELETED")
+    @Column(name = "DELETED", length = 1)
     private String deleted;
 
 }
