@@ -1,7 +1,6 @@
 package com.asg.hr.departmentmaster.entity;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -9,6 +8,9 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @Entity
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Table(
         name = "GL_COST_CENTER_MASTER",
         uniqueConstraints = {

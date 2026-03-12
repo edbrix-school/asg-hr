@@ -1,14 +1,16 @@
 package com.asg.hr.departmentmaster.entity;
 
 import com.asg.common.lib.entity.BaseEntity;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import jakarta.persistence.*;
 
 @Getter
 @Setter
 @Entity
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Table(name = "HR_DEPARTMENT_MASTER", 
        uniqueConstraints = {
            @UniqueConstraint(name = "HR_DEPARTMENT_MASTER_UK_DPCD", columnNames = "DEPT_CODE"),
