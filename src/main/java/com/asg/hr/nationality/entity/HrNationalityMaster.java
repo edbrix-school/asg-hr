@@ -1,5 +1,6 @@
 package com.asg.hr.nationality.entity;
 
+import com.asg.common.lib.annotation.AuditIgnore;
 import com.asg.common.lib.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -26,9 +27,11 @@ public class HrNationalityMaster extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "NATION_POID", nullable = false)
+    @AuditIgnore
     private Long nationPoid;
 
     @Column(name = "GROUP_POID", nullable = false)
+    @AuditIgnore
     private Long groupPoid;
 
     @Column(name = "NATIONALITY_CODE", nullable = false, length = 20)
