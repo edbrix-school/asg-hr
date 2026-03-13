@@ -1,5 +1,6 @@
 package com.asg.hr.departmentmaster.entity;
 
+import com.asg.common.lib.annotation.AuditIgnore;
 import com.asg.common.lib.entity.BaseEntity;
 import lombok.*;
 
@@ -19,10 +20,12 @@ import jakarta.persistence.*;
 public class HrDepartmentMaster extends BaseEntity {
 
     @Id
+    @AuditIgnore
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "DEPT_POID", nullable = false)
     private Long deptPoid;
 
+    @AuditIgnore
     @Column(name = "GROUP_POID")
     private Long groupPoid;
 
@@ -47,6 +50,7 @@ public class HrDepartmentMaster extends BaseEntity {
     @Column(name = "PARENT_DEPT_POID")
     private Long parentDeptPoid;
 
+    @AuditIgnore
     @Column(name = "DELETED", length = 1)
     private String deleted = "N";
 

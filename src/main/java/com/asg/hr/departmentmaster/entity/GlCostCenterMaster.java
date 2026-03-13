@@ -1,9 +1,10 @@
 package com.asg.hr.departmentmaster.entity;
 
+import com.asg.common.lib.annotation.AuditIgnore;
+import com.asg.common.lib.entity.BaseEntity;
 import lombok.*;
 
 import jakarta.persistence.*;
-import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -18,9 +19,10 @@ import java.time.LocalDateTime;
                 @UniqueConstraint(name = "GL_COST_CENTER_UK_DESC", columnNames = "COST_CENTER_DESCRIPTION")
         }
 )
-public class GlCostCenterMaster {
+public class GlCostCenterMaster extends BaseEntity {
 
     @Id
+    @AuditIgnore
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "costCenterSeq")
     @SequenceGenerator(
             name = "costCenterSeq",
@@ -30,6 +32,7 @@ public class GlCostCenterMaster {
     @Column(name = "COST_CENTER_POID", nullable = false)
     private Long costCenterPoid;
 
+    @AuditIgnore
     @Column(name = "GROUP_POID")
     private Long groupPoid;
 
@@ -54,27 +57,17 @@ public class GlCostCenterMaster {
     @Column(name = "REMARKS", length = 100)
     private String remarks;
 
-    @Column(name = "CREATED_BY", length = 20)
-    private String createdBy;
-
-    @Column(name = "CREATED_DATE")
-    private LocalDateTime createdDate;
-
-    @Column(name = "LASTMODIFIED_BY", length = 20)
-    private String lastModifiedBy;
-
-    @Column(name = "LASTMODIFIED_DATE")
-    private LocalDateTime lastModifiedDate;
-
     @Column(name = "COST_CENTER_GROUP_TYPE")
     private Long costCenterGroupType;
 
     @Column(name = "ACTIVE", length = 1)
     private String active;
 
+    @AuditIgnore
     @Column(name = "DELETED", length = 1)
     private String deleted;
 
+    @AuditIgnore
     @Column(name = "COMPANY_POID")
     private Long companyPoid;
 
