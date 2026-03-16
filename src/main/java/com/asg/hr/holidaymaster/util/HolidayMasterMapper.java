@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class HolidayMasterMapper {
@@ -34,7 +33,7 @@ public class HolidayMasterMapper {
     }
 
     public List<HolidayMasterResponse> toResponseList(List<HolidayMasterEntity> entities) {
-        return entities.stream().map(this::toResponse).collect(Collectors.toList());
+        return entities.stream().map(this::toResponse).toList();
     }
 
     public HolidayMasterEntity toEntity(HolidayMasterRequest request, String userId) {
