@@ -48,9 +48,6 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
     private final LoggingService loggingService;
     private final JdbcTemplate jdbcTemplate;
 
-    private static final String DOC_ID = "800-011";
-    private static final DateTimeFormatter BATCH_KEY_DATE_FMT = DateTimeFormatter.BASIC_ISO_DATE;
-
     @Override
     public Map<String, Object> listHolidays(String docId, FilterRequestDto filters, Pageable pageable) {
         log.info("Listing holidays with docId: {}, page: {}, size: {}", docId, pageable.getPageNumber(), pageable.getPageSize());
