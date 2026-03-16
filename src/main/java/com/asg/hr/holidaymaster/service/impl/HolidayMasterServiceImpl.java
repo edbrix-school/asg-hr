@@ -238,11 +238,6 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
 
             log.info("PROC_HR_CREATE_HOLIDAYS completed with status: {}", status);
 
-            // LOG_DOC_KEY_POID is constrained in DB (max 20 chars); keep a compact key.
-            String batchLogKey = String.format("BATCH_%s_%d",
-                    request.getStartDate().format(BATCH_KEY_DATE_FMT), request.getDays());
-            loggingService.createLogSummaryEntry(LogDetailsEnum.CREATED, DOC_ID, batchLogKey);
-
             return status;
         } catch (DataAccessException ex) {
             log.error("Error while executing PROC_HR_CREATE_HOLIDAYS", ex);
