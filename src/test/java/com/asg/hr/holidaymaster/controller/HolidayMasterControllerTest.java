@@ -23,7 +23,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -59,7 +58,7 @@ class HolidayMasterControllerTest {
         Pageable pageable = PageRequest.of(0, 10);
         FilterRequestDto filters = new FilterRequestDto("OR", "N", List.of(new FilterDto("GLOBALSEARCH", "new")));
 
-        when(holidayMasterService.listHolidays(eq("800-011"), eq(filters), eq(pageable)))
+        when(holidayMasterService.listHolidays("800-011", filters, pageable))
                 .thenReturn(Map.of("items", List.of(), "total", 0));
 
         ResponseEntity<?> entity = controller.listHolidays(pageable, filters, "800-011");

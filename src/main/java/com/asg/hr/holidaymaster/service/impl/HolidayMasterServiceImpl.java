@@ -16,6 +16,7 @@ import com.asg.hr.holidaymaster.dto.HolidayMasterResponse;
 import com.asg.hr.holidaymaster.entity.HolidayMasterEntity;
 import com.asg.hr.holidaymaster.repository.HolidayMasterRepository;
 import com.asg.hr.holidaymaster.service.HolidayMasterService;
+import com.asg.hr.holidaymaster.util.HolidayMasterConstants;
 import com.asg.hr.holidaymaster.util.HolidayMasterMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -79,8 +80,8 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
         HolidayMasterEntity entity =
                 repository.findByHolidayPoidAndDeletedNot(holidayPoid, "Y")
                         .orElseThrow(() -> new ResourceNotFoundException(
-                                "HolidayMaster",
-                                "holidayPoid",
+                                HolidayMasterConstants.HOLIDAY_MASTER,
+                                HolidayMasterConstants.HOLIDAY_POID,
                                 holidayPoid
                         ));
 
@@ -100,7 +101,7 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
             );
         }
 
-        String userId = UserContext.getUserId() != null ? UserContext.getUserId() : "SYSTEM";
+        String userId = UserContext.getUserId() != null ? UserContext.getUserId() : HolidayMasterConstants.SYSTEM;
 
         HolidayMasterEntity entity = mapper.toEntity(request, userId);
         HolidayMasterEntity saved = repository.save(entity);
@@ -119,8 +120,8 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
         HolidayMasterEntity entity =
                 repository.findByHolidayPoidAndDeletedNot(holidayPoid, "Y")
                         .orElseThrow(() -> new ResourceNotFoundException(
-                                "HolidayMaster",
-                                "holidayPoid",
+                                HolidayMasterConstants.HOLIDAY_MASTER,
+                                HolidayMasterConstants.HOLIDAY_POID,
                                 holidayPoid
                         ));
 
@@ -135,7 +136,7 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
         HolidayMasterEntity oldEntity = new HolidayMasterEntity();
         BeanUtils.copyProperties(entity, oldEntity);
 
-        String userId = UserContext.getUserId() != null ? UserContext.getUserId() : "SYSTEM";
+        String userId = UserContext.getUserId() != null ? UserContext.getUserId() : HolidayMasterConstants.SYSTEM;
         mapper.updateEntity(entity, request, userId);
         repository.save(entity);
 
@@ -153,8 +154,8 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
         HolidayMasterEntity entity =
                 repository.findByHolidayPoidAndDeletedNot(holidayPoid, "Y")
                         .orElseThrow(() -> new ResourceNotFoundException(
-                                "HolidayMaster",
-                                "holidayPoid",
+                                HolidayMasterConstants.HOLIDAY_MASTER,
+                                HolidayMasterConstants.HOLIDAY_POID,
                                 holidayPoid
                         ));
 
@@ -187,8 +188,8 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
         HolidayMasterEntity entity =
                 repository.findByHolidayPoidAndDeletedNot(holidayPoid, "Y")
                         .orElseThrow(() -> new ResourceNotFoundException(
-                                "HolidayMaster",
-                                "holidayPoid",
+                                HolidayMasterConstants.HOLIDAY_MASTER,
+                                HolidayMasterConstants.HOLIDAY_POID,
                                 holidayPoid
                         ));
 
@@ -242,7 +243,7 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
     }
 
     private String getCurrentUserId() {
-        return UserContext.getUserId() != null ? UserContext.getUserId() : "SYSTEM";
+        return UserContext.getUserId() != null ? UserContext.getUserId() : HolidayMasterConstants.SYSTEM;
     }
 }
 

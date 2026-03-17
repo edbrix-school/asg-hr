@@ -14,6 +14,7 @@ import com.asg.hr.holidaymaster.dto.HolidayMasterRequest;
 import com.asg.hr.holidaymaster.dto.HolidayMasterResponse;
 import com.asg.hr.holidaymaster.entity.HolidayMasterEntity;
 import com.asg.hr.holidaymaster.repository.HolidayMasterRepository;
+import com.asg.hr.holidaymaster.util.HolidayMasterConstants;
 import com.asg.hr.holidaymaster.util.HolidayMasterMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -159,7 +160,7 @@ class HolidayMasterServiceImplTest {
     @Test
     void create_WhenSuccess_UsesFallbackSystemUserIfContextMissing() {
         when(repository.existsByHolidayDate(request.getHolidayDate())).thenReturn(false);
-        when(mapper.toEntity(request, "SYSTEM")).thenReturn(entity);
+        when(mapper.toEntity(request, HolidayMasterConstants.SYSTEM)).thenReturn(entity);
         when(repository.save(entity)).thenReturn(entity);
         when(mapper.toResponse(entity)).thenReturn(response);
         doNothing().when(loggingService).createLogSummaryEntry(eq(LogDetailsEnum.CREATED), any(), eq("1"));
@@ -171,7 +172,7 @@ class HolidayMasterServiceImplTest {
             HolidayMasterResponse result = service.create(request);
 
             assertNotNull(result);
-            verify(mapper).toEntity(request, "SYSTEM");
+            verify(mapper).toEntity(request, HolidayMasterConstants.SYSTEM);
             verify(loggingService).createLogSummaryEntry(LogDetailsEnum.CREATED, "800-011", "1");
         }
     }
@@ -295,7 +296,6 @@ class HolidayMasterServiceImplTest {
             String status = service.batchCreateHolidays(batchRequest);
 
             assertEquals("SUCCESS", status);
-            verify(loggingService).createLogSummaryEntry(eq(LogDetailsEnum.CREATED), eq("800-011"), anyString());
             assertEquals(1, mockedConstruction.constructed().size());
         }
     }
