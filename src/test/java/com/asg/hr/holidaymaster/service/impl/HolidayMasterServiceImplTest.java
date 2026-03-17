@@ -28,7 +28,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.SqlParameter;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 
@@ -67,9 +66,6 @@ class HolidayMasterServiceImplTest {
 
     @Mock
     private LoggingService loggingService;
-
-    @Mock
-    private JdbcTemplate jdbcTemplate;
 
     @InjectMocks
     private HolidayMasterServiceImpl service;
