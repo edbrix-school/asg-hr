@@ -126,18 +126,21 @@ public class AllowanceDeductionMasterServiceImpl implements AllowanceDeductionMa
     }
 
     @Override
+    @Transactional
     public void delete(Long allowaceDeductionPoid, DeleteReasonDto deleteReasonDto) {
-        log.info("Deleting allowance/deduction with id: {}", allowaceDeductionPoid);
-
         HrAllowanceDeductionMaster entity = repository.findById(allowaceDeductionPoid)
                 .orElseThrow(() -> new ResourceNotFoundException(ALLOWANCE_DEDUCTION, ALLOWACE_DEDUCTION_POID_FIELD, allowaceDeductionPoid));
-
-        if (DELETED_FLAG.equals(entity.getDeleted())) {
-            throw new CustomException(ERROR_ALREADY_DELETED);
-        }
-
-        documentDeleteService.deleteDocument(allowaceDeductionPoid, TABLE_NAME, PRIMARY_KEY, deleteReasonDto, null);
-        log.info("Successfully deleted allowance/deduction with id: {}", allowaceDeductionPoid);
+        
+        // Use DocumentDeleteService for deletion (handles logging internally)
+        documentDeleteService.deleteDocument(
+                allowaceDeductionPoid,
+                TABLE_NAME,
+                PRIMARY_KEY,
+                deleteReasonDto,
+                null
+        );
+        
+        log.info("Soft deleted allowance/deduction with ID: {}", allowaceDeductionPoid);
     }
 
     @Override

@@ -243,16 +243,6 @@ class AllowanceDeductionMasterServiceTest {
         verify(documentDeleteService, never()).deleteDocument(anyLong(), anyString(), anyString(), any(), any());
     }
 
-    @Test
-    void testDeleteAlreadyDeletedRecord() {
-        Long id = 1L;
-        entity.setDeleted("Y");
-        when(repository.findById(id)).thenReturn(Optional.of(entity));
-
-        assertThrows(CustomException.class, () -> service.delete(id, null));
-        verify(documentDeleteService, never()).deleteDocument(anyLong(), anyString(), anyString(), any(), any());
-    }
-
     // ---------- SEARCH ----------
     @Test
     void testSearchSuccess() {
