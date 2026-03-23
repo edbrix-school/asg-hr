@@ -4,6 +4,7 @@ import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.ResourceNotFoundException;
+import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.airsector.dto.HrAirsectorRequestDto;
@@ -70,7 +71,7 @@ import static org.mockito.Mockito.*;
         request.setAirsectorDescription("Test Sector");
 
         when(service.create(any(HrAirsectorRequestDto.class)))
-                .thenThrow(new IllegalArgumentException("Invalid input"));
+                .thenThrow(new ValidationException("Invalid input"));
 
         ResponseEntity<?> result = controller.createAirsectorMaster(request);
 
