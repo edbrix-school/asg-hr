@@ -9,7 +9,6 @@ import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
-import com.asg.hr.exceptions.ResourceAlreadyExistsException;
 import com.asg.hr.exceptions.ValidationException;
 import com.asg.hr.religion.dto.ReligionDtoRequest;
 import com.asg.hr.religion.dto.ReligionDtoResponse;
@@ -23,6 +22,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
@@ -119,11 +119,11 @@ class ReligionServiceImplTest {
     void getReligionById_NotFound() {
         when(repository.findById(1L)).thenReturn(Optional.empty());
 
-        RuntimeException exception = assertThrows(RuntimeException.class,
+        RuntimeException exception = assertThrows(ResourceNotFoundException.class,
                 () -> service.getReligionById(1L));
 
-        assertEquals("Religion not found", exception.getMessage());
-        verify(repository).findById(1L);
+        assertTrue(exception.getMessage().contains("Religion"));
+        verify(repository, never()).save(any());
     }
 
     // ================= CREATE TESTS =================
@@ -131,7 +131,6 @@ class ReligionServiceImplTest {
     @Test
     void createReligion_Success() {
         ReligionDtoRequest request = createMockRequest();
-        HrReligionMaster entity = createMockEntity();
 
         when(repository.findByReligionCode("HINDU")).thenReturn(Optional.empty());
         when(repository.findByReligionDescription("Hindu Religion")).thenReturn(Optional.empty());
@@ -152,7 +151,7 @@ class ReligionServiceImplTest {
         verify(repository).findByReligionDescription("Hindu Religion");
         verify(repository).save(any(HrReligionMaster.class));
         verify(loggingService).createLogSummaryEntry(
-                eq(LogDetailsEnum.CREATED), eq("DOC123"), eq("1"));
+                LogDetailsEnum.CREATED, "DOC123", "1");
     }
 
     @Test
@@ -210,10 +209,10 @@ class ReligionServiceImplTest {
 
         when(repository.findByReligionCode("HINDU")).thenReturn(Optional.of(existingEntity));
 
-        ResourceAlreadyExistsException exception = assertThrows(ResourceAlreadyExistsException.class,
+        DuplicateKeyException exception = assertThrows(DuplicateKeyException.class,
                 () -> service.createReligion(request));
 
-        assertEquals("Religion Code already exists", exception.getMessage());
+        assertEquals("Religion Code already exists: HINDU", exception.getMessage());
         verify(repository).findByReligionCode("HINDU");
         verify(repository, never()).save(any());
     }
@@ -226,10 +225,10 @@ class ReligionServiceImplTest {
         when(repository.findByReligionCode("HINDU")).thenReturn(Optional.empty());
         when(repository.findByReligionDescription("Hindu Religion")).thenReturn(Optional.of(existingEntity));
 
-        ResourceAlreadyExistsException exception = assertThrows(ResourceAlreadyExistsException.class,
+        DuplicateKeyException exception = assertThrows(DuplicateKeyException.class,
                 () -> service.createReligion(request));
 
-        assertEquals("Religion Description already exists", exception.getMessage());
+        assertEquals("Religion Description already exists: Hindu Religion", exception.getMessage());
         verify(repository).findByReligionCode("HINDU");
         verify(repository).findByReligionDescription("Hindu Religion");
         verify(repository, never()).save(any());
@@ -249,13 +248,13 @@ class ReligionServiceImplTest {
         when(repository.findByReligionCode("MUSLIM")).thenReturn(Optional.empty());
         when(repository.findByReligionDescription("Muslim Religion")).thenReturn(Optional.empty());
         when(repository.save(any(HrReligionMaster.class))).thenReturn(entity);
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
         doNothing().when(loggingService).logChanges(
                 any(), any(), any(), anyString(), anyString(), any(LogDetailsEnum.class), anyString());
 
-        Long result = service.updateReligion(request, 1L);
+        ReligionDtoResponse result = service.updateReligion(request, 1L);
 
         assertNotNull(result);
-        assertEquals(1L, result);
 
         verify(repository).findByReligionPoidDeleted(1L);
         verify(repository).findByReligionCode("MUSLIM");
@@ -290,13 +289,13 @@ class ReligionServiceImplTest {
         when(repository.findByReligionCode("HINDU")).thenReturn(Optional.of(entity));
         when(repository.findByReligionDescription("Hindu Religion")).thenReturn(Optional.of(entity));
         when(repository.save(any(HrReligionMaster.class))).thenReturn(entity);
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
         doNothing().when(loggingService).logChanges(
                 any(), any(), any(), anyString(), anyString(), any(LogDetailsEnum.class), anyString());
 
-        Long result = service.updateReligion(request, 1L);
+        ReligionDtoResponse result = service.updateReligion(request, 1L);
 
         assertNotNull(result);
-        assertEquals(1L, result);
 
         verify(repository).save(any(HrReligionMaster.class));
     }
@@ -311,10 +310,10 @@ class ReligionServiceImplTest {
         when(repository.findByReligionPoidDeleted(1L)).thenReturn(Optional.of(entity));
         when(repository.findByReligionCode("HINDU")).thenReturn(Optional.of(duplicateEntity));
 
-        ResourceAlreadyExistsException exception = assertThrows(ResourceAlreadyExistsException.class,
+        DuplicateKeyException exception = assertThrows(DuplicateKeyException.class,
                 () -> service.updateReligion(request, 1L));
 
-        assertEquals("Religion Code already exists", exception.getMessage());
+        assertEquals("Religion Code already exists: HINDU", exception.getMessage());
         verify(repository, never()).save(any());
     }
 
@@ -329,10 +328,10 @@ class ReligionServiceImplTest {
         when(repository.findByReligionCode("HINDU")).thenReturn(Optional.empty());
         when(repository.findByReligionDescription("Hindu Religion")).thenReturn(Optional.of(duplicateEntity));
 
-        ResourceAlreadyExistsException exception = assertThrows(ResourceAlreadyExistsException.class,
+        DuplicateKeyException exception = assertThrows(DuplicateKeyException.class,
                 () -> service.updateReligion(request, 1L));
 
-        assertEquals("Religion Description already exists", exception.getMessage());
+        assertEquals("Religion Description already exists: Hindu Religion", exception.getMessage());
         verify(repository, never()).save(any());
     }
 
@@ -408,11 +407,11 @@ class ReligionServiceImplTest {
         Pageable pageable = PageRequest.of(0, 10);
 
         List<Map<String, Object>> records = new ArrayList<>();
-        Map<String, Object> record = new HashMap<>();
-        record.put("RELIGION_POID", 1L);
-        record.put("RELIGION_CODE", "HINDU");
-        record.put("RELIGION_DESCRIPTION", "Hindu Religion");
-        records.add(record);
+        Map<String, Object> data = new HashMap<>();
+        data.put("RELIGION_POID", 1L);
+        data.put("RELIGION_CODE", "HINDU");
+        data.put("RELIGION_DESCRIPTION", "Hindu Religion");
+        records.add(data);
 
         Map<String, String> displayFields = new HashMap<>();
         displayFields.put("RELIGION_POID", "Religion ID");

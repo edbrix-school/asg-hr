@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.beans.BeanUtils;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -43,11 +44,13 @@ public class ReligionServiceImpl implements ReligionService {
 	private final DocumentSearchService documentSearchService;
 
 	private static final String RELIGION_POID = "RELIGION_POID";
+    private static final String RELIGIONPOID= "religionPoid";
+    private static final String RELIGION="Religion";
 
 	@Override
 	public ReligionDtoResponse getReligionById(Long religionPoid) {
 		HrReligionMaster entity = repository.findById(religionPoid)
-				.orElseThrow(() -> new RuntimeException("Religion not found"));
+				.orElseThrow(() -> new ResourceNotFoundException(RELIGION, RELIGIONPOID, religionPoid));
 		ReligionDtoResponse response = new ReligionDtoResponse();
 		response.setReligionPoid(entity.getReligionPoid());
 		response.setReligionCode(entity.getReligionCode());
@@ -90,10 +93,10 @@ public class ReligionServiceImpl implements ReligionService {
 	}
 
 	@Override
-	public Long updateReligion(ReligionDtoRequest religionDto, Long religionPoid) {
+	public ReligionDtoResponse updateReligion(ReligionDtoRequest religionDto, Long religionPoid) {
 
 		HrReligionMaster religion = repository.findByReligionPoidDeleted(religionPoid)
-				.orElseThrow(() -> new ResourceNotFoundException("Religion", "religionPoid", religionPoid));
+				.orElseThrow(() -> new ResourceNotFoundException(RELIGION, RELIGIONPOID, religionPoid));
 
 		validateReligionDto(religionDto, religionPoid);
 
@@ -114,14 +117,14 @@ public class ReligionServiceImpl implements ReligionService {
 		loggingService.logChanges(oldEntity, updated, HrReligionMaster.class, UserContext.getDocumentId(), key,
 				LogDetailsEnum.MODIFIED, RELIGION_POID);
 
-		return updated.getReligionPoid();
+		return getReligionById(religionPoid);
 
 	}
 
 	@Override
 	public void deleteReligion(Long religionPoid, DeleteReasonDto deleteReasonDto) {
 		repository.findByReligionPoidDeleted(religionPoid)
-				.orElseThrow(() -> new ResourceNotFoundException("Religion", "religionPoid", religionPoid));
+				.orElseThrow(() -> new ResourceNotFoundException(RELIGION, RELIGIONPOID, religionPoid));
 
 		// Use DocumentDeleteService for deletion (handles logging internally)
 		documentDeleteService.deleteDocument(religionPoid, "HR_RELIGION_MASTER", RELIGION_POID, deleteReasonDto, null);
@@ -144,7 +147,7 @@ public class ReligionServiceImpl implements ReligionService {
 
 	private void checkDuplicate(Optional<HrReligionMaster> entity, Long religionPoid, String message) {
 		entity.filter(r -> !Objects.equals(r.getReligionPoid(), religionPoid)).ifPresent(r -> {
-			throw new ResourceAlreadyExistsException(message);
+			throw new DuplicateKeyException(message);
 		});
 	}
 
@@ -160,10 +163,10 @@ public class ReligionServiceImpl implements ReligionService {
 		validateRequired(religionDto.getDescription(), "Religion Description is required");
 
 		checkDuplicate(repository.findByReligionCode(religionDto.getReligionCode()), religionPoid,
-				"Religion Code already exists");
+				"Religion Code already exists: "+religionDto.getReligionCode());
 
 		checkDuplicate(repository.findByReligionDescription(religionDto.getDescription()), religionPoid,
-				"Religion Description already exists");
+				"Religion Description already exists: "+religionDto.getDescription());
 	}
 
 }

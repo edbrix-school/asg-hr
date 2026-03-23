@@ -3,7 +3,6 @@ package com.asg.hr.religion.controller;
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
-import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.religion.dto.ReligionDtoRequest;
@@ -78,6 +77,8 @@ class ReligionControllerTest {
         ReligionDtoRequest dto = new ReligionDtoRequest();
         dto.setReligionCode("HINDU");
         dto.setDescription("Hindu Religion");
+        dto.setActive("Y");
+        dto.setSeqNo(1L);
         return dto;
     }
 
@@ -86,6 +87,8 @@ class ReligionControllerTest {
         dto.setReligionPoid(1L);
         dto.setReligionCode("HINDU");
         dto.setDescription("Hindu Religion");
+        dto.setActive("Y");
+        dto.setSeqNo(1L);
         return dto;
     }
 
@@ -109,46 +112,11 @@ class ReligionControllerTest {
     }
 
     @Test
-    void createReligion_ValidationException() throws Exception {
-        ReligionDtoRequest request = createMockRequest();
-
-        when(service.createReligion(any(ReligionDtoRequest.class)))
-                .thenThrow(new ValidationException("Religion code already exists"));
-
-        mockMvc.perform(post("/v1/religion")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Religion code already exists"));
-
-        verify(service).createReligion(any(ReligionDtoRequest.class));
-    }
-
-    @Test
-    void createReligion_GenericException() throws Exception {
-        ReligionDtoRequest request = createMockRequest();
-
-        when(service.createReligion(any(ReligionDtoRequest.class)))
-                .thenThrow(new RuntimeException("Database error"));
-
-        mockMvc.perform(post("/v1/religion")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Database error"));
-
-        verify(service).createReligion(any(ReligionDtoRequest.class));
-    }
-
-    // ================= UPDATE TESTS =================
-
-    @Test
     void updateReligion_Success() throws Exception {
         ReligionDtoRequest request = createMockRequest();
+        ReligionDtoResponse response = createMockResponse();
 
-        when(service.updateReligion(any(ReligionDtoRequest.class), eq(1L))).thenReturn(1L);
+        when(service.updateReligion(any(ReligionDtoRequest.class), eq(1L))).thenReturn(response);
 
         mockMvc.perform(put("/v1/religion/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -160,42 +128,6 @@ class ReligionControllerTest {
 
         verify(service).updateReligion(any(ReligionDtoRequest.class), eq(1L));
     }
-
-    @Test
-    void updateReligion_ValidationException() throws Exception {
-        ReligionDtoRequest request = createMockRequest();
-
-        when(service.updateReligion(any(ReligionDtoRequest.class), eq(1L)))
-                .thenThrow(new ValidationException("Religion not found"));
-
-        mockMvc.perform(put("/v1/religion/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Religion not found"));
-
-        verify(service).updateReligion(any(ReligionDtoRequest.class), eq(1L));
-    }
-
-    @Test
-    void updateReligion_GenericException() throws Exception {
-        ReligionDtoRequest request = createMockRequest();
-
-        when(service.updateReligion(any(ReligionDtoRequest.class), eq(1L)))
-                .thenThrow(new RuntimeException("Update failed"));
-
-        mockMvc.perform(put("/v1/religion/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Update failed"));
-
-        verify(service).updateReligion(any(ReligionDtoRequest.class), eq(1L));
-    }
-
-    // ================= GET BY ID TESTS =================
 
     @Test
     void getReligionById_Success() throws Exception {
@@ -216,8 +148,6 @@ class ReligionControllerTest {
         verify(loggingService).createLogSummaryEntry(
                 eq(LogDetailsEnum.VIEWED), eq("DOC123"), eq("1"));
     }
-
-    // ================= SEARCH/LIST TESTS =================
 
     @Test
     void listReligion_Success() throws Exception {
@@ -257,25 +187,6 @@ class ReligionControllerTest {
     }
 
     @Test
-    void listReligion_Exception() throws Exception {
-        FilterRequestDto filters = new FilterRequestDto("AND", "N", List.of());
-
-        when(service.listReligion(any(FilterRequestDto.class), any()))
-                .thenThrow(new RuntimeException("Database connection failed"));
-
-        mockMvc.perform(post("/v1/religion/search")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(filters)))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Unable to fetch religions: Database connection failed"));
-
-        verify(service).listReligion(any(FilterRequestDto.class), any());
-    }
-
-    // ================= DELETE TESTS =================
-
-    @Test
     void deleteReligion_Success() throws Exception {
         DeleteReasonDto deleteReasonDto = new DeleteReasonDto();
         deleteReasonDto.setDeleteReason("No longer needed");
@@ -303,5 +214,51 @@ class ReligionControllerTest {
                 .andExpect(jsonPath("$.message").value("Religion deleted successfully"));
 
         verify(service).deleteReligion(eq(1L), any());
+    }
+
+    // ================= VALIDATION TESTS =================
+
+    @Test
+    void createReligion_MissingReligionCode_BadRequest() throws Exception {
+        ReligionDtoRequest request = createMockRequest();
+        request.setReligionCode(""); // Invalid
+
+        mockMvc.perform(post("/v1/religion")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createReligion_ReligionCodeTooLong_BadRequest() throws Exception {
+        ReligionDtoRequest request = createMockRequest();
+        request.setReligionCode("A".repeat(21)); // Max 20
+
+        mockMvc.perform(post("/v1/religion")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createReligion_MissingActive_BadRequest() throws Exception {
+        ReligionDtoRequest request = createMockRequest();
+        request.setActive(""); // Invalid
+
+        mockMvc.perform(post("/v1/religion")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createReligion_DescriptionTooLong_BadRequest() throws Exception {
+        ReligionDtoRequest request = createMockRequest();
+        request.setDescription("A".repeat(101)); // Max 100
+
+        mockMvc.perform(post("/v1/religion")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 }

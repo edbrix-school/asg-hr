@@ -14,7 +14,8 @@ public interface ReligionService {
 
     Long createReligion(ReligionDtoRequest religionDto);
 
-    Long updateReligion(ReligionDtoRequest religionDto,Long religionPoid);
+
+    ReligionDtoResponse updateReligion(ReligionDtoRequest religionDto,Long religionPoid);
 
     void deleteReligion(Long religionPoid, DeleteReasonDto deleteReasonDto);
 

@@ -5,7 +5,6 @@ import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.enums.UserRolesRightsEnum;
-import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.competency.dto.CompetencyScheduleResponseDto;
@@ -29,7 +28,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-import static com.asg.common.lib.dto.response.ApiResponse.*;
+import static com.asg.common.lib.dto.response.ApiResponse.success;
 
 @RestController
 @RequestMapping("/v1/religion")
@@ -70,15 +69,8 @@ public class ReligionController {
     public ResponseEntity<?> createReligion(
             @Parameter(description = "Religion details to be created", required = true)
             @Valid @RequestBody ReligionDtoRequest requestDto) {
-        try {
-            Long religionPoid = service.createReligion(requestDto);
-            return success("Religion created successfully", Map.of("religionPoid", religionPoid));
-        } catch (ValidationException ex) {
-            return badRequest(ex.getMessage());
-        } catch (Exception ex) {
-            return internalServerError(ex.getMessage());
-        }
-
+        Long religionPoid = service.createReligion(requestDto);
+        return success("Religion created successfully", Map.of("religionPoid", religionPoid));
     }
 
     @Operation(
@@ -104,17 +96,11 @@ public class ReligionController {
     @PutMapping("/{religionPoid}")
     public ResponseEntity<?> updateReligion(
             @Parameter(description = "Religion Id to update", required = true)
-            @PathVariable Long religionPoid,
+            @PathVariable(name = "religionPoid") Long religionPoid,
             @Parameter(description = "Updated religion details", required = true)
             @Valid @RequestBody ReligionDtoRequest requestDto) {
-        try {
-            Long updatedPoid = service.updateReligion(requestDto, religionPoid);
-            return success("Religion updated successfully", Map.of("religionPoid", updatedPoid));
-        } catch (ValidationException ex) {
-            return badRequest(ex.getMessage());
-        } catch (Exception ex) {
-            return internalServerError(ex.getMessage());
-        }
+        ReligionDtoResponse response = service.updateReligion(requestDto, religionPoid);
+        return success("Religion updated successfully", response);
     }
 
     @Operation(
@@ -140,7 +126,7 @@ public class ReligionController {
     @GetMapping("/{religionPoid}")
     public ResponseEntity<?> getReligionById(
             @Parameter(description = "Religion ID", required = true)
-            @PathVariable Long religionPoid) {
+            @PathVariable(name = "religionPoid") Long religionPoid) {
         ReligionDtoResponse response = service.getReligionById(religionPoid);
         loggingService.createLogSummaryEntry(LogDetailsEnum.VIEWED, UserContext.getDocumentId(), religionPoid.toString());
         return success("Religion detail fetched successfully", response);
@@ -181,12 +167,8 @@ public class ReligionController {
             @ParameterObject Pageable pageable,
             @RequestBody(required = false) FilterRequestDto filterRequest
     ) {
-        try {
-            Map<String, Object> result = service.listReligion(filterRequest, pageable);
-            return success("Religions fetched successfully", result);
-        } catch (Exception e) {
-            return internalServerError("Unable to fetch religions: " + e.getMessage());
-        }
+        Map<String, Object> result = service.listReligion(filterRequest, pageable);
+        return success("Religions fetched successfully", result);
     }
 
     @Operation(
@@ -208,7 +190,7 @@ public class ReligionController {
     @DeleteMapping("/{religionPoid}")
     public ResponseEntity<?> deleteReligion(
             @Parameter(description = "Religion ID to delete", required = true)
-            @PathVariable Long religionPoid,
+            @PathVariable(name = "religionPoid") Long religionPoid,
             @Valid @RequestBody(required = false) DeleteReasonDto deleteReasonDto) {
         service.deleteReligion(religionPoid, deleteReasonDto);
         return success("Religion deleted successfully");
