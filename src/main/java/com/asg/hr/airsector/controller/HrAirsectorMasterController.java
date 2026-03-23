@@ -62,7 +62,7 @@ public class HrAirsectorMasterController {
 
             return success("AirSector Master created successfully", response);
 
-        } catch (IllegalArgumentException e) {
+        } catch (ValidationException e) {
 
             return badRequest(e.getMessage());
 

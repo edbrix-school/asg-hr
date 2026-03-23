@@ -63,7 +63,7 @@ public class HrAirsectorServiceImpl implements HrAirsectorService {
                 .hrCountryPoid(request.getHrCountryPoid())
                 .businessFare(request.getBusinessFare())
                 .deleted("N")
-                .active("Y")
+                .active(request.getActive() != null ? request.getActive() : "Y")
                 .build();
 
         HrAirsectorMaster savedEntity = repository.save(entity);
@@ -72,10 +72,6 @@ public class HrAirsectorServiceImpl implements HrAirsectorService {
         String key = savedEntity.getAirsecPoid().toString();
 
         loggingService.createLogSummaryEntry(LogDetailsEnum.CREATED, docId, key);
-
-        loggingService.logChanges(new HrAirsectorMaster(), savedEntity,
-                HrAirsectorMaster.class, docId, key,
-                LogDetailsEnum.CREATED, PRIMARY_KEY);
 
         return mapToResponse(savedEntity);
     }
@@ -110,8 +106,6 @@ public class HrAirsectorServiceImpl implements HrAirsectorService {
         String docId = UserContext.getDocumentId();
         String key = updatedEntity.getAirsecPoid().toString();
 
-        loggingService.createLogSummaryEntry(LogDetailsEnum.MODIFIED, docId, key);
-
         loggingService.logChanges(oldEntity, updatedEntity,
                 HrAirsectorMaster.class, docId, key,
                 LogDetailsEnum.MODIFIED, PRIMARY_KEY);
@@ -133,7 +127,7 @@ public class HrAirsectorServiceImpl implements HrAirsectorService {
     public void deleteAirsectorMaster(Long airsecPoid,
                        DeleteReasonDto deleteReasonDto) {
 
-        HrAirsectorMaster entity = repository.findById(airsecPoid)
+       repository.findById(airsecPoid)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         EXCEPTION_MESSAGE, PRIMARY_KEY, airsecPoid));
 
@@ -143,23 +137,6 @@ public class HrAirsectorServiceImpl implements HrAirsectorService {
                 PRIMARY_KEY,
                 deleteReasonDto,
                 LocalDate.now()
-        );
-
-        entity.setDeleted("Y");
-        entity.setActive("N");
-        String docId = UserContext.getDocumentId();
-        String key = airsecPoid.toString();
-
-        loggingService.createLogSummaryEntry(LogDetailsEnum.DELETED, docId, key);
-
-        loggingService.logSimpleFieldChange(
-                HrAirsectorMaster.class,
-                docId,
-                key,
-                "active",
-                "Y",
-                "N",
-                "Airsector soft deleted"
         );
     }
 
