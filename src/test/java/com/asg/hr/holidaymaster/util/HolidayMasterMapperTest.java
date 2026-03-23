@@ -31,11 +31,13 @@ class HolidayMasterMapperTest {
                 .active("Y")
                 .deleted("N")
                 .seqno(BigInteger.TEN)
-                .createdBy("creator")
-                .createdDate(LocalDateTime.of(2026, 1, 1, 0, 0))
-                .lastModifiedBy("modifier")
-                .lastModifiedDate(LocalDateTime.of(2026, 1, 2, 0, 0))
                 .build();
+
+        // BaseEntity fields are not part of the Lombok @Builder on the subclass.
+        entity.setCreatedBy("creator");
+        entity.setCreatedDate(LocalDateTime.of(2026, 1, 1, 0, 0));
+        entity.setLastModifiedBy("modifier");
+        entity.setLastModifiedDate(LocalDateTime.of(2026, 1, 2, 0, 0));
     }
 
     @Test
@@ -71,7 +73,7 @@ class HolidayMasterMapperTest {
 
     @Test
     void toEntity_WithNullRequest_ReturnsNull() {
-        assertNull(mapper.toEntity(null, "tester"));
+        assertNull(mapper.toEntity(null));
     }
 
     @Test
@@ -82,7 +84,7 @@ class HolidayMasterMapperTest {
         request.setSeqNo(7);
         request.setActive("true");
 
-        HolidayMasterEntity mapped = mapper.toEntity(request, "tester");
+        HolidayMasterEntity mapped = mapper.toEntity(request);
 
         assertNotNull(mapped);
         assertEquals("Christmas", mapped.getHolidayReason());
@@ -90,10 +92,11 @@ class HolidayMasterMapperTest {
         assertEquals("Y", mapped.getActive());
         assertEquals("N", mapped.getDeleted());
         assertEquals("O", mapped.getStatus());
-        assertEquals("tester", mapped.getCreatedBy());
-        assertEquals("tester", mapped.getLastModifiedBy());
-        assertNotNull(mapped.getCreatedDate());
-        assertNotNull(mapped.getLastModifiedDate());
+        // Mapper does not populate audit fields.
+        assertNull(mapped.getCreatedBy());
+        assertNull(mapped.getLastModifiedBy());
+        assertNull(mapped.getCreatedDate());
+        assertNull(mapped.getLastModifiedDate());
     }
 
     @Test
@@ -103,7 +106,7 @@ class HolidayMasterMapperTest {
         request.setHolidayReason("Labor Day");
         request.setActive(null);
 
-        HolidayMasterEntity mapped = mapper.toEntity(request, "tester");
+        HolidayMasterEntity mapped = mapper.toEntity(request);
 
         assertEquals("Y", mapped.getActive());
     }
@@ -116,20 +119,22 @@ class HolidayMasterMapperTest {
         updateRequest.setSeqNo(20);
         updateRequest.setActive("N");
 
-        mapper.updateEntity(entity, updateRequest, "updater");
+        mapper.updateEntity(entity, updateRequest);
 
         assertEquals(LocalDate.of(2031, 1, 1), entity.getHolidayDate());
         assertEquals("Updated Reason", entity.getHolidayReason());
         assertEquals(BigInteger.valueOf(20), entity.getSeqno());
         assertEquals("N", entity.getActive());
-        assertEquals("updater", entity.getLastModifiedBy());
+        // Mapper does not update audit fields.
+        assertEquals("modifier", entity.getLastModifiedBy());
         assertNotNull(entity.getLastModifiedDate());
     }
 
     @Test
     void updateEntity_WhenEntityOrRequestNull_DoesNothing() {
-        mapper.updateEntity(null, new HolidayMasterRequest(), "user");
-        mapper.updateEntity(entity, null, "user");
+        mapper.updateEntity(null, new HolidayMasterRequest());
+        mapper.updateEntity(entity, null);
         assertEquals(10L, entity.getHolidayPoid());
     }
 }
+

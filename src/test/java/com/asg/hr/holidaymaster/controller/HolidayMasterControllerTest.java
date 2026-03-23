@@ -2,15 +2,19 @@ package com.asg.hr.holidaymaster.controller;
 
 import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
+import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.hr.holidaymaster.dto.HolidayBatchCreateRequest;
 import com.asg.hr.holidaymaster.dto.HolidayMasterRequest;
 import com.asg.hr.holidaymaster.dto.HolidayMasterResponse;
 import com.asg.hr.holidaymaster.service.HolidayMasterService;
+import com.asg.common.lib.service.LoggingService;
+import com.asg.common.lib.security.util.UserContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +36,9 @@ class HolidayMasterControllerTest {
 
     @Mock
     private HolidayMasterService holidayMasterService;
+
+    @Mock
+    private LoggingService loggingService;
 
     @InjectMocks
     private HolidayMasterController controller;
@@ -61,22 +68,30 @@ class HolidayMasterControllerTest {
         when(holidayMasterService.listHolidays("800-011", filters, pageable))
                 .thenReturn(Map.of("items", List.of(), "total", 0));
 
-        ResponseEntity<?> entity = controller.listHolidays(pageable, filters, "800-011");
+        try (MockedStatic<UserContext> userContext = org.mockito.Mockito.mockStatic(UserContext.class)) {
+            userContext.when(UserContext::getDocumentId).thenReturn("800-011");
 
-        assertNotNull(entity);
-        assertEquals(200, entity.getStatusCode().value());
-        verify(holidayMasterService).listHolidays("800-011", filters, pageable);
+            ResponseEntity<?> entity = controller.listHolidays(pageable, filters);
+
+            assertNotNull(entity);
+            assertEquals(200, entity.getStatusCode().value());
+            verify(holidayMasterService).listHolidays("800-011", filters, pageable);
+        }
     }
 
     @Test
     void getById_ReturnsSuccessResponse() {
         when(holidayMasterService.getById(1L)).thenReturn(response);
 
-        ResponseEntity<?> entity = controller.getById(1L);
+        try (MockedStatic<UserContext> userContext = org.mockito.Mockito.mockStatic(UserContext.class)) {
+            userContext.when(UserContext::getDocumentId).thenReturn("800-011");
 
-        assertNotNull(entity);
-        assertEquals(200, entity.getStatusCode().value());
-        verify(holidayMasterService).getById(1L);
+            ResponseEntity<?> entity = controller.getById(1L);
+
+            assertNotNull(entity);
+            assertEquals(200, entity.getStatusCode().value());
+            verify(holidayMasterService).getById(1L);
+        }
     }
 
     @Test
@@ -102,25 +117,15 @@ class HolidayMasterControllerTest {
     }
 
     @Test
-    void toggleActiveStatus_ReturnsSuccessResponse() {
-        doNothing().when(holidayMasterService).toggleActiveStatus(1L);
-
-        ResponseEntity<?> entity = controller.toggleActiveStatus(1L);
-
-        assertNotNull(entity);
-        assertEquals(200, entity.getStatusCode().value());
-        verify(holidayMasterService).toggleActiveStatus(1L);
-    }
-
-    @Test
     void delete_ReturnsSuccessResponse() {
-        doNothing().when(holidayMasterService).delete(1L);
+        DeleteReasonDto deleteReasonDto = new DeleteReasonDto();
+        doNothing().when(holidayMasterService).delete(1L, deleteReasonDto);
 
-        ResponseEntity<?> entity = controller.delete(1L);
+        ResponseEntity<?> entity = controller.delete(1L, deleteReasonDto);
 
         assertNotNull(entity);
         assertEquals(200, entity.getStatusCode().value());
-        verify(holidayMasterService).delete(1L);
+        verify(holidayMasterService).delete(1L, deleteReasonDto);
     }
 
     @Test

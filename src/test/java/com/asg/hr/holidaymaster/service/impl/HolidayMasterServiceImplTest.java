@@ -2,19 +2,20 @@ package com.asg.hr.holidaymaster.service.impl;
 
 import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
+import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.RawSearchResult;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.ResourceNotFoundException;
 import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentSearchService;
+import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.holidaymaster.dto.HolidayBatchCreateRequest;
 import com.asg.hr.holidaymaster.dto.HolidayMasterRequest;
 import com.asg.hr.holidaymaster.dto.HolidayMasterResponse;
 import com.asg.hr.holidaymaster.entity.HolidayMasterEntity;
 import com.asg.hr.holidaymaster.repository.HolidayMasterRepository;
-import com.asg.hr.holidaymaster.util.HolidayMasterConstants;
 import com.asg.hr.holidaymaster.util.HolidayMasterMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,7 +34,6 @@ import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 
 import java.math.BigInteger;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,7 +48,6 @@ import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -67,6 +66,9 @@ class HolidayMasterServiceImplTest {
     @Mock
     private LoggingService loggingService;
 
+    @Mock
+    private DocumentDeleteService documentDeleteService;
+
     @InjectMocks
     private HolidayMasterServiceImpl service;
 
@@ -84,10 +86,6 @@ class HolidayMasterServiceImplTest {
                 .deleted("N")
                 .status("O")
                 .seqno(BigInteger.ONE)
-                .createdBy("creator")
-                .createdDate(LocalDateTime.now())
-                .lastModifiedBy("modifier")
-                .lastModifiedDate(LocalDateTime.now())
                 .build();
 
         request = new HolidayMasterRequest();
@@ -131,14 +129,10 @@ class HolidayMasterServiceImplTest {
         when(repository.findByHolidayPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.of(entity));
         when(mapper.toResponse(entity)).thenReturn(response);
 
-        try (MockedStatic<UserContext> userContext = Mockito.mockStatic(UserContext.class)) {
-            userContext.when(UserContext::getDocumentId).thenReturn("800-011");
-
-            HolidayMasterResponse result = service.getById(1L);
-            assertNotNull(result);
-            assertEquals(1L, result.getHolidayPoid());
-            verify(loggingService).createLogSummaryEntry(LogDetailsEnum.VIEWED, "800-011", "1");
-        }
+        HolidayMasterResponse result = service.getById(1L);
+        assertNotNull(result);
+        assertEquals(1L, result.getHolidayPoid());
+        verify(mapper).toResponse(entity);
     }
 
     @Test
@@ -156,7 +150,7 @@ class HolidayMasterServiceImplTest {
     @Test
     void create_WhenSuccess_UsesFallbackSystemUserIfContextMissing() {
         when(repository.existsByHolidayDate(request.getHolidayDate())).thenReturn(false);
-        when(mapper.toEntity(request, HolidayMasterConstants.SYSTEM)).thenReturn(entity);
+        when(mapper.toEntity(request)).thenReturn(entity);
         when(repository.save(entity)).thenReturn(entity);
         when(mapper.toResponse(entity)).thenReturn(response);
         doNothing().when(loggingService).createLogSummaryEntry(eq(LogDetailsEnum.CREATED), any(), eq("1"));
@@ -168,7 +162,7 @@ class HolidayMasterServiceImplTest {
             HolidayMasterResponse result = service.create(request);
 
             assertNotNull(result);
-            verify(mapper).toEntity(request, HolidayMasterConstants.SYSTEM);
+            verify(mapper).toEntity(request);
             verify(loggingService).createLogSummaryEntry(LogDetailsEnum.CREATED, "800-011", "1");
         }
     }
@@ -206,68 +200,41 @@ class HolidayMasterServiceImplTest {
             HolidayMasterResponse result = service.update(1L, updateRequest);
 
             assertNotNull(result);
-            verify(mapper).updateEntity(entity, updateRequest, "user1");
+            verify(mapper).updateEntity(entity, updateRequest);
             verify(loggingService).logChanges(any(), eq(entity), eq(HolidayMasterEntity.class), eq("800-011"),
                     eq("1"), eq(LogDetailsEnum.MODIFIED), eq("HOLIDAY_POID"));
         }
     }
 
     @Test
-    void toggleActiveStatus_WhenCurrentY_ChangesToN() {
-        entity.setActive("Y");
-        when(repository.findByHolidayPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.of(entity));
+    void delete_WhenSuccess_CallsDocumentDeleteService() {
+        DeleteReasonDto deleteReasonDto = new DeleteReasonDto();
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
 
-        try (MockedStatic<UserContext> userContext = Mockito.mockStatic(UserContext.class)) {
-            userContext.when(UserContext::getUserId).thenReturn("user1");
-            userContext.when(UserContext::getDocumentId).thenReturn("800-011");
+        when(documentDeleteService.deleteDocument(
+                eq(1L),
+                eq("HR_HOLIDAY_MASTER"),
+                eq("HOLIDAY_POID"),
+                eq(deleteReasonDto),
+                any(LocalDate.class)
+        )).thenReturn("SUCCESS");
 
-            service.toggleActiveStatus(1L);
+        assertDoesNotThrow(() -> service.delete(1L, deleteReasonDto));
 
-            assertEquals("N", entity.getActive());
-            verify(repository).save(entity);
-            verify(loggingService).createLogSummaryEntry(LogDetailsEnum.MODIFIED, "800-011", "1");
-            verify(loggingService).createLogDetailsEntry(eq("800-011"), eq("1"), eq("Active"),
-                    eq("Y"), eq("N"), anyString(), eq("HR_HOLIDAY_MASTER"));
-        }
-    }
-
-    @Test
-    void toggleActiveStatus_WhenCurrentNOrNull_ChangesToY() {
-        entity.setActive(null);
-        when(repository.findByHolidayPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.of(entity));
-
-        try (MockedStatic<UserContext> userContext = Mockito.mockStatic(UserContext.class)) {
-            userContext.when(UserContext::getUserId).thenReturn("user1");
-            userContext.when(UserContext::getDocumentId).thenReturn("800-011");
-
-            service.toggleActiveStatus(1L);
-            assertEquals("Y", entity.getActive());
-        }
-    }
-
-    @Test
-    void delete_WhenSuccess_SoftDeletesAndLogs() {
-        when(repository.findByHolidayPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.of(entity));
-
-        try (MockedStatic<UserContext> userContext = Mockito.mockStatic(UserContext.class)) {
-            userContext.when(UserContext::getUserId).thenReturn("user1");
-            userContext.when(UserContext::getDocumentId).thenReturn("800-011");
-
-            assertDoesNotThrow(() -> service.delete(1L));
-
-            assertEquals("Y", entity.getDeleted());
-            assertEquals("N", entity.getActive());
-            verify(repository).save(entity);
-            verify(loggingService).createLogSummaryEntry(LogDetailsEnum.DELETED, "800-011", "1");
-            verify(loggingService, times(2)).logSimpleFieldChange(eq(HolidayMasterEntity.class), eq("800-011"),
-                    eq("1"), anyString(), anyString(), anyString(), eq("Holiday soft deleted"));
-        }
+        verify(documentDeleteService).deleteDocument(
+                eq(1L),
+                eq("HR_HOLIDAY_MASTER"),
+                eq("HOLIDAY_POID"),
+                eq(deleteReasonDto),
+                any(LocalDate.class)
+        );
     }
 
     @Test
     void delete_WhenNotFound_ThrowsException() {
-        when(repository.findByHolidayPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.empty());
-        assertThrows(ResourceNotFoundException.class, () -> service.delete(1L));
+        DeleteReasonDto deleteReasonDto = new DeleteReasonDto();
+        when(repository.findById(1L)).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class, () -> service.delete(1L, deleteReasonDto));
     }
 
     @Test

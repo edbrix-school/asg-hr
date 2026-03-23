@@ -6,7 +6,6 @@ import com.asg.hr.holidaymaster.entity.HolidayMasterEntity;
 import org.springframework.stereotype.Component;
 
 import java.math.BigInteger;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
@@ -36,12 +35,10 @@ public class HolidayMasterMapper {
         return entities.stream().map(this::toResponse).toList();
     }
 
-    public HolidayMasterEntity toEntity(HolidayMasterRequest request, String userId) {
+    public HolidayMasterEntity toEntity(HolidayMasterRequest request) {
         if (request == null) {
             return null;
         }
-
-        LocalDateTime now = LocalDateTime.now();
 
         HolidayMasterEntity entity = new HolidayMasterEntity();
         entity.setHolidayDate(request.getHolidayDate());
@@ -57,16 +54,10 @@ public class HolidayMasterMapper {
         );
         entity.setDeleted("N");
         entity.setStatus("O");
-
-        entity.setCreatedBy(userId);
-        entity.setCreatedDate(now);
-        entity.setLastModifiedBy(userId);
-        entity.setLastModifiedDate(now);
-
         return entity;
     }
 
-    public void updateEntity(HolidayMasterEntity entity, HolidayMasterRequest request, String userId) {
+    public void updateEntity(HolidayMasterEntity entity, HolidayMasterRequest request) {
         if (entity == null || request == null) {
             return;
         }
@@ -89,8 +80,6 @@ public class HolidayMasterMapper {
                             : "N"
             );
         }
-        entity.setLastModifiedBy(userId);
-        entity.setLastModifiedDate(LocalDateTime.now());
     }
 }
 

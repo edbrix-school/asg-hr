@@ -1,5 +1,6 @@
 package com.asg.hr.holidaymaster.service.impl;
 
+import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.dto.RawSearchResult;
@@ -7,6 +8,7 @@ import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.ResourceNotFoundException;
 import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.utility.PaginationUtil;
@@ -33,7 +35,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Types;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -47,6 +49,7 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
     private final DocumentSearchService documentService;
     private final LoggingService loggingService;
     private final JdbcTemplate jdbcTemplate;
+    private final DocumentDeleteService documentDeleteService;
 
     @Override
     public Map<String, Object> listHolidays(String docId, FilterRequestDto filters, Pageable pageable) {
@@ -63,7 +66,7 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
                 pageable,
                 isDeleted,
                 "HOLIDAY_REASON", // label
-                "HOLIDAY_POID"    // value
+                HolidayMasterConstants.HOLIDAY_POID   // value
         );
 
         Page<Map<String, Object>> page =
@@ -81,11 +84,9 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
                 repository.findByHolidayPoidAndDeletedNot(holidayPoid, "Y")
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 HolidayMasterConstants.HOLIDAY_MASTER,
-                                HolidayMasterConstants.HOLIDAY_POID,
+                                HolidayMasterConstants.HOLIDAYPOID,
                                 holidayPoid
                         ));
-
-        loggingService.createLogSummaryEntry(LogDetailsEnum.VIEWED, UserContext.getDocumentId(), holidayPoid.toString());
 
         return mapper.toResponse(entity);
     }
@@ -101,9 +102,7 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
             );
         }
 
-        String userId = UserContext.getUserId() != null ? UserContext.getUserId() : HolidayMasterConstants.SYSTEM;
-
-        HolidayMasterEntity entity = mapper.toEntity(request, userId);
+        HolidayMasterEntity entity = mapper.toEntity(request);
         HolidayMasterEntity saved = repository.save(entity);
 
         String key = saved.getHolidayPoid().toString();
@@ -121,7 +120,7 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
                 repository.findByHolidayPoidAndDeletedNot(holidayPoid, "Y")
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 HolidayMasterConstants.HOLIDAY_MASTER,
-                                HolidayMasterConstants.HOLIDAY_POID,
+                                HolidayMasterConstants.HOLIDAYPOID,
                                 holidayPoid
                         ));
 
@@ -136,74 +135,32 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
         HolidayMasterEntity oldEntity = new HolidayMasterEntity();
         BeanUtils.copyProperties(entity, oldEntity);
 
-        String userId = UserContext.getUserId() != null ? UserContext.getUserId() : HolidayMasterConstants.SYSTEM;
-        mapper.updateEntity(entity, request, userId);
+        mapper.updateEntity(entity, request);
         repository.save(entity);
 
         String key = entity.getHolidayPoid().toString();
-        loggingService.logChanges(oldEntity, entity, HolidayMasterEntity.class, UserContext.getDocumentId(), key, LogDetailsEnum.MODIFIED, "HOLIDAY_POID");
+        loggingService.logChanges(oldEntity, entity, HolidayMasterEntity.class, UserContext.getDocumentId(), key, LogDetailsEnum.MODIFIED, HolidayMasterConstants.HOLIDAY_POID);
 
         return mapper.toResponse(entity);
     }
 
     @Override
     @Transactional
-    public void toggleActiveStatus(Long holidayPoid) {
-        log.info("Toggling active status for holiday with id: {}", holidayPoid);
-
-        HolidayMasterEntity entity =
-                repository.findByHolidayPoidAndDeletedNot(holidayPoid, "Y")
-                        .orElseThrow(() -> new ResourceNotFoundException(
-                                HolidayMasterConstants.HOLIDAY_MASTER,
-                                HolidayMasterConstants.HOLIDAY_POID,
-                                holidayPoid
-                        ));
-
-        String currentActive = entity.getActive();
-        String newActive = (currentActive == null || "N".equalsIgnoreCase(currentActive)) ? "Y" : "N";
-
-        entity.setActive(newActive);
-        entity.setLastModifiedBy(getCurrentUserId());
-        entity.setLastModifiedDate(LocalDateTime.now());
-        repository.save(entity);
-
-        String docId = UserContext.getDocumentId();
-        String key = holidayPoid.toString();
-
-        loggingService.createLogSummaryEntry(LogDetailsEnum.MODIFIED, docId, key);
-        String logDetail = String.format("KeyId = HOLIDAY_POID:%s", holidayPoid);
-        String tableName = HolidayMasterEntity.class.getAnnotation(jakarta.persistence.Table.class).name();
-        loggingService.createLogDetailsEntry(docId, key, "Active",
-                currentActive, entity.getActive(), logDetail, tableName);
-
-        log.info("Successfully toggled active status for holiday with id: {} from {} to {}",
-                holidayPoid, currentActive, newActive);
-    }
-
-    @Override
-    @Transactional
-    public void delete(Long holidayPoid) {
+    public void delete(Long holidayPoid, DeleteReasonDto deleteReasonDto) {
         log.info("Deleting (soft) holiday with id: {}", holidayPoid);
-
-        HolidayMasterEntity entity =
-                repository.findByHolidayPoidAndDeletedNot(holidayPoid, "Y")
-                        .orElseThrow(() -> new ResourceNotFoundException(
+        repository.findById(holidayPoid).orElseThrow(() -> new ResourceNotFoundException(
                                 HolidayMasterConstants.HOLIDAY_MASTER,
-                                HolidayMasterConstants.HOLIDAY_POID,
+                                HolidayMasterConstants.HOLIDAYPOID,
                                 holidayPoid
                         ));
 
-        entity.setDeleted("Y");
-        entity.setActive("N");
-        entity.setLastModifiedBy(getCurrentUserId());
-        entity.setLastModifiedDate(LocalDateTime.now());
-        repository.save(entity);
-
-        String docId = UserContext.getDocumentId();
-        String key = holidayPoid.toString();
-        loggingService.createLogSummaryEntry(LogDetailsEnum.DELETED, docId, key);
-        loggingService.logSimpleFieldChange(HolidayMasterEntity.class, docId, key, "deleted", "N", "Y", "Holiday soft deleted");
-        loggingService.logSimpleFieldChange(HolidayMasterEntity.class, docId, key, "active", "Y", "N", "Holiday soft deleted");
+        documentDeleteService.deleteDocument(
+                holidayPoid,
+                "HR_HOLIDAY_MASTER",
+                HolidayMasterConstants.HOLIDAY_POID,
+                deleteReasonDto,
+                LocalDate.now()
+        );
     }
 
     @Override
@@ -242,8 +199,5 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
         }
     }
 
-    private String getCurrentUserId() {
-        return UserContext.getUserId() != null ? UserContext.getUserId() : HolidayMasterConstants.SYSTEM;
-    }
 }
 

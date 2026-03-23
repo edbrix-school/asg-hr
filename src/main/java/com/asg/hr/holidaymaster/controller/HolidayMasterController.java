@@ -1,10 +1,13 @@
 package com.asg.hr.holidaymaster.controller;
 
 import com.asg.common.lib.annotation.AllowedAction;
+import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
+import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.enums.UserRolesRightsEnum;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.dto.response.ApiResponse;
+import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.holidaymaster.dto.HolidayBatchCreateRequest;
 import com.asg.hr.holidaymaster.dto.HolidayMasterRequest;
 import com.asg.hr.holidaymaster.dto.HolidayMasterResponse;
@@ -29,7 +32,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -43,6 +45,7 @@ import java.util.Map;
 public class HolidayMasterController {
 
     private final HolidayMasterService holidayMasterService;
+    private final LoggingService loggingService;
 
     @AllowedAction(UserRolesRightsEnum.VIEW)
     @Operation(
@@ -93,16 +96,14 @@ public class HolidayMasterController {
     @PostMapping("/list")
     public ResponseEntity<?> listHolidays(
             @ParameterObject Pageable pageable,
-            @RequestBody(required = false) FilterRequestDto filters,
-            @RequestHeader("X-Document-Id") String docId
+            @RequestBody(required = false) FilterRequestDto filters
     ) {
-        log.info("List Holidays request | page={}, size={}, docId={}",
+        log.info("List Holidays request | page={}, size={}",
                 pageable.getPageNumber(),
-                pageable.getPageSize(),
-                docId);
+                pageable.getPageSize());
 
         Map<String, Object> result =
-                holidayMasterService.listHolidays(docId, filters, pageable);
+                holidayMasterService.listHolidays(UserContext.getDocumentId(), filters, pageable);
 
         return ApiResponse.success("Holiday list fetched successfully", result);
     }
@@ -119,6 +120,7 @@ public class HolidayMasterController {
     ) {
         log.info("Get Holiday request | poid={}", holidayPoid);
         HolidayMasterResponse response = holidayMasterService.getById(holidayPoid);
+        loggingService.createLogSummaryEntry(LogDetailsEnum.VIEWED, UserContext.getDocumentId(), holidayPoid.toString());
         return ApiResponse.success("Holiday retrieved successfully", response);
     }
 
@@ -159,25 +161,6 @@ public class HolidayMasterController {
         return ApiResponse.success("Holiday updated successfully", response);
     }
 
-    @AllowedAction(UserRolesRightsEnum.EDIT)
-    @PutMapping("/{holidayPoid}/activate")
-    @Operation(
-            summary = "Toggle Holiday Active Status",
-            description = "Toggles the active status of a holiday between Y and N",
-            security = @SecurityRequirement(name = "bearerAuth")
-    )
-    public ResponseEntity<?> toggleActiveStatus(
-            @PathVariable @NotNull @Positive Long holidayPoid
-    ) {
-        log.info("Toggle Holiday Active Status request | poid={}, userId={}",
-                holidayPoid,
-                UserContext.getUserId());
-
-        holidayMasterService.toggleActiveStatus(holidayPoid);
-
-        return ApiResponse.success("Holiday status toggled successfully");
-    }
-
     @AllowedAction(UserRolesRightsEnum.DELETE)
     @DeleteMapping("/{holidayPoid}")
     @Operation(
@@ -186,13 +169,14 @@ public class HolidayMasterController {
             security = @SecurityRequirement(name = "bearerAuth")
     )
     public ResponseEntity<?> delete(
-            @PathVariable @NotNull @Positive Long holidayPoid
+            @PathVariable @NotNull @Positive Long holidayPoid,
+            @Valid @RequestBody(required = false) DeleteReasonDto deleteReasonDto
     ) {
         log.info("Delete Holiday request | poid={}, userId={}",
                 holidayPoid,
                 UserContext.getUserId());
 
-        holidayMasterService.delete(holidayPoid);
+        holidayMasterService.delete(holidayPoid, deleteReasonDto);
         return ApiResponse.success("Holiday deleted successfully");
     }
 
