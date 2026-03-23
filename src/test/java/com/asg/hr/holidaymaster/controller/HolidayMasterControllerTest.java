@@ -28,7 +28,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -89,9 +88,9 @@ class HolidayMasterControllerTest {
             userContext.when(UserContext::getDocumentId).thenReturn("800-011");
 
             doNothing().when(loggingService).createLogSummaryEntry(
-                    eq(LogDetailsEnum.VIEWED),
-                    eq("800-011"),
-                    eq("1")
+                    LogDetailsEnum.VIEWED,
+                    "800-011",
+                    "1"
             );
 
             ResponseEntity<?> entity = controller.getById(1L);
@@ -99,7 +98,7 @@ class HolidayMasterControllerTest {
             assertNotNull(entity);
             assertEquals(200, entity.getStatusCode().value());
             verify(holidayMasterService).getById(1L);
-            verify(loggingService).createLogSummaryEntry(eq(LogDetailsEnum.VIEWED), eq("800-011"), eq("1"));
+            verify(loggingService).createLogSummaryEntry(LogDetailsEnum.VIEWED, "800-011", "1");
         }
     }
 
