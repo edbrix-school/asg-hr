@@ -62,7 +62,6 @@ public class HolidayMasterController {
                     """
     )
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            required = false,
             description = """
                     - ### Filters:
                       Use either:
