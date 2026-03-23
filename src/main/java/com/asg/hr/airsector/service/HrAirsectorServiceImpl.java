@@ -136,7 +136,7 @@ public class HrAirsectorServiceImpl implements HrAirsectorService {
                 "HR_AIRSECTOR_MASTER",
                 PRIMARY_KEY,
                 deleteReasonDto,
-                LocalDate.now()
+                null
         );
     }
 

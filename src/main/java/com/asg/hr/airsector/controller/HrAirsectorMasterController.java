@@ -132,7 +132,7 @@ public class HrAirsectorMasterController {
                 deleteReasonDto
         );
 
-        return success("AirSector Master soft deleted successfully");
+        return success("AirSector Master deleted successfully");
 
     }
 
