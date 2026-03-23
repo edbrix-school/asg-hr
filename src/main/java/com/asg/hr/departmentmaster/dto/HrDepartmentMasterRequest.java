@@ -3,6 +3,7 @@ package com.asg.hr.departmentmaster.dto;
 import com.asg.hr.departmentmaster.annotation.ValidSubDept;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,6 +23,7 @@ public class HrDepartmentMasterRequest {
     @Size(max = 100, message = "Department name cannot exceed 100 characters")
     private String deptName;
 
+    @Pattern(regexp = "[YN]", message = "Sub department flag must be either Y or N")
     @Size(max = 1, message = "Sub department flag must be a single character")
     private String subdeptYN;
 

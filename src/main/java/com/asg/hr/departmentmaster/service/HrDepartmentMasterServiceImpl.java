@@ -1,19 +1,16 @@
 package com.asg.hr.departmentmaster.service;
 
-import com.asg.common.lib.dto.DeleteReasonDto;
-import com.asg.common.lib.dto.FilterDto;
-import com.asg.common.lib.dto.FilterRequestDto;
-import com.asg.common.lib.dto.RawSearchResult;
+import com.asg.common.lib.dto.*;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.utility.PaginationUtil;
+import com.asg.hr.client.CostCenterServiceClient;
 import com.asg.hr.departmentmaster.dto.HrDepartmentMasterRequest;
 import com.asg.hr.departmentmaster.dto.HrDepartmentMasterResponse;
 import com.asg.hr.departmentmaster.entity.HrDepartmentMaster;
-import com.asg.hr.departmentmaster.repository.GlCostCenterMasterRepository;
 import com.asg.hr.departmentmaster.repository.HrDepartmentMasterRepository;
 import com.asg.hr.exceptions.ResourceAlreadyExistsException;
 import com.asg.hr.exceptions.ResourceNotFoundException;
@@ -40,7 +37,7 @@ public class HrDepartmentMasterServiceImpl implements HrDepartmentMasterService 
     private final DocumentDeleteService documentDeleteService;
     private final DocumentSearchService documentSearchService;
     private final HrDepartmentMasterRepository repository;
-    private final GlCostCenterMasterRepository glCostCenterMasterRepository;
+    private final CostCenterServiceClient costCenterServiceClient;
     private final LoggingService loggingService;
     private static final String DEPT_POID = "DEPT_POID";
     private static final String DEPARTMENT = "Department";
@@ -72,15 +69,13 @@ public class HrDepartmentMasterServiceImpl implements HrDepartmentMasterService 
     @Override
     public HrDepartmentMasterResponse createDepartment(HrDepartmentMasterRequest request, Long groupPoid, String userId) {
         if ("Y".equalsIgnoreCase(request.getSubdeptYN()) && (request.getParentDeptPoid() == null || !repository.existsByDeptPoid(request.getParentDeptPoid()))) {
-                throw new ResourceNotFoundException("Parent department", "parentDeptPoid", request.getParentDeptPoid());
-            }
-
+            throw new ResourceNotFoundException("Parent department", "parentDeptPoid", request.getParentDeptPoid());
+        }
         if (StringUtils.isNotBlank(request.getDeptName()) && repository.existsByDeptNameIgnoreCase(request.getDeptName())) {
             throw new ResourceAlreadyExistsException("Department name", request.getDeptName());
         }
-        if (!glCostCenterMasterRepository.existsByCostCenterPoid(request.getCostCentrePoid())) {
-            throw new ResourceNotFoundException("Cost centre", "costCentrePoid", request.getCostCentrePoid());
-        }
+
+        costCenterServiceClient.findById(request.getCostCentrePoid());
 
         HrDepartmentMaster entity = new HrDepartmentMaster();
         entity.setGroupPoid(groupPoid);
@@ -101,17 +96,16 @@ public class HrDepartmentMasterServiceImpl implements HrDepartmentMasterService 
     public HrDepartmentMasterResponse updateDepartment(Long deptPoid, HrDepartmentMasterRequest request, Long groupPoid, String userId) {
         HrDepartmentMaster entity = repository.findById(deptPoid).orElseThrow(() -> new ResourceNotFoundException(DEPARTMENT, DEPARTMENTPOID, deptPoid));
 
+        costCenterServiceClient.findById(request.getCostCentrePoid());
+
         if ("Y".equalsIgnoreCase(request.getSubdeptYN()) && (request.getParentDeptPoid() == null || !repository.existsByDeptPoid(request.getParentDeptPoid()))) {
-                throw new ResourceNotFoundException("Parent department", "parentDeptPoid", request.getParentDeptPoid());
-            }
+            throw new ResourceNotFoundException("Parent department", "parentDeptPoid", request.getParentDeptPoid());
+        }
 
         if (StringUtils.isNotBlank(request.getDeptName()) && repository.existsByDeptNameIgnoreCaseAndDeptPoidNot(request.getDeptName(), deptPoid)) {
             throw new ResourceAlreadyExistsException("Department name", request.getDeptName());
         }
-        if (!glCostCenterMasterRepository.existsByCostCenterPoid(request.getCostCentrePoid())) {
-            throw new ResourceNotFoundException("Cost centre", "costCentrePoid", request.getCostCentrePoid());
-        }
-        if (deptPoid.equals(request.getParentDeptPoid())) {
+        if ("Y".equalsIgnoreCase(request.getSubdeptYN()) && deptPoid.equals(request.getParentDeptPoid())) {
             throw new ValidationException("Should not select current department as parent department");
         }
 
