@@ -8,6 +8,7 @@ import com.asg.hr.holidaymaster.dto.HolidayMasterRequest;
 import com.asg.hr.holidaymaster.dto.HolidayMasterResponse;
 import com.asg.hr.holidaymaster.service.HolidayMasterService;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.security.util.UserContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -86,11 +88,18 @@ class HolidayMasterControllerTest {
         try (MockedStatic<UserContext> userContext = org.mockito.Mockito.mockStatic(UserContext.class)) {
             userContext.when(UserContext::getDocumentId).thenReturn("800-011");
 
+            doNothing().when(loggingService).createLogSummaryEntry(
+                    eq(LogDetailsEnum.VIEWED),
+                    eq("800-011"),
+                    eq("1")
+            );
+
             ResponseEntity<?> entity = controller.getById(1L);
 
             assertNotNull(entity);
             assertEquals(200, entity.getStatusCode().value());
             verify(holidayMasterService).getById(1L);
+            verify(loggingService).createLogSummaryEntry(eq(LogDetailsEnum.VIEWED), eq("800-011"), eq("1"));
         }
     }
 
