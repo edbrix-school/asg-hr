@@ -1,17 +1,16 @@
 package com.asg.hr.departmentmaster.service;
 
 import com.asg.common.lib.dto.DeleteReasonDto;
-import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.dto.RawSearchResult;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.hr.client.CostCenterServiceClient;
 import com.asg.hr.departmentmaster.dto.HrDepartmentMasterRequest;
 import com.asg.hr.departmentmaster.dto.HrDepartmentMasterResponse;
 import com.asg.hr.departmentmaster.entity.HrDepartmentMaster;
-import com.asg.hr.departmentmaster.repository.GlCostCenterMasterRepository;
 import com.asg.hr.departmentmaster.repository.HrDepartmentMasterRepository;
 import com.asg.hr.exceptions.ResourceAlreadyExistsException;
 import com.asg.hr.exceptions.ResourceNotFoundException;
@@ -62,9 +61,10 @@ class HrDepartmentMasterServiceImplTest {
     @Mock
     private HrDepartmentMasterRepository repository;
     @Mock
-    private GlCostCenterMasterRepository glCostCenterMasterRepository;
-    @Mock
     private LoggingService loggingService;
+
+    @Mock
+    private CostCenterServiceClient costCenterServiceClient;
 
     @InjectMocks
     private HrDepartmentMasterServiceImpl service;
@@ -205,7 +205,7 @@ class HrDepartmentMasterServiceImplTest {
                     .seqNo(1L)
                     .costCentrePoid(COST_CENTRE_POID)
                     .build();
-            when(glCostCenterMasterRepository.existsByCostCenterPoid(COST_CENTRE_POID)).thenReturn(true);
+            when(costCenterServiceClient.findById(COST_CENTRE_POID)).thenReturn(null);
             when(repository.existsByDeptNameIgnoreCase("Engineering")).thenReturn(false);
             HrDepartmentMaster saved = createEntity(DEPT_POID, "ENG", "Engineering");
             saved.setDeptCode("ENG");
@@ -279,11 +279,12 @@ class HrDepartmentMasterServiceImplTest {
                     .deptName("Dept")
                     .costCentrePoid(999L)
                     .build();
-            when(glCostCenterMasterRepository.existsByCostCenterPoid(999L)).thenReturn(false);
+            when(costCenterServiceClient.findById(999L))
+                    .thenThrow(new ResourceNotFoundException("CostCenter", "costCenterPoid", 999L));
 
             assertThatThrownBy(() -> service.createDepartment(request, GROUP_POID, USER_ID))
                     .isInstanceOf(ResourceNotFoundException.class)
-                    .hasMessageContaining("Cost centre");
+                    .hasMessageContaining("CostCenter");
             verify(repository, never()).save(any());
         }
 
@@ -296,7 +297,7 @@ class HrDepartmentMasterServiceImplTest {
                     .active(null)
                     .costCentrePoid(COST_CENTRE_POID)
                     .build();
-            when(glCostCenterMasterRepository.existsByCostCenterPoid(COST_CENTRE_POID)).thenReturn(true);
+            when(costCenterServiceClient.findById(COST_CENTRE_POID)).thenReturn(null);
             when(repository.existsByDeptNameIgnoreCase("Dept")).thenReturn(false);
             when(repository.save(any(HrDepartmentMaster.class))).thenAnswer(inv -> {
                 HrDepartmentMaster e = inv.getArgument(0);
@@ -322,7 +323,7 @@ class HrDepartmentMasterServiceImplTest {
                     .build();
             when(repository.existsByDeptPoid(PARENT_DEPT_POID)).thenReturn(true);
             when(repository.existsByDeptNameIgnoreCase("Sub Dept")).thenReturn(false);
-            when(glCostCenterMasterRepository.existsByCostCenterPoid(COST_CENTRE_POID)).thenReturn(true);
+            when(costCenterServiceClient.findById(COST_CENTRE_POID)).thenReturn(null);
             when(repository.save(any(HrDepartmentMaster.class))).thenAnswer(inv -> {
                 HrDepartmentMaster e = inv.getArgument(0);
                 e.setDeptPoid(DEPT_POID);
@@ -342,7 +343,7 @@ class HrDepartmentMasterServiceImplTest {
                     .deptName("")
                     .costCentrePoid(COST_CENTRE_POID)
                     .build();
-            when(glCostCenterMasterRepository.existsByCostCenterPoid(COST_CENTRE_POID)).thenReturn(true);
+            when(costCenterServiceClient.findById(COST_CENTRE_POID)).thenReturn(null);
             when(repository.save(any(HrDepartmentMaster.class))).thenAnswer(inv -> {
                 HrDepartmentMaster e = inv.getArgument(0);
                 e.setDeptPoid(DEPT_POID);
@@ -373,7 +374,7 @@ class HrDepartmentMasterServiceImplTest {
                     .build();
             when(repository.findById(DEPT_POID)).thenReturn(Optional.of(entity));
             when(repository.existsByDeptNameIgnoreCaseAndDeptPoidNot("IT Updated", DEPT_POID)).thenReturn(false);
-            when(glCostCenterMasterRepository.existsByCostCenterPoid(COST_CENTRE_POID)).thenReturn(true);
+            when(costCenterServiceClient.findById(COST_CENTRE_POID)).thenReturn(null);
             when(repository.save(any(HrDepartmentMaster.class))).thenAnswer(inv -> inv.getArgument(0));
 
             HrDepartmentMasterResponse response = service.updateDepartment(DEPT_POID, request, GROUP_POID, USER_ID);
@@ -438,15 +439,17 @@ class HrDepartmentMasterServiceImplTest {
         void throwsWhenCostCentreNotFound() {
             HrDepartmentMaster entity = createEntity(DEPT_POID, "IT", "IT");
             when(repository.findById(DEPT_POID)).thenReturn(Optional.of(entity));
-            when(glCostCenterMasterRepository.existsByCostCenterPoid(999L)).thenReturn(false);
             HrDepartmentMasterRequest request = HrDepartmentMasterRequest.builder()
                     .deptName("Dept")
                     .costCentrePoid(999L)
                     .build();
 
+            when(costCenterServiceClient.findById(999L))
+                    .thenThrow(new ResourceNotFoundException("CostCenter", "costCenterPoid", 999L));
+
             assertThatThrownBy(() -> service.updateDepartment(DEPT_POID, request, GROUP_POID, USER_ID))
                     .isInstanceOf(ResourceNotFoundException.class)
-                    .hasMessageContaining("Cost centre");
+                    .hasMessageContaining("CostCenter");
             verify(repository, never()).save(any());
         }
 
@@ -455,10 +458,12 @@ class HrDepartmentMasterServiceImplTest {
         void throwsWhenParentIsSelf() {
             HrDepartmentMaster entity = createEntity(DEPT_POID, "IT", "IT");
             when(repository.findById(DEPT_POID)).thenReturn(Optional.of(entity));
-            when(glCostCenterMasterRepository.existsByCostCenterPoid(COST_CENTRE_POID)).thenReturn(true);
+            when(costCenterServiceClient.findById(COST_CENTRE_POID)).thenReturn(null);
             when(repository.existsByDeptNameIgnoreCaseAndDeptPoidNot("IT", DEPT_POID)).thenReturn(false);
+            when(repository.existsByDeptPoid(DEPT_POID)).thenReturn(true);
             HrDepartmentMasterRequest request = HrDepartmentMasterRequest.builder()
                     .deptName("IT")
+                    .subdeptYN("Y")
                     .parentDeptPoid(DEPT_POID)
                     .costCentrePoid(COST_CENTRE_POID)
                     .build();
@@ -495,7 +500,7 @@ class HrDepartmentMasterServiceImplTest {
             when(repository.findById(DEPT_POID)).thenReturn(Optional.of(entity));
             when(repository.existsByDeptPoid(PARENT_DEPT_POID)).thenReturn(true);
             when(repository.existsByDeptNameIgnoreCaseAndDeptPoidNot("Sub Dept", DEPT_POID)).thenReturn(false);
-            when(glCostCenterMasterRepository.existsByCostCenterPoid(COST_CENTRE_POID)).thenReturn(true);
+            when(costCenterServiceClient.findById(COST_CENTRE_POID)).thenReturn(null);
             when(repository.save(any(HrDepartmentMaster.class))).thenAnswer(inv -> inv.getArgument(0));
             HrDepartmentMasterRequest request = HrDepartmentMasterRequest.builder()
                     .deptName("Sub Dept")
@@ -518,7 +523,7 @@ class HrDepartmentMasterServiceImplTest {
             entity.setActive("N");
             when(repository.findById(DEPT_POID)).thenReturn(Optional.of(entity));
             when(repository.existsByDeptNameIgnoreCaseAndDeptPoidNot("IT", DEPT_POID)).thenReturn(false);
-            when(glCostCenterMasterRepository.existsByCostCenterPoid(COST_CENTRE_POID)).thenReturn(true);
+            when(costCenterServiceClient.findById(COST_CENTRE_POID)).thenReturn(null);
             when(repository.save(any(HrDepartmentMaster.class))).thenAnswer(inv -> inv.getArgument(0));
             HrDepartmentMasterRequest request = HrDepartmentMasterRequest.builder()
                     .deptName("IT")
@@ -538,7 +543,7 @@ class HrDepartmentMasterServiceImplTest {
         void skipsDeptNameCheckWhenBlank() {
             HrDepartmentMaster entity = createEntity(DEPT_POID, "IT", "IT");
             when(repository.findById(DEPT_POID)).thenReturn(Optional.of(entity));
-            when(glCostCenterMasterRepository.existsByCostCenterPoid(COST_CENTRE_POID)).thenReturn(true);
+            when(costCenterServiceClient.findById(COST_CENTRE_POID)).thenReturn(null);
             when(repository.save(any(HrDepartmentMaster.class))).thenAnswer(inv -> inv.getArgument(0));
             HrDepartmentMasterRequest request = HrDepartmentMasterRequest.builder()
                     .deptName("")

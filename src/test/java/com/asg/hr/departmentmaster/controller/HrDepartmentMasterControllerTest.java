@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -59,6 +60,7 @@ class HrDepartmentMasterControllerTest {
         HrDepartmentMasterController controller = new HrDepartmentMasterController(departmentService, loggingService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
                 .build();
         userContextMock = Mockito.mockStatic(UserContext.class);
         userContextMock.when(UserContext::getDocumentId).thenReturn(DOCUMENT_ID);
