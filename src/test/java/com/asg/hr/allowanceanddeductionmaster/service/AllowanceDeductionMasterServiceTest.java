@@ -1,6 +1,5 @@
 package com.asg.hr.allowanceanddeductionmaster.service;
 
-import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.dto.RawSearchResult;
@@ -12,6 +11,7 @@ import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.common.lib.utility.ASGHelperUtils;
 import com.asg.hr.allowanceanddeductionmaster.dto.AllowanceDeductionRequestDTO;
 import com.asg.hr.allowanceanddeductionmaster.dto.AllowanceDeductionResponseDTO;
 import com.asg.hr.allowanceanddeductionmaster.entity.HrAllowanceDeductionMaster;
@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -114,8 +115,11 @@ class AllowanceDeductionMasterServiceTest {
     // ---------- CREATE ----------
     @Test
     void testCreateSuccess() {
-        try (var mockedUserContext = mockStatic(UserContext.class)) {
+        try (MockedStatic<UserContext> mockedUserContext = mockStatic(UserContext.class);
+             MockedStatic<ASGHelperUtils> mockedASGHelper = mockStatic(ASGHelperUtils.class)) {
+            
             mockedUserContext.when(UserContext::getDocumentId).thenReturn("100-004");
+            mockedASGHelper.when(ASGHelperUtils::getCurrentUser).thenReturn("admin");
 
             when(repository.findByCodeAndDeletedNot(requestDTO.getCode(), "Y")).thenReturn(Optional.empty());
             when(repository.findByPayrollFieldName(requestDTO.getPayrollFieldName())).thenReturn(Optional.empty());
@@ -129,7 +133,51 @@ class AllowanceDeductionMasterServiceTest {
             assertNotNull(result);
             assertEquals("BASIC_PAY", result.getCode());
             verify(repository).save(any(HrAllowanceDeductionMaster.class));
-            verify(loggingService).createLogSummaryEntry(LogDetailsEnum.CREATED, anyString(), anyString());
+            verify(loggingService).createLogSummaryEntry(any(LogDetailsEnum.class), anyString(), anyString());
+        }
+    }
+
+    @Test
+    void testCreateSuccessWithNullPayrollFieldName() {
+        try (MockedStatic<UserContext> mockedUserContext = mockStatic(UserContext.class);
+             MockedStatic<ASGHelperUtils> mockedASGHelper = mockStatic(ASGHelperUtils.class)) {
+            
+            mockedUserContext.when(UserContext::getDocumentId).thenReturn("100-004");
+            mockedASGHelper.when(ASGHelperUtils::getCurrentUser).thenReturn("admin");
+
+            requestDTO.setPayrollFieldName(null);
+            when(repository.findByCodeAndDeletedNot(requestDTO.getCode(), "Y")).thenReturn(Optional.empty());
+            when(mapper.toEntity(requestDTO)).thenReturn(entity);
+            when(repository.save(any(HrAllowanceDeductionMaster.class))).thenReturn(entity);
+            when(mapper.toResponseDTO(entity)).thenReturn(responseDTO);
+            doNothing().when(loggingService).createLogSummaryEntry(any(LogDetailsEnum.class), anyString(), anyString());
+
+            AllowanceDeductionResponseDTO result = service.create(requestDTO);
+
+            assertNotNull(result);
+            verify(repository, never()).findByPayrollFieldName(any());
+        }
+    }
+
+    @Test
+    void testCreateSuccessWithEmptyPayrollFieldName() {
+        try (MockedStatic<UserContext> mockedUserContext = mockStatic(UserContext.class);
+             MockedStatic<ASGHelperUtils> mockedASGHelper = mockStatic(ASGHelperUtils.class)) {
+            
+            mockedUserContext.when(UserContext::getDocumentId).thenReturn("100-004");
+            mockedASGHelper.when(ASGHelperUtils::getCurrentUser).thenReturn("admin");
+
+            requestDTO.setPayrollFieldName("");
+            when(repository.findByCodeAndDeletedNot(requestDTO.getCode(), "Y")).thenReturn(Optional.empty());
+            when(mapper.toEntity(requestDTO)).thenReturn(entity);
+            when(repository.save(any(HrAllowanceDeductionMaster.class))).thenReturn(entity);
+            when(mapper.toResponseDTO(entity)).thenReturn(responseDTO);
+            doNothing().when(loggingService).createLogSummaryEntry(any(LogDetailsEnum.class), anyString(), anyString());
+
+            AllowanceDeductionResponseDTO result = service.create(requestDTO);
+
+            assertNotNull(result);
+            verify(repository, never()).findByPayrollFieldName(any());
         }
     }
 
@@ -154,13 +202,17 @@ class AllowanceDeductionMasterServiceTest {
     @Test
     void testUpdateSuccess() {
         Long id = 1L;
-        try (var mockedUserContext = mockStatic(UserContext.class)) {
+        try (MockedStatic<UserContext> mockedUserContext = mockStatic(UserContext.class);
+             MockedStatic<ASGHelperUtils> mockedASGHelper = mockStatic(ASGHelperUtils.class)) {
+            
             mockedUserContext.when(UserContext::getDocumentId).thenReturn("100-004");
+            mockedASGHelper.when(ASGHelperUtils::getCurrentUser).thenReturn("admin");
 
             when(repository.findById(id)).thenReturn(Optional.of(entity));
             when(repository.findByPayrollFieldName(requestDTO.getPayrollFieldName())).thenReturn(Optional.empty());
             when(repository.save(any(HrAllowanceDeductionMaster.class))).thenReturn(entity);
             when(mapper.toResponseDTO(entity)).thenReturn(responseDTO);
+            doNothing().when(mapper).updateEntity(any(AllowanceDeductionRequestDTO.class), any(HrAllowanceDeductionMaster.class));
             doNothing().when(loggingService).logChanges(any(), any(), any(), anyString(), anyString(), any(), anyString());
 
             AllowanceDeductionResponseDTO result = service.update(id, requestDTO);
@@ -169,6 +221,95 @@ class AllowanceDeductionMasterServiceTest {
             verify(repository).save(any(HrAllowanceDeductionMaster.class));
             verify(loggingService).logChanges(any(), any(), any(), anyString(), anyString(), any(), anyString());
         }
+    }
+
+    @Test
+    void testUpdateSuccessWithSamePayrollFieldName() {
+        Long id = 1L;
+        try (MockedStatic<UserContext> mockedUserContext = mockStatic(UserContext.class);
+             MockedStatic<ASGHelperUtils> mockedASGHelper = mockStatic(ASGHelperUtils.class)) {
+            
+            mockedUserContext.when(UserContext::getDocumentId).thenReturn("100-004");
+            mockedASGHelper.when(ASGHelperUtils::getCurrentUser).thenReturn("admin");
+
+            HrAllowanceDeductionMaster existingEntity = HrAllowanceDeductionMaster.builder()
+                    .allowaceDeductionPoid(id)
+                    .payrollFieldName(requestDTO.getPayrollFieldName())
+                    .build();
+
+            when(repository.findById(id)).thenReturn(Optional.of(entity));
+            when(repository.findByPayrollFieldName(requestDTO.getPayrollFieldName())).thenReturn(Optional.of(existingEntity));
+            when(repository.save(any(HrAllowanceDeductionMaster.class))).thenReturn(entity);
+            when(mapper.toResponseDTO(entity)).thenReturn(responseDTO);
+            doNothing().when(mapper).updateEntity(any(AllowanceDeductionRequestDTO.class), any(HrAllowanceDeductionMaster.class));
+            doNothing().when(loggingService).logChanges(any(), any(), any(), anyString(), anyString(), any(), anyString());
+
+            AllowanceDeductionResponseDTO result = service.update(id, requestDTO);
+
+            assertNotNull(result);
+            verify(repository).save(any(HrAllowanceDeductionMaster.class));
+        }
+    }
+
+    @Test
+    void testUpdateSuccessWithNullPayrollFieldName() {
+        Long id = 1L;
+        try (MockedStatic<UserContext> mockedUserContext = mockStatic(UserContext.class);
+             MockedStatic<ASGHelperUtils> mockedASGHelper = mockStatic(ASGHelperUtils.class)) {
+            
+            mockedUserContext.when(UserContext::getDocumentId).thenReturn("100-004");
+            mockedASGHelper.when(ASGHelperUtils::getCurrentUser).thenReturn("admin");
+
+            requestDTO.setPayrollFieldName(null);
+            when(repository.findById(id)).thenReturn(Optional.of(entity));
+            when(repository.save(any(HrAllowanceDeductionMaster.class))).thenReturn(entity);
+            when(mapper.toResponseDTO(entity)).thenReturn(responseDTO);
+            doNothing().when(mapper).updateEntity(any(AllowanceDeductionRequestDTO.class), any(HrAllowanceDeductionMaster.class));
+            doNothing().when(loggingService).logChanges(any(), any(), any(), anyString(), anyString(), any(), anyString());
+
+            AllowanceDeductionResponseDTO result = service.update(id, requestDTO);
+
+            assertNotNull(result);
+            verify(repository, never()).findByPayrollFieldName(any());
+        }
+    }
+
+    @Test
+    void testUpdateSuccessWithEmptyPayrollFieldName() {
+        Long id = 1L;
+        try (MockedStatic<UserContext> mockedUserContext = mockStatic(UserContext.class);
+             MockedStatic<ASGHelperUtils> mockedASGHelper = mockStatic(ASGHelperUtils.class)) {
+            
+            mockedUserContext.when(UserContext::getDocumentId).thenReturn("100-004");
+            mockedASGHelper.when(ASGHelperUtils::getCurrentUser).thenReturn("admin");
+
+            requestDTO.setPayrollFieldName("");
+            when(repository.findById(id)).thenReturn(Optional.of(entity));
+            when(repository.save(any(HrAllowanceDeductionMaster.class))).thenReturn(entity);
+            when(mapper.toResponseDTO(entity)).thenReturn(responseDTO);
+            doNothing().when(mapper).updateEntity(any(AllowanceDeductionRequestDTO.class), any(HrAllowanceDeductionMaster.class));
+            doNothing().when(loggingService).logChanges(any(), any(), any(), anyString(), anyString(), any(), anyString());
+
+            AllowanceDeductionResponseDTO result = service.update(id, requestDTO);
+
+            assertNotNull(result);
+            verify(repository, never()).findByPayrollFieldName(any());
+        }
+    }
+
+    @Test
+    void testUpdateDuplicatePayrollFieldName() {
+        Long id = 1L;
+        HrAllowanceDeductionMaster existingEntity = HrAllowanceDeductionMaster.builder()
+                .allowaceDeductionPoid(2L) // Different ID
+                .payrollFieldName(requestDTO.getPayrollFieldName())
+                .build();
+
+        when(repository.findById(id)).thenReturn(Optional.of(entity));
+        when(repository.findByPayrollFieldName(requestDTO.getPayrollFieldName())).thenReturn(Optional.of(existingEntity));
+
+        assertThrows(ResourceAlreadyExistsException.class, () -> service.update(id, requestDTO));
+        verify(repository, never()).save(any());
     }
 
     @Test

@@ -55,12 +55,15 @@ class AllowanceDeductionMasterControllerTest {
 
     @BeforeEach
     void setUp() {
+        // Initialize ObjectMapper first
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
 
+        // Setup static mock before any other operations
         mockedUserContext = mockStatic(UserContext.class);
         mockedUserContext.when(UserContext::getDocumentId).thenReturn("100-004");
 
+        // Setup MockMvc
         PageableHandlerMethodArgumentResolver pageableResolver = new PageableHandlerMethodArgumentResolver();
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
@@ -70,6 +73,11 @@ class AllowanceDeductionMasterControllerTest {
                 .setValidator(validator)
                 .build();
 
+        // Initialize test data
+        setupTestData();
+    }
+
+    private void setupTestData() {
         requestDTO = AllowanceDeductionRequestDTO.builder()
                 .code("BASIC_PAY")
                 .description("Basic Salary")
@@ -105,7 +113,9 @@ class AllowanceDeductionMasterControllerTest {
 
     @AfterEach
     void tearDown() {
-        mockedUserContext.close();
+        if (mockedUserContext != null) {
+            mockedUserContext.close();
+        }
     }
 
     @Test
@@ -121,26 +131,77 @@ class AllowanceDeductionMasterControllerTest {
     }
 
     @Test
+    void createAllowanceDeduction_Exception() throws Exception {
+        when(service.create(any(AllowanceDeductionRequestDTO.class)))
+                .thenThrow(new RuntimeException("Database error"));
+
+        mockMvc.perform(post("/v1/allowance-deduction-master")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDTO)))
+                .andExpect(status().isInternalServerError());
+
+        verify(service).create(any(AllowanceDeductionRequestDTO.class));
+    }
+
+    @Test
+    void createAllowanceDeduction_ValidationError() throws Exception {
+        AllowanceDeductionRequestDTO invalidRequest = AllowanceDeductionRequestDTO.builder()
+                .code("BASIC_PAY")
+                // Missing required fields
+                .build();
+
+        mockMvc.perform(post("/v1/allowance-deduction-master")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest());
+
+        verify(service, never()).create(any(AllowanceDeductionRequestDTO.class));
+    }
+
+    @Test
     void updateAllowanceDeduction_Success() throws Exception {
-        when(service.update(1L, any(AllowanceDeductionRequestDTO.class))).thenReturn(responseDTO);
+        when(service.update(anyLong(), any(AllowanceDeductionRequestDTO.class))).thenReturn(responseDTO);
 
         mockMvc.perform(put("/v1/allowance-deduction-master/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDTO)))
                 .andExpect(status().isOk());
 
-        verify(service).update(1L, any(AllowanceDeductionRequestDTO.class));
+        verify(service).update(anyLong(), any(AllowanceDeductionRequestDTO.class));
+    }
+
+    @Test
+    void updateAllowanceDeduction_Exception() throws Exception {
+        when(service.update(anyLong(), any(AllowanceDeductionRequestDTO.class)))
+                .thenThrow(new RuntimeException("Update failed"));
+
+        mockMvc.perform(put("/v1/allowance-deduction-master/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDTO)))
+                .andExpect(status().isInternalServerError());
+
+        verify(service).update(anyLong(), any(AllowanceDeductionRequestDTO.class));
     }
 
     @Test
     void getById_Success() throws Exception {
-        when(service.getById(1L)).thenReturn(responseDTO);
+        when(service.getById(anyLong())).thenReturn(responseDTO);
         doNothing().when(loggingService).createLogSummaryEntry(any(LogDetailsEnum.class), anyString(), anyString());
 
         mockMvc.perform(get("/v1/allowance-deduction-master/1"))
                 .andExpect(status().isOk());
 
-        verify(service).getById(1L);
+        verify(service).getById(anyLong());
+    }
+
+    @Test
+    void getById_NotFound() throws Exception {
+        when(service.getById(anyLong())).thenThrow(new RuntimeException("Not found"));
+
+        mockMvc.perform(get("/v1/allowance-deduction-master/1"))
+                .andExpect(status().isNotFound());
+
+        verify(service).getById(anyLong());
     }
 
     @Test
@@ -158,6 +219,21 @@ class AllowanceDeductionMasterControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(filters)))
                 .andExpect(status().isOk());
+
+        verify(service).search(any(FilterRequestDto.class), any(), any(), any());
+    }
+
+    @Test
+    void searchAllowanceDeductions_Exception() throws Exception {
+        FilterRequestDto filters = new FilterRequestDto("OR", "N", List.of());
+
+        when(service.search(any(FilterRequestDto.class), any(), any(), any()))
+                .thenThrow(new RuntimeException("Search failed"));
+
+        mockMvc.perform(post("/v1/allowance-deduction-master/search?startDate=2024-01-01&endDate=2024-12-31")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(filters)))
+                .andExpect(status().isInternalServerError());
 
         verify(service).search(any(FilterRequestDto.class), any(), any(), any());
     }
@@ -182,17 +258,59 @@ class AllowanceDeductionMasterControllerTest {
     }
 
     @Test
+    void searchAllowanceDeductions_WithoutRequestBody() throws Exception {
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("content", List.of(responseDTO));
+        responseMap.put("totalElements", 1);
+        responseMap.put("totalPages", 1);
+
+        when(service.search(isNull(), isNull(), isNull(), any())).thenReturn(responseMap);
+
+        mockMvc.perform(post("/v1/allowance-deduction-master/search")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(service).search(isNull(), isNull(), isNull(), any());
+    }
+
+    @Test
     void deleteAllowanceDeduction_Success() throws Exception {
         DeleteReasonDto deleteReasonDto = new DeleteReasonDto();
         deleteReasonDto.setDeleteReason("No longer needed");
 
-        doNothing().when(service).delete(1L, any(DeleteReasonDto.class));
+        doNothing().when(service).delete(anyLong(), any(DeleteReasonDto.class));
 
         mockMvc.perform(delete("/v1/allowance-deduction-master/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(deleteReasonDto)))
                 .andExpect(status().isOk());
 
-        verify(service).delete(1L, any(DeleteReasonDto.class));
+        verify(service).delete(anyLong(), any(DeleteReasonDto.class));
+    }
+
+    @Test
+    void deleteAllowanceDeduction_WithoutRequestBody() throws Exception {
+        doNothing().when(service).delete(anyLong(), isNull());
+
+        mockMvc.perform(delete("/v1/allowance-deduction-master/1")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(service).delete(anyLong(), isNull());
+    }
+
+    @Test
+    void deleteAllowanceDeduction_Exception() throws Exception {
+        DeleteReasonDto deleteReasonDto = new DeleteReasonDto();
+        deleteReasonDto.setDeleteReason("No longer needed");
+
+        doThrow(new RuntimeException("Delete failed")).when(service).delete(anyLong(), any(DeleteReasonDto.class));
+
+        mockMvc.perform(delete("/v1/allowance-deduction-master/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(deleteReasonDto)))
+                .andExpect(status().isNotFound()); // Controller returns 404 for exceptions in delete method
+
+        verify(service).delete(anyLong(), any(DeleteReasonDto.class));
     }
 }
