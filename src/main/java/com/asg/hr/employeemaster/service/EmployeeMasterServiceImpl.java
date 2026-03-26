@@ -5,16 +5,22 @@ import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.dto.RawSearchResult;
 import com.asg.common.lib.enums.LogDetailsEnum;
+import com.asg.common.lib.exception.ResourceAlreadyExistsException;
 import com.asg.common.lib.exception.ResourceNotFoundException;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.utility.PaginationUtil;
+import com.asg.hr.airsector.repository.HrAirsectorRepository;
+import com.asg.hr.departmentmaster.repository.HrDepartmentMasterRepository;
+import com.asg.hr.designation.repository.HrDesignationMasterRepository;
 import com.asg.hr.employeemaster.dto.*;
 import com.asg.hr.employeemaster.entity.*;
 import com.asg.hr.employeemaster.enums.ActionType;
 import com.asg.hr.employeemaster.repository.*;
+import com.asg.hr.nationality.repository.HrNationalityRepository;
+import com.asg.hr.religion.repository.ReligionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -43,6 +49,11 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     private final HrEmployeeDocumentDtlRepository documentRepository;
     private final HrEmployeeExperienceDtlRepository experienceRepository;
     private final HrEmployeeLeaveHistoryRepository leaveHistoryRepository;
+    private final HrAirsectorRepository airsectorRepository;
+    private final HrDepartmentMasterRepository hrDepartmentMasterRepository;
+    private final HrNationalityRepository hrNationalityRepository;
+    private final HrDesignationMasterRepository designationRepository;
+    private final ReligionRepository religionRepository;
 
     private final DocumentSearchService documentSearchService;
     private final DocumentDeleteService documentDeleteService;
@@ -74,6 +85,42 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     @Override
     public EmployeeMasterResponseDto createEmployee(EmployeeMasterRequestDto requestDto) {
 
+        if (requestDto.getAirSectorPoid() != null) {
+            if (!airsectorRepository.existsByAirsecPoid(requestDto.getAirSectorPoid())) {
+                throw new ResourceNotFoundException("Air Sector", "Air Sector Poid", requestDto.getAirSectorPoid());
+            }
+        }
+        if (requestDto.getDepartmentPoid() != null) {
+            if (!hrDepartmentMasterRepository.existsByDeptPoid(requestDto.getDepartmentPoid())) {
+                throw new ResourceNotFoundException("Department", "Department Poid", requestDto.getDepartmentPoid());
+            }
+        }
+        if (requestDto.getNationalityPoid() != null) {
+            if (Boolean.FALSE.equals(hrNationalityRepository.existsByNationPoid(requestDto.getNationalityPoid()))) {
+                throw new ResourceNotFoundException("Nationality", "Nationality Poid", requestDto.getNationalityPoid());
+            }
+        }
+        if (requestDto.getReligionPoid() != null) {
+            if (!religionRepository.existsByReligionPoid(requestDto.getReligionPoid())) {
+                throw new ResourceNotFoundException("Religion", "Religion Poid", requestDto.getReligionPoid());
+            }
+        }
+        if (requestDto.getDesignationPoid() != null) {
+            if (!designationRepository.existsByDesigPoid(requestDto.getDesignationPoid())) {
+                throw new ResourceNotFoundException("Designation", "Designation Poid", requestDto.getDesignationPoid());
+            }
+        }
+        if (requestDto.getMobile() != null) {
+            if (masterRepository.existsByMobile(requestDto.getMobile())) {
+                throw new ResourceAlreadyExistsException("Mobile", requestDto.getMobile());
+            }
+        }
+        if (requestDto.getFirstName() != null) {
+            if (masterRepository.existsByEmployeeName(requestDto.getFirstName())) {
+                throw new ResourceAlreadyExistsException("Name", requestDto.getFirstName());
+            }
+        }
+
         HrEmployeeMaster entity = new HrEmployeeMaster();
         applyHeaderFields(entity, requestDto);
         entity.setGroupPoid(UserContext.getGroupPoid());
@@ -98,6 +145,45 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
 
         HrEmployeeMaster existing = masterRepository.findByEmployeePoid(employeePoid)
                 .orElseThrow(() -> new ResourceNotFoundException(EMPLOYEE, HR_EMPLOYEE_MASTER_POID_FIELD, employeePoid));
+
+        if (!masterRepository.existsByDirectSupervisorPoid(employeePoid)) {
+            throw new ResourceNotFoundException("Direct Supervisor", "Direct Supervisor Poid", employeePoid);
+        }
+        if (requestDto.getAirSectorPoid() != null) {
+            if (!airsectorRepository.existsByAirsecPoid(requestDto.getAirSectorPoid())) {
+                throw new ResourceNotFoundException("Air Sector", "Air Sector Poid", requestDto.getAirSectorPoid());
+            }
+        }
+        if (requestDto.getDepartmentPoid() != null) {
+            if (!hrDepartmentMasterRepository.existsByDeptPoid(requestDto.getDepartmentPoid())) {
+                throw new ResourceNotFoundException("Department", "Department Poid", requestDto.getDepartmentPoid());
+            }
+        }
+        if (requestDto.getNationalityPoid() != null) {
+            if (Boolean.FALSE.equals(hrNationalityRepository.existsByNationPoid(requestDto.getNationalityPoid()))) {
+                throw new ResourceNotFoundException("Nationality", "Nationality Poid", requestDto.getNationalityPoid());
+            }
+        }
+        if (requestDto.getReligionPoid() != null) {
+            if (!religionRepository.existsByReligionPoid(requestDto.getReligionPoid())) {
+                throw new ResourceNotFoundException("Religion", "Religion Poid", requestDto.getReligionPoid());
+            }
+        }
+        if (requestDto.getDesignationPoid() != null) {
+            if (!designationRepository.existsByDesigPoid(requestDto.getDesignationPoid())) {
+                throw new ResourceNotFoundException("Designation", "Designation Poid", requestDto.getDesignationPoid());
+            }
+        }
+        if (requestDto.getMobile() != null) {
+            if (masterRepository.existsByMobileAndEmployeePoidNot(requestDto.getMobile(), employeePoid)) {
+                throw new ResourceAlreadyExistsException("Mobile", requestDto.getMobile());
+            }
+        }
+        if (requestDto.getFirstName() != null) {
+            if (masterRepository.existsByEmployeeNameAndEmployeePoidNot(requestDto.getFirstName(), employeePoid)) {
+                throw new ResourceAlreadyExistsException("Name", requestDto.getFirstName());
+            }
+        }
 
         HrEmployeeMaster oldEntity = new HrEmployeeMaster();
         // Copy full entity snapshot for accurate audit logging (no manual audit field assignment).
@@ -411,10 +497,25 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         long nextDetRowId = existing.stream().mapToLong(HrEmployeeDependentsDtl::getDetRowId).max().orElse(0L) + 1;
 
         for (EmployeeDependentsDtlRequestDto dto : dtos) {
+
+            if (dto.getEmployeePoid() != null) {
+                if (!masterRepository.existsByEmployeePoid(dto.getEmployeePoid())) {
+                    throw new ResourceNotFoundException("Employee", "Employee Poid", dto.getEmployeePoid());
+                }
+            }
+
             if (dto == null || dto.getActionType() == null || dto.getActionType() == ActionType.noChange) continue;
 
             ActionType action = dto.getActionType();
             if (action == ActionType.isCreated) {
+
+                if (dto.getName() != null) {
+                    if (dependentRepository.existsByName(dto.getName())) {
+                        throw new ResourceAlreadyExistsException("Dependent Name", dto.getName());
+                    }
+                }
+
+
                 long detRowId = dto.getDetRowId() != null ? dto.getDetRowId() : nextDetRowId++;
                 nextDetRowId = Math.max(nextDetRowId, detRowId + 1);
 
@@ -438,6 +539,12 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
             } else if (action == ActionType.isUpdated) {
                 if (dto.getDetRowId() == null) {
                     throw new IllegalArgumentException("detRowId is required for dependents isUpdated action");
+                }
+
+                if (dto.getName() != null) {
+                    if (dependentRepository.existsByNameAndEmployeePoidAndDetRowIdNot(dto.getName(), dto.getEmployeePoid(), dto.getDetRowId())) {
+                        throw new ResourceAlreadyExistsException("Dependent Name", dto.getName());
+                    }
                 }
 
                 HrEmployeeDependentsDtlId id = new HrEmployeeDependentsDtlId(employeePoid, dto.getDetRowId());
@@ -475,6 +582,13 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         long nextDetRowId = existing.stream().mapToLong(HrEmpDepndtsLmraDtls::getDetRowId).max().orElse(0L) + 1;
 
         for (EmployeeDepndtsLmraDtlsRequestDto dto : dtos) {
+
+            if (dto.getEmployeePoid() != null) {
+                if (!masterRepository.existsByEmployeePoid(dto.getEmployeePoid())) {
+                    throw new ResourceNotFoundException("Employee", "Employee Poid", dto.getEmployeePoid());
+                }
+            }
+
             if (dto == null || dto.getActionType() == null || dto.getActionType() == ActionType.noChange) continue;
 
             ActionType action = dto.getActionType();
@@ -565,6 +679,13 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         long nextDetRowId = existing.stream().mapToLong(HrEmployeeExperienceDtl::getDetRowId).max().orElse(0L) + 1;
 
         for (EmployeeExperienceDtlRequestDto dto : dtos) {
+
+            if (dto.getEmployeePoid() != null) {
+                if (!masterRepository.existsByEmployeePoid(dto.getEmployeePoid())) {
+                    throw new ResourceNotFoundException("Employee", "Employee Poid", dto.getEmployeePoid());
+                }
+            }
+
             if (dto == null || dto.getActionType() == null || dto.getActionType() == ActionType.noChange) continue;
 
             ActionType action = dto.getActionType();
@@ -615,6 +736,13 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         long nextDetRowId = existing.stream().mapToLong(HrEmployeeDocumentDtl::getDetRowId).max().orElse(0L) + 1;
 
         for (EmployeeDocumentDtlRequestDto dto : dtos) {
+
+            if (dto.getEmployeePoid() != null) {
+                if (!masterRepository.existsByEmployeePoid(dto.getEmployeePoid())) {
+                    throw new ResourceNotFoundException("Employee", "Employee Poid", dto.getEmployeePoid());
+                }
+            }
+
             if (dto == null || dto.getActionType() == null || dto.getActionType() == ActionType.noChange) continue;
 
             ActionType action = dto.getActionType();
@@ -661,6 +789,13 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         long nextDetRowId = existing.stream().mapToLong(HrEmployeeLeaveHistory::getDetRowId).max().orElse(0L) + 1;
 
         for (EmployeeLeaveHistoryRequestDto dto : dtos) {
+
+            if (dto.getEmployeePoid() != null) {
+                if (!masterRepository.existsByEmployeePoid(dto.getEmployeePoid())) {
+                    throw new ResourceNotFoundException("Employee", "Employee Poid", dto.getEmployeePoid());
+                }
+            }
+
             if (dto == null || dto.getActionType() == null || dto.getActionType() == ActionType.noChange) continue;
 
             ActionType action = dto.getActionType();

@@ -10,4 +10,17 @@ import java.util.Optional;
 @Repository
 public interface HrEmployeeMasterRepository extends JpaRepository<HrEmployeeMaster, Long> {
     Optional<HrEmployeeMaster> findByEmployeePoid(@Param("employeePoid") Long employeePoid);
+
+    boolean existsByEmployeePoid(@Param("employeePoid") Long employeePoid);
+
+    boolean existsByMobile(@Param("mobile") String mobile);
+
+    boolean existsByMobileAndEmployeePoidNot(@Param("mobile") String mobile, @Param("employeePoid") Long employeePoid);
+
+    boolean existsByEmployeeName(@Param("employeeName") String employeeName);
+
+    boolean existsByEmployeeNameAndEmployeePoidNot(@Param("employeeName") String employeeName, @Param("employeePoid") Long employeePoid);
+
+    boolean existsByDirectSupervisorPoid(@Param("employeePoid") Long employeePoid);
 }
+

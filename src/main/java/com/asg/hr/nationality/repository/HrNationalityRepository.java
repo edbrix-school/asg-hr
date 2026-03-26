@@ -17,4 +17,6 @@ public interface HrNationalityRepository extends JpaRepository<HrNationalityMast
     boolean existsByNationalityCode(String nationalityCode);
 
     boolean existsByNationalityDescription(String nationalityDescription);
+
+    boolean existsByNationPoid(Long nationPoid);
 }

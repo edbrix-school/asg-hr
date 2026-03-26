@@ -11,4 +11,8 @@ import java.util.List;
 public interface HrEmployeeDependentRepository extends JpaRepository<HrEmployeeDependentsDtl, HrEmployeeDependentsDtlId> {
 
     List<HrEmployeeDependentsDtl> findByEmployeePoid(Long employeePoid);
+
+    Boolean existsByName(String name);
+
+    boolean existsByNameAndEmployeePoidAndDetRowIdNot(String name, Long employeePoid, Long detRowId);
 }
