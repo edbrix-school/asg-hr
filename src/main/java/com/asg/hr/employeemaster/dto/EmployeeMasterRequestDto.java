@@ -103,7 +103,6 @@ public class EmployeeMasterRequestDto {
 
     @NotNull(message = "HOD Is Required")
     private Long hod;
-    private Long loginUserPoid;
 
     @Size(max = 500, message = "Job Description Must Be At Most 500 Characters")
     private String jobDescription;

@@ -11,4 +11,8 @@ import java.util.List;
 public interface HrEmployeeExperienceDtlRepository extends JpaRepository<HrEmployeeExperienceDtl, HrEmployeeExperienceDtlId> {
 
     List<HrEmployeeExperienceDtl> findByEmployeePoid(Long employeePoid);
+
+    boolean existsByEmployerIgnoreCase(String employer);
+
+    boolean existsByEmployerIgnoreCaseAndEmployeePoidNot(String employer, Long employeePoid);
 }

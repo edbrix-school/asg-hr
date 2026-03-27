@@ -14,5 +14,5 @@ public interface HrEmployeeDependentRepository extends JpaRepository<HrEmployeeD
 
     Boolean existsByName(String name);
 
-    boolean existsByNameAndEmployeePoidAndDetRowIdNot(String name, Long employeePoid, Long detRowId);
+    boolean existsByNameAndEmployeePoidNotOrDetRowIdNot(String name, Long employeePoid, Long detRowId);
 }

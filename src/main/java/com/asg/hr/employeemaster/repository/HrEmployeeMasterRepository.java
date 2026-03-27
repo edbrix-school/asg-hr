@@ -20,7 +20,5 @@ public interface HrEmployeeMasterRepository extends JpaRepository<HrEmployeeMast
     boolean existsByEmployeeName(@Param("employeeName") String employeeName);
 
     boolean existsByEmployeeNameAndEmployeePoidNot(@Param("employeeName") String employeeName, @Param("employeePoid") Long employeePoid);
-
-    boolean existsByDirectSupervisorPoid(@Param("employeePoid") Long employeePoid);
 }
 
