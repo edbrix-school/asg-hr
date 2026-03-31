@@ -21,7 +21,7 @@ public class DesignationResponse {
     private String designationName;
     private String jobDescription;
     private String skillDescription;
-    private Long reportingToPoid;
+    private String reportingToPoid;
     private Long seqNo;
     private String active;
     private String deleted;

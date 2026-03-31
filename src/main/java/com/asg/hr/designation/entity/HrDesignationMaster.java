@@ -36,15 +36,14 @@ public class HrDesignationMaster extends BaseEntity {
     @Column(name = "DESIGNATION_NAME", length = 100, nullable = false)
     private String designationName;
 
-    @Lob
-    @Column(name = "JOB_DESCRIPTION")
+    @Column(name = "JOB_DESCRIPTION", length = 4000)
     private String jobDescription;
 
     @Column(name = "SKILL_DESCRIPTION")
     private String skillDescription;
 
-    @Column(name = "REPORTING_TO_POID")
-    private Long reportingToPoid;
+    @Column(name = "REPORTING_TO")
+    private String reportingToPoid;
 
     @Column(name = "SEQNO")
     private Long seqNo;

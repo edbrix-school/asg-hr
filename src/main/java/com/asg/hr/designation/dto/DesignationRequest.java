@@ -30,7 +30,7 @@ public class DesignationRequest {
 
     private String skillDescription;
 
-    private Long reportingToPoid;
+    private String reportingToPoid;
 
     private Long seqNo;
 
