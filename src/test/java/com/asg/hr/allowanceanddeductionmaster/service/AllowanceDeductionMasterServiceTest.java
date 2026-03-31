@@ -74,7 +74,6 @@ class AllowanceDeductionMasterServiceTest {
                 .payrollFieldName("basic_pay")
                 .seqno(1)
                 .active("Y")
-                .groupPoid(1L)
                 .build();
 
         responseDTO = AllowanceDeductionResponseDTO.builder()
@@ -404,7 +403,7 @@ class AllowanceDeductionMasterServiceTest {
             when(documentSearchService.search(anyString(), anyList(), anyString(), any(Pageable.class), anyString(), anyString(), anyString()))
                     .thenReturn(new RawSearchResult(records, displayFields, 0L));
 
-            Map<String, Object> result = service.search(filterRequest, startDate, endDate, pageable);
+            Map<String, Object> result = service.list(filterRequest, startDate, endDate, pageable);
 
             assertNotNull(result);
             verify(documentSearchService).resolveDateFilters(filterRequest, "TRANSACTION_DATE", startDate, endDate);
@@ -429,7 +428,7 @@ class AllowanceDeductionMasterServiceTest {
             when(documentSearchService.search(anyString(), anyList(), anyString(), any(Pageable.class), anyString(), anyString(), anyString()))
                     .thenReturn(new RawSearchResult(records, displayFields, 0L));
 
-            Map<String, Object> result = service.search(filterRequest, null, null, pageable);
+            Map<String, Object> result = service.list(filterRequest, null, null, pageable);
 
             assertNotNull(result);
             verify(documentSearchService).resolveDateFilters(filterRequest, "TRANSACTION_DATE", null, null);

@@ -28,7 +28,7 @@ public class AllowanceDeductionMasterMapper {
                 .payrollFieldName(request.getPayrollFieldName())
                 .seqno(request.getSeqno())
                 .active(request.getActive())
-                .groupPoid(request.getGroupPoid())
+                .groupPoid(UserContext.getGroupPoid())
                 .build();
     }
 

@@ -42,6 +42,4 @@ public class AllowanceDeductionRequestDTO {
     @NotBlank(message = "Active is mandatory")
     @Pattern(regexp = "[YN]", message = "Active must be Y or N")
     private String active;
-
-    private Long groupPoid;
 }

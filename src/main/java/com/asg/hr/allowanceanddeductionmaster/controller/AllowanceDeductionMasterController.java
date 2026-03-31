@@ -144,15 +144,15 @@ public class AllowanceDeductionMasterController {
             )
     )
     @AllowedAction(UserRolesRightsEnum.VIEW)
-    @PostMapping("/search")
-    public ResponseEntity<?> search(
+    @PostMapping("/list")
+    public ResponseEntity<?> list(
             @ParameterObject Pageable pageable,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
             @RequestBody(required = false) FilterRequestDto filterRequest) {
         log.info("Searching allowance/deductions with page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
         try {
-            Map<String, Object> result = service.search(filterRequest,startDate,endDate, pageable);
+            Map<String, Object> result = service.list(filterRequest,startDate,endDate, pageable);
             return success("Allowance/Deductions retrieved successfully", result);
         } catch (Exception ex) {
             log.error("Failed to search allowance/deductions", ex);

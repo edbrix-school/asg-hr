@@ -89,7 +89,6 @@ class AllowanceDeductionMasterControllerTest {
                 .payrollFieldName("basic_pay")
                 .seqno(1)
                 .active("Y")
-                .groupPoid(1L)
                 .build();
 
         responseDTO = AllowanceDeductionResponseDTO.builder()
@@ -213,21 +212,21 @@ class AllowanceDeductionMasterControllerTest {
         responseMap.put("totalElements", 1);
         responseMap.put("totalPages", 1);
 
-        when(service.search(any(FilterRequestDto.class), any(), any(), any())).thenReturn(responseMap);
+        when(service.list(any(FilterRequestDto.class), any(), any(), any())).thenReturn(responseMap);
 
         mockMvc.perform(post("/v1/allowance-deduction-master/search?startDate=2024-01-01&endDate=2024-12-31")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(filters)))
                 .andExpect(status().isOk());
 
-        verify(service).search(any(FilterRequestDto.class), any(), any(), any());
+        verify(service).list(any(FilterRequestDto.class), any(), any(), any());
     }
 
     @Test
     void searchAllowanceDeductions_Exception() throws Exception {
         FilterRequestDto filters = new FilterRequestDto("OR", "N", List.of());
 
-        when(service.search(any(FilterRequestDto.class), any(), any(), any()))
+        when(service.list(any(FilterRequestDto.class), any(), any(), any()))
                 .thenThrow(new RuntimeException("Search failed"));
 
         mockMvc.perform(post("/v1/allowance-deduction-master/search?startDate=2024-01-01&endDate=2024-12-31")
@@ -235,7 +234,7 @@ class AllowanceDeductionMasterControllerTest {
                         .content(objectMapper.writeValueAsString(filters)))
                 .andExpect(status().isInternalServerError());
 
-        verify(service).search(any(FilterRequestDto.class), any(), any(), any());
+        verify(service).list(any(FilterRequestDto.class), any(), any(), any());
     }
 
     @Test
@@ -247,14 +246,14 @@ class AllowanceDeductionMasterControllerTest {
         responseMap.put("totalElements", 1);
         responseMap.put("totalPages", 1);
 
-        when(service.search(any(FilterRequestDto.class), isNull(), isNull(), any())).thenReturn(responseMap);
+        when(service.list(any(FilterRequestDto.class), isNull(), isNull(), any())).thenReturn(responseMap);
 
         mockMvc.perform(post("/v1/allowance-deduction-master/search")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(filters)))
                 .andExpect(status().isOk());
 
-        verify(service).search(any(FilterRequestDto.class), isNull(), isNull(), any());
+        verify(service).list(any(FilterRequestDto.class), isNull(), isNull(), any());
     }
 
     @Test
@@ -264,13 +263,13 @@ class AllowanceDeductionMasterControllerTest {
         responseMap.put("totalElements", 1);
         responseMap.put("totalPages", 1);
 
-        when(service.search(isNull(), isNull(), isNull(), any())).thenReturn(responseMap);
+        when(service.list(isNull(), isNull(), isNull(), any())).thenReturn(responseMap);
 
         mockMvc.perform(post("/v1/allowance-deduction-master/search")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        verify(service).search(isNull(), isNull(), isNull(), any());
+        verify(service).list(isNull(), isNull(), isNull(), any());
     }
 
     @Test

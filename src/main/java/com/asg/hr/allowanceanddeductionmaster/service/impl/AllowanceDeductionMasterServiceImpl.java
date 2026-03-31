@@ -60,6 +60,7 @@ public class AllowanceDeductionMasterServiceImpl implements AllowanceDeductionMa
     private final DocumentDeleteService documentDeleteService;
 
     @Override
+    @Transactional
     public AllowanceDeductionResponseDTO create(AllowanceDeductionRequestDTO request) {
         log.info("Creating allowance/deduction with code: {}", request.getCode());
 
@@ -82,6 +83,7 @@ public class AllowanceDeductionMasterServiceImpl implements AllowanceDeductionMa
     }
 
     @Override
+    @Transactional
     public AllowanceDeductionResponseDTO update(Long allowaceDeductionPoid, AllowanceDeductionRequestDTO request) {
         log.info("Updating allowance/deduction with id: {}", allowaceDeductionPoid);
 
@@ -145,7 +147,7 @@ public class AllowanceDeductionMasterServiceImpl implements AllowanceDeductionMa
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> search(FilterRequestDto request, LocalDate startDate, LocalDate endDate, Pageable pageable) {
+    public Map<String, Object> list(FilterRequestDto request, LocalDate startDate, LocalDate endDate, Pageable pageable) {
         log.info("Searching allowance/deductions with page: {}, size: {}", pageable.getPageNumber(), pageable.getPageSize());
 
         String operator = documentService.resolveOperator(request);

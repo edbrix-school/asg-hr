@@ -18,5 +18,5 @@ public interface AllowanceDeductionMasterService {
 
     void delete(Long allowaceDeductionPoid, DeleteReasonDto deleteReasonDto);
 
-    Map<String, Object> search(FilterRequestDto request, LocalDate startDate, LocalDate endDate, Pageable pageable);
+    Map<String, Object> list(FilterRequestDto request, LocalDate startDate, LocalDate endDate, Pageable pageable);
 }
