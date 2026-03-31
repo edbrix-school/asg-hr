@@ -1,13 +1,13 @@
-package com.asg.hr.religion.controller;
+package com.asg.hr.designation.controller;
 
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.LoggingService;
-import com.asg.hr.religion.dto.ReligionDtoRequest;
-import com.asg.hr.religion.dto.ReligionDtoResponse;
-import com.asg.hr.religion.service.ReligionService;
+import com.asg.hr.designation.dto.DesignationRequest;
+import com.asg.hr.designation.dto.DesignationResponse;
+import com.asg.hr.designation.service.DesignationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,32 +29,34 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
-class ReligionControllerTest {
+class DesignationControllerTest {
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
     private MockedStatic<UserContext> mockedUserContext;
 
     @Mock
-    private ReligionService service;
+    private DesignationService designationService;
 
     @Mock
     private LoggingService loggingService;
 
     @InjectMocks
-    private ReligionController controller;
+    private DesignationController controller;
 
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
 
-        mockedUserContext = mockStatic(UserContext.class);
+        mockedUserContext = org.mockito.Mockito.mockStatic(UserContext.class);
         mockedUserContext.when(UserContext::getDocumentId).thenReturn("DOC123");
 
         PageableHandlerMethodArgumentResolver pageableResolver = new PageableHandlerMethodArgumentResolver();
@@ -75,84 +77,86 @@ class ReligionControllerTest {
         }
     }
 
-    private ReligionDtoRequest createMockRequest() {
-        ReligionDtoRequest dto = new ReligionDtoRequest();
-        dto.setReligionCode("HINDU");
-        dto.setDescription("Hindu Religion");
-        dto.setActive("Y");
-        dto.setSeqNo(1L);
-        return dto;
+    private DesignationRequest createMockRequest() {
+        return DesignationRequest.builder()
+                .designationCode("DEV001")
+                .designationName("Developer")
+                .jobDescription("<p>Writes code</p>")
+                .skillDescription("Java, Spring")
+                .active("Y")
+                .seqNo(1L)
+                .build();
     }
 
-    private ReligionDtoResponse createMockResponse() {
-        ReligionDtoResponse dto = new ReligionDtoResponse();
-        dto.setReligionPoid(1L);
-        dto.setReligionCode("HINDU");
-        dto.setDescription("Hindu Religion");
-        dto.setActive("Y");
-        dto.setSeqNo(1L);
-        return dto;
+    private DesignationResponse createMockResponse() {
+        return DesignationResponse.builder()
+                .designationPoid(1L)
+                .designationCode("DEV001")
+                .designationName("Developer")
+                .jobDescription("<p>Writes code</p>")
+                .skillDescription("Java, Spring")
+                .active("Y")
+                .seqNo(1L)
+                .build();
     }
-
-    // ================= CREATE TESTS =================
 
     @Test
-    void createReligion_Success() throws Exception {
-        ReligionDtoRequest request = createMockRequest();
+    void createDesignation_Success() throws Exception {
+        DesignationRequest request = createMockRequest();
 
-        when(service.createReligion(any(ReligionDtoRequest.class))).thenReturn(1L);
+        when(designationService.createDesignation(any(DesignationRequest.class))).thenReturn(1L);
 
-        mockMvc.perform(post("/v1/religion")
+        mockMvc.perform(post("/v1/designation")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("Religion created successfully"))
-                .andExpect(jsonPath("$.result.data.religionPoid").value(1));
+                .andExpect(jsonPath("$.message").value("Designation created successfully"))
+                .andExpect(jsonPath("$.result.data.designationPoid").value(1));
 
-        verify(service).createReligion(any(ReligionDtoRequest.class));
+        verify(designationService).createDesignation(any(DesignationRequest.class));
     }
 
     @Test
-    void updateReligion_Success() throws Exception {
-        ReligionDtoRequest request = createMockRequest();
-        ReligionDtoResponse response = createMockResponse();
+    void updateDesignation_Success() throws Exception {
+        DesignationRequest request = createMockRequest();
+        DesignationResponse response = createMockResponse();
 
-        when(service.updateReligion(any(ReligionDtoRequest.class), eq(1L))).thenReturn(response);
+        when(designationService.updateDesignation(eq(1L), any(DesignationRequest.class))).thenReturn(response);
 
-        mockMvc.perform(put("/v1/religion/1")
+        mockMvc.perform(put("/v1/designation/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("Religion updated successfully"))
-                .andExpect(jsonPath("$.result.data.religionPoid").value(1));
+                .andExpect(jsonPath("$.message").value("Designation updated successfully"))
+                .andExpect(jsonPath("$.result.data.designationPoid").value(1));
 
-        verify(service).updateReligion(any(ReligionDtoRequest.class), eq(1L));
+        verify(designationService).updateDesignation(eq(1L), any(DesignationRequest.class));
     }
 
     @Test
-    void getReligionById_Success() throws Exception {
-        ReligionDtoResponse response = createMockResponse();
+    void getDesignationById_Success() throws Exception {
+        DesignationResponse response = createMockResponse();
 
-        when(service.getReligionById(eq(1L))).thenReturn(response);
+        when(designationService.getDesignationById(eq(1L))).thenReturn(response);
         doNothing().when(loggingService).createLogSummaryEntry(
                 any(LogDetailsEnum.class), anyString(), anyString());
 
-        mockMvc.perform(get("/v1/religion/1"))
+        mockMvc.perform(get("/v1/designation/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("Religion detail fetched successfully"))
-                .andExpect(jsonPath("$.result.data.religionPoid").value(1))
-                .andExpect(jsonPath("$.result.data.religionCode").value("HINDU"));
+                .andExpect(jsonPath("$.message").value("Designation retrieved successfully"))
+                .andExpect(jsonPath("$.result.data.designationPoid").value(1))
+                .andExpect(jsonPath("$.result.data.designationCode").value("DEV001"));
 
-        verify(service).getReligionById(eq(1L));
+        verify(designationService).getDesignationById(eq(1L));
         verify(loggingService).createLogSummaryEntry(
                 eq(LogDetailsEnum.VIEWED), eq("DOC123"), eq("1"));
     }
 
     @Test
-    void listReligion_Success() throws Exception {
+    void listDesignations_Success() throws Exception {
         FilterRequestDto filters = new FilterRequestDto("AND", "N", List.of());
 
         Map<String, Object> responseMap = new HashMap<>();
@@ -160,106 +164,95 @@ class ReligionControllerTest {
         responseMap.put("totalElements", 1);
         responseMap.put("totalPages", 1);
 
-        when(service.listReligion(any(FilterRequestDto.class), any())).thenReturn(responseMap);
+        when(designationService.listDesignations(any(FilterRequestDto.class), any())).thenReturn(responseMap);
 
-        mockMvc.perform(post("/v1/religion/search")
+        mockMvc.perform(post("/v1/designation/list")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(filters)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("Religions fetched successfully"));
+                .andExpect(jsonPath("$.message").value("Designation list retrieved successfully"));
 
-        verify(service).listReligion(any(FilterRequestDto.class), any());
+        verify(designationService).listDesignations(any(FilterRequestDto.class), any());
     }
 
     @Test
-    void listReligion_WithNullFilters_Success() throws Exception {
+    void listDesignations_WithNullFilters_Success() throws Exception {
         Map<String, Object> responseMap = new HashMap<>();
         responseMap.put("content", List.of(createMockResponse()));
         responseMap.put("totalElements", 1);
 
-        when(service.listReligion(any(), any())).thenReturn(responseMap);
+        when(designationService.listDesignations(any(), any())).thenReturn(responseMap);
 
-        mockMvc.perform(post("/v1/religion/search")
+        mockMvc.perform(post("/v1/designation/list")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
 
-        verify(service).listReligion(any(), any());
+        verify(designationService).listDesignations(any(), any());
     }
 
     @Test
-    void deleteReligion_Success() throws Exception {
+    void deleteDesignation_Success() throws Exception {
         DeleteReasonDto deleteReasonDto = new DeleteReasonDto();
         deleteReasonDto.setDeleteReason("No longer needed");
 
-        doNothing().when(service).deleteReligion(eq(1L), any(DeleteReasonDto.class));
+        doNothing().when(designationService).deleteDesignation(eq(1L), any(DeleteReasonDto.class));
 
-        mockMvc.perform(delete("/v1/religion/1")
+        mockMvc.perform(delete("/v1/designation/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(deleteReasonDto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("Religion deleted successfully"));
+                .andExpect(jsonPath("$.message").value("Designation deleted successfully"));
 
-        verify(service).deleteReligion(eq(1L), any(DeleteReasonDto.class));
+        verify(designationService).deleteDesignation(eq(1L), any(DeleteReasonDto.class));
     }
 
     @Test
-    void deleteReligion_WithNullDeleteReason_Success() throws Exception {
-        doNothing().when(service).deleteReligion(eq(1L), any());
+    void deleteDesignation_WithNullDeleteReason_Success() throws Exception {
+        doNothing().when(designationService).deleteDesignation(eq(1L), any());
 
-        mockMvc.perform(delete("/v1/religion/1")
+        mockMvc.perform(delete("/v1/designation/1")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.message").value("Religion deleted successfully"));
+                .andExpect(jsonPath("$.message").value("Designation deleted successfully"));
 
-        verify(service).deleteReligion(eq(1L), any());
+        verify(designationService).deleteDesignation(eq(1L), any());
     }
 
-    // ================= VALIDATION TESTS =================
-
     @Test
-    void createReligion_MissingReligionCode_BadRequest() throws Exception {
-        ReligionDtoRequest request = createMockRequest();
-        request.setReligionCode(""); // Invalid
+    void createDesignation_MissingCode_BadRequest() throws Exception {
+        DesignationRequest request = createMockRequest();
+        request.setDesignationCode(""); // Invalid
 
-        mockMvc.perform(post("/v1/religion")
+        mockMvc.perform(post("/v1/designation")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void createReligion_ReligionCodeTooLong_BadRequest() throws Exception {
-        ReligionDtoRequest request = createMockRequest();
-        request.setReligionCode("A".repeat(21)); // Max 20
+    void createDesignation_MissingName_BadRequest() throws Exception {
+        DesignationRequest request = createMockRequest();
+        request.setDesignationName(""); // Invalid
 
-        mockMvc.perform(post("/v1/religion")
+        mockMvc.perform(post("/v1/designation")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void createReligion_MissingActive_BadRequest() throws Exception {
-        ReligionDtoRequest request = createMockRequest();
-        request.setActive(""); // Invalid
+    void createDesignation_MissingJobDescription_BadRequest() throws Exception {
+        DesignationRequest request = createMockRequest();
+        request.setJobDescription(""); // Invalid
 
-        mockMvc.perform(post("/v1/religion")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void createReligion_DescriptionTooLong_BadRequest() throws Exception {
-        ReligionDtoRequest request = createMockRequest();
-        request.setDescription("A".repeat(101)); // Max 100
-
-        mockMvc.perform(post("/v1/religion")
+        mockMvc.perform(post("/v1/designation")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 }
+
