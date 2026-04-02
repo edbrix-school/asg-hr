@@ -2,6 +2,8 @@ package com.asg.hr.employeemaster.service;
 
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
+import com.asg.hr.employeemaster.dto.EmployeeDashboardListRequestDto;
+import com.asg.hr.employeemaster.dto.EmployeeCountDto;
 import com.asg.hr.employeemaster.dto.EmployeeMasterRequestDto;
 import com.asg.hr.employeemaster.dto.EmployeeMasterResponseDto;
 import com.asg.hr.employeemaster.dto.EmployeePhotoUpdateResponseDto;
@@ -23,5 +25,9 @@ public interface EmployeeMasterService {
     void deleteEmployee(Long employeePoid, DeleteReasonDto deleteReasonDto);
 
     EmployeePhotoUpdateResponseDto updateEmployeePhoto(Long employeePoid, EmployeePhotoUpdateRequestDto requestDto);
+
+    EmployeeCountDto getEmployeeCounts();
+
+    Map<String, Object> listEmployeeDashboardDetails(EmployeeDashboardListRequestDto request, Pageable pageable);
 }
 

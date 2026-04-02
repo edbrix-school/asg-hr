@@ -32,9 +32,21 @@ public class EmployeeMasterController {
     private final LoggingService loggingService;
 
     @AllowedAction(UserRolesRightsEnum.VIEW)
+    @GetMapping("/dashboard-details")
+    public ResponseEntity<?> getEmployeeMasterDashboardDetails() {
+        return success("Employee master dashboard details fetched successfully", employeeMasterService.getEmployeeCounts());
+    }
+
+    @AllowedAction(UserRolesRightsEnum.VIEW)
+    @PostMapping("/dashboard-details/list")
+    public ResponseEntity<?> listEmployeeMasterDashboardDetails(@ParameterObject Pageable pageable, @RequestBody(required = false) EmployeeDashboardListRequestDto request) {
+        Map<String, Object> result = employeeMasterService.listEmployeeDashboardDetails(request, pageable);
+        return success("Employee master dashboard list fetched successfully", result);
+    }
+
+    @AllowedAction(UserRolesRightsEnum.VIEW)
     @PostMapping("/list")
-    public ResponseEntity<?> listEmployees(@ParameterObject Pageable pageable, @RequestBody(required = false) FilterRequestDto filters
-    ) {
+    public ResponseEntity<?> listEmployees(@ParameterObject Pageable pageable, @RequestBody(required = false) FilterRequestDto filters) {
         Map<String, Object> result = employeeMasterService.listEmployees(UserContext.getDocumentId(), filters, pageable);
         return success("Employee list fetched successfully", result);
     }

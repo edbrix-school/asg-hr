@@ -21,23 +21,27 @@ import com.asg.hr.departmentmaster.repository.HrDepartmentMasterRepository;
 import com.asg.hr.designation.repository.HrDesignationMasterRepository;
 import com.asg.hr.employeemaster.dto.*;
 import com.asg.hr.employeemaster.entity.*;
+import org.springframework.data.domain.Page;
 import com.asg.hr.employeemaster.enums.ActionType;
 import com.asg.hr.employeemaster.repository.*;
+import org.springframework.data.domain.PageRequest;
 import com.asg.hr.exceptions.ValidationException;
 import com.asg.hr.locationmaster.repository.GlobalLocationMasterRepository;
 import com.asg.hr.nationality.repository.HrNationalityRepository;
 import com.asg.hr.religion.repository.ReligionRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,6 +53,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     private static final String HR_EMPLOYEE_MASTER_POID_FIELD = "EMPLOYEE_POID";
     private static final String DET_ROW_ID = "DET_ROW_ID";
     private static final String EMPLOYEE = "Employee";
+    private static final Sort DEFAULT_EMPLOYEE_DASHBOARD_SORT = Sort.by(Sort.Order.desc("employeePoid"));
 
     private final HrEmployeeMasterRepository masterRepository;
     private final HrEmployeeDependentRepository dependentRepository;
@@ -291,6 +296,13 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 .photo(saved.getPhoto())
                 .build();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public EmployeeCountDto getEmployeeCounts() {
+        return masterRepository.getEmployeeCounts();
+    }
+
 
     private EmployeeMasterResponseDto toResponseDto(HrEmployeeMaster entity) {
         Long employeePoid = entity.getEmployeePoid();
@@ -1082,6 +1094,79 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 .lastModifiedBy(entity.getLastModifiedBy())
                 .lastModifiedDate(entity.getLastModifiedDate())
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> listEmployeeDashboardDetails(EmployeeDashboardListRequestDto request, Pageable pageable) {
+        Long designationPoid = request != null ? request.getDesignationPoid() : null;
+        Long locationPoid = request != null ? request.getLocationPoid() : null;
+        Long departmentPoid = request != null ? request.getDepartmentPoid() : null;
+        LocalDate joinDateFrom = request != null ? request.getJoinDateFrom() : null;
+        LocalDate joinDateTo = request != null ? request.getJoinDateTo() : null;
+        if (joinDateFrom != null && joinDateTo != null && joinDateFrom.isAfter(joinDateTo)) {
+            throw new ValidationException("joinDateFrom must not be after joinDateTo");
+        }
+
+        String status = null;
+        String filter = null;
+        if (request != null) {
+            if (StringUtils.isNotBlank(request.getStatus())) {
+                status = request.getStatus().trim();
+            }
+            if (StringUtils.isNotBlank(request.getFilter())) {
+                filter = request.getFilter().trim();
+            }
+        }
+
+        Pageable safePageable = toSafeEmployeeDashboardPageable(pageable);
+        Page<EmployeeDashboardDetailsDto> page = masterRepository.searchEmployeeDashboardDetails(
+                designationPoid,
+                locationPoid,
+                departmentPoid,
+                joinDateFrom,
+                joinDateTo,
+                status,
+                filter,
+                safePageable
+        );
+        return PaginationUtil.wrapPage(page, null);
+    }
+
+    private Pageable toSafeEmployeeDashboardPageable(Pageable pageable) {
+        if (pageable == null) {
+            return PageRequest.of(0, 10, DEFAULT_EMPLOYEE_DASHBOARD_SORT);
+        }
+        if (pageable.getSort().isUnsorted()) {
+            return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), DEFAULT_EMPLOYEE_DASHBOARD_SORT);
+        }
+
+        Map<String, String> sortableFieldMap = new HashMap<>();
+        sortableFieldMap.put(HR_EMPLOYEE_MASTER_POID_FIELD, "employeePoid");
+        sortableFieldMap.put("EMPLOYEE_NAME", "employeeName");
+        sortableFieldMap.put("EMPLOYEE_NAME2", "employeeName2");
+        sortableFieldMap.put("DESIGNATION_POID", "designationPoid");
+        sortableFieldMap.put("LOCATION_POID", "locationPoid");
+        sortableFieldMap.put("DEPARTMENT_POID", "departmentPoid");
+        sortableFieldMap.put("JOIN_DATE", "joinDate");
+        sortableFieldMap.put("MOBILE", "mobile");
+        sortableFieldMap.put("ACTIVE", "active");
+
+        List<org.springframework.data.domain.Sort.Order> safeOrders = pageable.getSort().stream()
+                .map(order -> {
+                    String property = order.getProperty();
+                    String mapped = sortableFieldMap.get(property.toUpperCase());
+                    if (mapped == null && !property.isEmpty() && Character.isLowerCase(property.charAt(0))) {
+                        mapped = property;
+                    }
+                    if (mapped == null) {
+                        mapped = "employeePoid";
+                    }
+                    return new org.springframework.data.domain.Sort.Order(order.getDirection(), mapped);
+                })
+                .collect(Collectors.toList());
+
+        return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(safeOrders));
     }
 }
 
