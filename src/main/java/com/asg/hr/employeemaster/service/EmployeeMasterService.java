@@ -29,5 +29,7 @@ public interface EmployeeMasterService {
     EmployeeCountDto getEmployeeCounts();
 
     Map<String, Object> listEmployeeDashboardDetails(EmployeeDashboardListRequestDto request, Pageable pageable);
+
+    byte[] print(Long transactionPoid) throws Exception;
 }
 

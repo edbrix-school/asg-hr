@@ -11,6 +11,7 @@ import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.common.lib.service.PrintService;
 import com.asg.common.lib.utility.PaginationUtil;
 import com.asg.hr.airsector.repository.HrAirsectorRepository;
 import com.asg.hr.client.GlMasterServiceClient;
@@ -21,6 +22,7 @@ import com.asg.hr.departmentmaster.repository.HrDepartmentMasterRepository;
 import com.asg.hr.designation.repository.HrDesignationMasterRepository;
 import com.asg.hr.employeemaster.dto.*;
 import com.asg.hr.employeemaster.entity.*;
+import net.sf.jasperreports.engine.JasperReport;
 import org.springframework.data.domain.Page;
 import com.asg.hr.employeemaster.enums.ActionType;
 import com.asg.hr.employeemaster.repository.*;
@@ -38,6 +40,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.sql.DataSource;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +78,8 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     private final DocumentSearchService documentSearchService;
     private final DocumentDeleteService documentDeleteService;
     private final LoggingService loggingService;
+    private final PrintService printService;
+    private final DataSource dataSource;
 
     @Override
     @Transactional(readOnly = true)
@@ -1167,6 +1172,13 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 .collect(Collectors.toList());
 
         return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(safeOrders));
+    }
+
+    @Override
+    public byte[] print(Long transactionPoid) throws Exception {
+        Map<String, Object> params = printService.buildBaseParams(transactionPoid, UserContext.getDocumentId());
+        JasperReport mainReport = printService.load("EmployeeDetailsReportWithSalary.jrxml");
+        return printService.fillReportToPdf(mainReport, params, dataSource);
     }
 }
 
