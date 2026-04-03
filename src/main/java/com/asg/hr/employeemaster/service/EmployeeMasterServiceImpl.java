@@ -109,67 +109,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     @Override
     public EmployeeMasterResponseDto createEmployee(EmployeeMasterRequestDto requestDto) {
 
-        if (requestDto.getAirSectorPoid() != null) {
-            if (!airsectorRepository.existsByAirsecPoid(requestDto.getAirSectorPoid())) {
-                throw new ResourceNotFoundException("Air Sector", "Air Sector Poid", requestDto.getAirSectorPoid());
-            }
-        }
-        if (requestDto.getDepartmentPoid() != null) {
-            if (!hrDepartmentMasterRepository.existsByDeptPoid(requestDto.getDepartmentPoid())) {
-                throw new ResourceNotFoundException("Department", "Department Poid", requestDto.getDepartmentPoid());
-            }
-        }
-        if (requestDto.getNationalityPoid() != null) {
-            if (Boolean.FALSE.equals(hrNationalityRepository.existsByNationPoid(requestDto.getNationalityPoid()))) {
-                throw new ResourceNotFoundException("Nationality", "Nationality Poid", requestDto.getNationalityPoid());
-            }
-        }
-        if (requestDto.getReligionPoid() != null) {
-            if (!religionRepository.existsByReligionPoid(requestDto.getReligionPoid())) {
-                throw new ResourceNotFoundException("Religion", "Religion Poid", requestDto.getReligionPoid());
-            }
-        }
-        if (requestDto.getDesignationPoid() != null) {
-            if (!designationRepository.existsByDesigPoid(requestDto.getDesignationPoid())) {
-                throw new ResourceNotFoundException("Designation", "Designation Poid", requestDto.getDesignationPoid());
-            }
-        }
-        if (requestDto.getShiftPoid() != null) {
-            if (!globalShiftMasterRepository.existsByShiftPoid(requestDto.getShiftPoid())) {
-                throw new ResourceNotFoundException("Shift", "Shift Poid", requestDto.getShiftPoid());
-            }
-        }
-        if (requestDto.getDiscontinued() != null) {
-            if (!globalFixedVariablesRepository.existsByVariableName(requestDto.getDiscontinued())) {
-                throw new ResourceNotFoundException("Fixed Variable", "View Using", requestDto.getDiscontinued());
-            }
-        }
-        if (requestDto.getLocationPoid() != null) {
-            if (!locationMasterRepository.existsByLocationPoid(requestDto.getLocationPoid())) {
-                throw new ResourceNotFoundException("Location", "Location Poid", requestDto.getLocationPoid());
-            }
-        }
-        if (requestDto.getCrPoid() != null) {
-            if (!crMasterRepository.existsByCrPoid(requestDto.getCrPoid())) {
-                throw new ResourceNotFoundException("Admin Cr Master", "Cr Poid", requestDto.getCrPoid());
-            }
-        }
-        if (requestDto.getMobile() != null) {
-            if (masterRepository.existsByMobile(requestDto.getMobile())) {
-                throw new ResourceAlreadyExistsException("Mobile", requestDto.getMobile());
-            }
-        }
-        if (requestDto.getFirstName() != null) {
-            if (masterRepository.existsByEmployeeName(requestDto.getFirstName())) {
-                throw new ResourceAlreadyExistsException("Name", requestDto.getFirstName());
-            }
-        }
-        if (requestDto.getEmpGlPoid() != null) {
-            glMasterServiceClient.findById(requestDto.getEmpGlPoid());
-        }
-        if (requestDto.getPettyCashGlPoid() != null) {
-            glMasterServiceClient.findById(requestDto.getPettyCashGlPoid());
-        }
+        validateEmployeeMasterRequest(requestDto, false, null);
 
         HrEmployeeMaster entity = new HrEmployeeMaster();
         employeeMasterMapper.applyHeaderFields(entity, requestDto);
@@ -196,70 +136,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         HrEmployeeMaster existing = masterRepository.findByEmployeePoid(employeePoid)
                 .orElseThrow(() -> new ResourceNotFoundException(EMPLOYEE, HR_EMPLOYEE_MASTER_POID_FIELD, employeePoid));
 
-        if (requestDto.getHod() != null && employeePoid.equals(requestDto.getHod())) {
-            throw new ValidationException("Should not select current employee as direct supervisor");
-        }
-        if (requestDto.getAirSectorPoid() != null) {
-            if (!airsectorRepository.existsByAirsecPoid(requestDto.getAirSectorPoid())) {
-                throw new ResourceNotFoundException("Air Sector", "Air Sector Poid", requestDto.getAirSectorPoid());
-            }
-        }
-        if (requestDto.getDepartmentPoid() != null) {
-            if (!hrDepartmentMasterRepository.existsByDeptPoid(requestDto.getDepartmentPoid())) {
-                throw new ResourceNotFoundException("Department", "Department Poid", requestDto.getDepartmentPoid());
-            }
-        }
-        if (requestDto.getNationalityPoid() != null) {
-            if (Boolean.FALSE.equals(hrNationalityRepository.existsByNationPoid(requestDto.getNationalityPoid()))) {
-                throw new ResourceNotFoundException("Nationality", "Nationality Poid", requestDto.getNationalityPoid());
-            }
-        }
-        if (requestDto.getReligionPoid() != null) {
-            if (!religionRepository.existsByReligionPoid(requestDto.getReligionPoid())) {
-                throw new ResourceNotFoundException("Religion", "Religion Poid", requestDto.getReligionPoid());
-            }
-        }
-        if (requestDto.getDesignationPoid() != null) {
-            if (!designationRepository.existsByDesigPoid(requestDto.getDesignationPoid())) {
-                throw new ResourceNotFoundException("Designation", "Designation Poid", requestDto.getDesignationPoid());
-            }
-        }
-        if (requestDto.getShiftPoid() != null) {
-            if (!globalShiftMasterRepository.existsByShiftPoid(requestDto.getShiftPoid())) {
-                throw new ResourceNotFoundException("Shift", "Shift Poid", requestDto.getShiftPoid());
-            }
-        }
-        if (requestDto.getDiscontinued() != null) {
-            if (!globalFixedVariablesRepository.existsByVariableName(requestDto.getDiscontinued())) {
-                throw new ResourceNotFoundException("Fixed Variable", "View Using", requestDto.getDiscontinued());
-            }
-        }
-        if (requestDto.getLocationPoid() != null) {
-            if (!locationMasterRepository.existsByLocationPoid(requestDto.getLocationPoid())) {
-                throw new ResourceNotFoundException("Location", "Location Poid", requestDto.getLocationPoid());
-            }
-        }
-        if (requestDto.getCrPoid() != null) {
-            if (!crMasterRepository.existsByCrPoid(requestDto.getCrPoid())) {
-                throw new ResourceNotFoundException("Admin Cr Master", "Cr Poid", requestDto.getCrPoid());
-            }
-        }
-        if (requestDto.getMobile() != null) {
-            if (masterRepository.existsByMobileAndEmployeePoidNot(requestDto.getMobile(), employeePoid)) {
-                throw new ResourceAlreadyExistsException("Mobile", requestDto.getMobile());
-            }
-        }
-        if (requestDto.getFirstName() != null) {
-            if (masterRepository.existsByEmployeeNameAndEmployeePoidNot(requestDto.getFirstName(), employeePoid)) {
-                throw new ResourceAlreadyExistsException("Name", requestDto.getFirstName());
-            }
-        }
-        if (requestDto.getEmpGlPoid() != null) {
-            glMasterServiceClient.findById(requestDto.getEmpGlPoid());
-        }
-        if (requestDto.getPettyCashGlPoid() != null) {
-            glMasterServiceClient.findById(requestDto.getPettyCashGlPoid());
-        }
+        validateEmployeeMasterRequest(requestDto, true, employeePoid);
 
         HrEmployeeMaster oldEntity = new HrEmployeeMaster();
         // Copy full entity snapshot for accurate audit logging (no manual audit field assignment).
@@ -308,6 +185,60 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     @Transactional(readOnly = true)
     public EmployeeCountDto getEmployeeCounts() {
         return masterRepository.getEmployeeCounts();
+    }
+
+    private void validateEmployeeMasterRequest(EmployeeMasterRequestDto requestDto, boolean isUpdate, Long currentEmployeePoid) {
+        if (isUpdate && requestDto.getHod() != null && currentEmployeePoid != null && currentEmployeePoid.equals(requestDto.getHod())) {
+            throw new ValidationException("Should not select current employee as direct supervisor");
+        }
+
+        if (requestDto.getAirSectorPoid() != null && !airsectorRepository.existsByAirsecPoid(requestDto.getAirSectorPoid())) {
+            throw new ResourceNotFoundException("Air Sector", "Air Sector Poid", requestDto.getAirSectorPoid());
+        }
+        if (requestDto.getDepartmentPoid() != null && !hrDepartmentMasterRepository.existsByDeptPoid(requestDto.getDepartmentPoid())) {
+            throw new ResourceNotFoundException("Department", "Department Poid", requestDto.getDepartmentPoid());
+        }
+        if (requestDto.getNationalityPoid() != null && Boolean.FALSE.equals(hrNationalityRepository.existsByNationPoid(requestDto.getNationalityPoid()))) {
+            throw new ResourceNotFoundException("Nationality", "Nationality Poid", requestDto.getNationalityPoid());
+        }
+        if (requestDto.getReligionPoid() != null && !religionRepository.existsByReligionPoid(requestDto.getReligionPoid())) {
+            throw new ResourceNotFoundException("Religion", "Religion Poid", requestDto.getReligionPoid());
+        }
+        if (requestDto.getDesignationPoid() != null && !designationRepository.existsByDesigPoid(requestDto.getDesignationPoid())) {
+            throw new ResourceNotFoundException("Designation", "Designation Poid", requestDto.getDesignationPoid());
+        }
+        if (requestDto.getShiftPoid() != null && !globalShiftMasterRepository.existsByShiftPoid(requestDto.getShiftPoid())) {
+            throw new ResourceNotFoundException("Shift", "Shift Poid", requestDto.getShiftPoid());
+        }
+        if (requestDto.getDiscontinued() != null && !globalFixedVariablesRepository.existsByVariableName(requestDto.getDiscontinued())) {
+            throw new ResourceNotFoundException("Fixed Variable", "View Using", requestDto.getDiscontinued());
+        }
+        if (requestDto.getLocationPoid() != null && !locationMasterRepository.existsByLocationPoid(requestDto.getLocationPoid())) {
+            throw new ResourceNotFoundException("Location", "Location Poid", requestDto.getLocationPoid());
+        }
+        if (requestDto.getCrPoid() != null && !crMasterRepository.existsByCrPoid(requestDto.getCrPoid())) {
+            throw new ResourceNotFoundException("Admin Cr Master", "Cr Poid", requestDto.getCrPoid());
+        }
+
+        if (isUpdate && requestDto.getMobile() != null && masterRepository.existsByMobileAndEmployeePoidNot(requestDto.getMobile(), currentEmployeePoid)) {
+            throw new ResourceAlreadyExistsException("Mobile", requestDto.getMobile());
+        }
+        if (!isUpdate && requestDto.getMobile() != null && masterRepository.existsByMobile(requestDto.getMobile())) {
+            throw new ResourceAlreadyExistsException("Mobile", requestDto.getMobile());
+        }
+        if (isUpdate && requestDto.getFirstName() != null && masterRepository.existsByEmployeeNameAndEmployeePoidNot(requestDto.getFirstName(), currentEmployeePoid)) {
+            throw new ResourceAlreadyExistsException("Name", requestDto.getFirstName());
+        }
+        if (!isUpdate && requestDto.getFirstName() != null && masterRepository.existsByEmployeeName(requestDto.getFirstName())) {
+            throw new ResourceAlreadyExistsException("Name", requestDto.getFirstName());
+        }
+
+        if (requestDto.getEmpGlPoid() != null) {
+            glMasterServiceClient.findById(requestDto.getEmpGlPoid());
+        }
+        if (requestDto.getPettyCashGlPoid() != null) {
+            glMasterServiceClient.findById(requestDto.getPettyCashGlPoid());
+        }
     }
 
     private void applyDependents(Long employeePoid, List<EmployeeDependentsDtlRequestDto> dtos) {
