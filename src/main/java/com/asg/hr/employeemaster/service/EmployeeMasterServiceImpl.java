@@ -24,6 +24,8 @@ import com.asg.hr.employeemaster.dto.*;
 import com.asg.hr.employeemaster.entity.*;
 import com.asg.hr.employeemaster.util.EmployeeMasterMapper;
 import net.sf.jasperreports.engine.JasperReport;
+import oracle.jdbc.internal.OracleTypes;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.springframework.data.domain.Page;
 import com.asg.hr.employeemaster.enums.ActionType;
 import com.asg.hr.employeemaster.repository.*;
@@ -38,15 +40,25 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.beans.BeanUtils;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.SqlOutParameter;
+import org.springframework.jdbc.core.SqlParameter;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
+import java.sql.Types;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.stream.Collectors;
+
+import static java.util.Calendar.DATE;
 
 @Service
 @RequiredArgsConstructor
@@ -82,6 +94,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     private final LoggingService loggingService;
     private final PrintService printService;
     private final DataSource dataSource;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     @Transactional(readOnly = true)
@@ -724,6 +737,180 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         Map<String, Object> params = printService.buildBaseParams(transactionPoid, UserContext.getDocumentId());
         JasperReport mainReport = printService.load("EmployeeDetailsReportWithSalary.jrxml");
         return printService.fillReportToPdf(mainReport, params, dataSource);
+    }
+
+    @Override
+    public String uploadExcel(org.springframework.web.multipart.MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new RuntimeException("File is empty");
+        }
+
+        String docId = "800-001_1";
+        ExcelConfig config = getExcelConfig(docId);
+
+        jdbcTemplate.update("DELETE FROM " + config.tempTableName);
+
+        List<List<Object>> rowsCollection = new ArrayList<>();
+
+        try (org.apache.poi.ss.usermodel.Workbook workbook = org.apache.poi.ss.usermodel.WorkbookFactory.create(file.getInputStream())) {
+            org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheetAt(0);
+
+            for (org.apache.poi.ss.usermodel.Row row : sheet) {
+                List<Object> colCollection = new ArrayList<>();
+                SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+                for (int cn = config.startColNumber - 1; cn <= config.endColNumber - 1; cn++) {
+                    org.apache.poi.ss.usermodel.Cell cell = row.getCell(cn, org.apache.poi.ss.usermodel.Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                    switch (cell.getCellType()) {
+                        case NUMERIC -> {
+                            if (DateUtil.isCellDateFormatted(cell)) {
+                                colCollection.add(sdf.format(cell.getDateCellValue())); // returns java.util.Date
+                            } else {
+                                colCollection.add(cell.getNumericCellValue());
+                            }
+                        }
+                        case STRING -> colCollection.add(cell.getStringCellValue());
+                        default -> colCollection.add(null);
+                    }
+                }
+                rowsCollection.add(colCollection);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Error processing Excel file: " + e.getMessage(), e);
+        }
+
+        saveImportedData(config.startRowNumber, rowsCollection, config.tempTableName);
+        return "Successfully imported Excel data to temp table";
+    }
+
+    private ExcelConfig getExcelConfig(String docId) {
+        SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
+                .withProcedureName("PROC_GLOB_EXCEL_IMPORT_SHEETS")
+                .declareParameters(
+                        new SqlParameter("P_COMPANY_POID", Types.NUMERIC),
+                        new SqlParameter("P_DOC_ID", Types.VARCHAR),
+                        new SqlOutParameter("OUTDATA", OracleTypes.CURSOR),
+                        new SqlOutParameter("P_STATUS", Types.VARCHAR)
+                );
+
+        Map<String, Object> result = jdbcCall.execute(
+                new MapSqlParameterSource()
+                        .addValue("P_COMPANY_POID", UserContext.getCompanyPoid())
+                        .addValue("P_DOC_ID", docId)
+        );
+
+        String status = (String) result.get("P_STATUS");
+        if (!"SUCCESS".equals(status)) {
+            throw new RuntimeException("Failed to get Excel config: " + status);
+        }
+
+        List<Map<String, Object>> configs = (List<Map<String, Object>>) result.get("OUTDATA");
+        if (configs == null || configs.isEmpty()) {
+            throw new RuntimeException("No Excel configuration found for DOC_ID: " + docId);
+        }
+
+        Map<String, Object> configRow = configs.getFirst();
+        ExcelConfig config = new ExcelConfig();
+        config.startRowNumber = ((Number) configRow.get("START_ROW_NUMBER")).intValue();
+        config.startColNumber = ((Number) configRow.get("START_COL_NUMBER")).intValue();
+        config.endColNumber = ((Number) configRow.get("END_COL_NUMBER")).intValue();
+        config.tempTableName = (String) configRow.get("TEMP_TABLE_NAME");
+        return config;
+    }
+
+    private static class ExcelConfig {
+        int startRowNumber;
+        int startColNumber;
+        int endColNumber;
+        String tempTableName;
+    }
+
+    private void saveImportedData(int startRowNumber, List<List<Object>> rowsCollection, String tempTableName) {
+        int rowNum = 0;
+
+        for (List<Object> cols : rowsCollection) {
+            rowNum++;
+            if (startRowNumber <= rowNum) {
+                StringBuilder insertQuery = new StringBuilder("INSERT INTO " + tempTableName + " VALUES (");
+                for (Object col : cols) {
+                    if (col == null) {
+                        insertQuery.append("NULL,");
+                    } else {
+                        insertQuery.append("'").append(col.toString().replace("'", "''")).append("',");
+                    }
+                }
+                insertQuery.setLength(insertQuery.length() - 1);
+                insertQuery.append(")");
+
+                jdbcTemplate.update(insertQuery.toString());
+            }
+        }
+    }
+
+    @Override
+    public LmraUploadResponse uploadLmraData() {
+        SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
+                .withProcedureName("PROC_HR_EMP_UPLOAD_LMRA_DATA")
+                .declareParameters(
+                        new SqlParameter("P_EMPLOYEE_POID", Types.VARCHAR),
+                        new SqlParameter("P_LOGIN_GROUP_POID", Types.NUMERIC),
+                        new SqlParameter("P_LOGIN_COMPANY_POID", Types.NUMERIC),
+                        new SqlParameter("P_LOGIN_USER", Types.VARCHAR),
+                        new SqlOutParameter("P_RESULT", Types.VARCHAR)
+                );
+
+        Map<String, Object> result = jdbcCall.execute(
+                new MapSqlParameterSource()
+                        .addValue("P_EMPLOYEE_POID", null)
+                        .addValue("P_LOGIN_GROUP_POID", UserContext.getGroupPoid())
+                        .addValue("P_LOGIN_COMPANY_POID", UserContext.getCompanyPoid())
+                        .addValue("P_LOGIN_USER", UserContext.getUserId())
+        );
+
+        String status = (String) result.get("P_RESULT");
+
+        if (status != null && status.contains("ERROR")) {
+            throw new ValidationException(status);
+        }
+
+        List<EmployeeDepndtsLmraDtlsResponseDto> lmraDetails =
+                jdbcTemplate.query(
+                        "SELECT * FROM HR_EMP_DEPNDTS_LMRA_DTLS ORDER BY DET_ROW_ID DESC",
+                        (rs, rowNum) -> EmployeeDepndtsLmraDtlsResponseDto.builder()
+                                .employeePoid(rs.getLong("EMPLOYEE_POID"))
+                                .detRowId(rs.getLong("DET_ROW_ID"))
+                                .expatCpr(rs.getString("EXPAT_CPR"))
+                                .expatPp(rs.getString("EXPAT_PP"))
+                                .nationality(rs.getString("NATIONALITY"))
+                                .primaryCpr(rs.getString("PRIMARY_CPR"))
+                                .wpType(rs.getString("WP_TYPE"))
+                                .permitMonths(rs.getObject("PERMIT_MONTHS") != null ? rs.getInt("PERMIT_MONTHS") : null)
+                                .expatName(rs.getString("EXPAT_NAME"))
+                                .expatGender(rs.getString("EXPAT_GENDER"))
+                                .wpExpiryDate(rs.getObject("WP_EXPIRY_DATE", LocalDate.class))
+                                .ppExpiryDate(rs.getObject("PP_EXPIRY_DATE", LocalDate.class))
+                                .expatCurrentStatus(rs.getString("EXPAT_CURRENT_STATUS"))
+                                .wpStatus(rs.getString("WP_STATUS"))
+                                .inOutStatus(rs.getString("IN_OUT_STATUS"))
+                                .offenseClassification(rs.getString("OFFENSE_CLASSIFICATION"))
+                                .offenceCode(rs.getString("OFFENCE_CODE"))
+                                .offenceDescription(rs.getString("OFFENCE_DESCRIPTION"))
+                                .intention(rs.getString("INTENTION"))
+                                .allowMobility(rs.getString("ALLOW_MOBILITY"))
+                                .mobilityInProgress(rs.getString("MOBILITY_IN_PROGRESS"))
+                                .rpCancelled(rs.getString("RP_CANCELLED"))
+                                .rpCancellationReason(rs.getString("RP_CANCELLATION_REASON"))
+                                .photo(rs.getString("PHOTO"))
+                                .signature(rs.getString("SIGNATURE"))
+                                .fingerPrint(rs.getString("FINGER_PRINT"))
+                                .healthCheckResult(rs.getString("HEALTH_CHECK_RESULT"))
+                                .additionalBhPermit(rs.getString("ADDITIONAL_BH_PERMIT"))
+                                .build()
+                );
+
+        return LmraUploadResponse.builder()
+                .status(status)
+                .lmraDetails(lmraDetails)
+                .build();
     }
 }
 

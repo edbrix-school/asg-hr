@@ -127,5 +127,25 @@ public class EmployeeMasterController {
             return error("Failed to generate PDF: " + e.getMessage(), 500);
         }
     }
+
+    @AllowedAction(UserRolesRightsEnum.CREATE)
+    @PostMapping("/upload-lmra-details")
+    public ResponseEntity<?> uploadLmraDetails() {
+        LmraUploadResponse response = employeeMasterService.uploadLmraData();
+        return success("Employee LMRA details uploaded successfully", response);
+    }
+
+    @AllowedAction(UserRolesRightsEnum.CREATE)
+    @PostMapping(value = "/upload-excel", consumes = "multipart/form-data")
+    public ResponseEntity<?> uploadExcel(
+            @io.swagger.v3.oas.annotations.Parameter(
+                    description = "Excel file to upload",
+                    required = true,
+                    content = @Content(mediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            )
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        String result = employeeMasterService.uploadExcel(file);
+        return success(result);
+    }
 }
 
