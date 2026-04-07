@@ -1,7 +1,7 @@
 package com.asg.hr.client;
 
 import com.asg.common.lib.client.GenericRestClient;
-import com.asg.common.lib.dto.CostCenterDto;
+import com.asg.common.lib.dto.response.CostCenterResponseDto;
 import com.asg.common.lib.dto.response.ApiResponseWrapper;
 import com.asg.common.lib.utility.RestClientUtil;
 import com.asg.hr.exceptions.ResourceNotFoundException;
@@ -21,12 +21,12 @@ public class CostCenterServiceClient {
     @Value("${finance.service.url:http://localhost:8086/finance/api/}")
     private String financeServiceUrl;
 
-    public CostCenterDto findById(Long costCenterPoid) {
+    public CostCenterResponseDto findById(Long costCenterPoid) {
         String url = financeServiceUrl + "v1/cost-center/" + costCenterPoid;
         HttpHeaders headers = new HttpHeaders();
         headers.add("X-Action-Requested", "VIEW");
         try {
-            ApiResponseWrapper<CostCenterDto> response = restClient.get(url, new ParameterizedTypeReference<ApiResponseWrapper<CostCenterDto>>() {
+            ApiResponseWrapper<CostCenterResponseDto> response = restClient.get(url, new ParameterizedTypeReference<ApiResponseWrapper<CostCenterResponseDto>>() {
             }, headers);
             return RestClientUtil.extractData(response);
         } catch (HttpClientErrorException.NotFound e) {
