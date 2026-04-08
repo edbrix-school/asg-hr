@@ -20,6 +20,9 @@ import java.util.List;
 @ValidLifeInsurance
 public class EmployeeMasterRequestDto {
 
+    @Size(max = 20, message = "Employee Code Must Be At Most 20 Characters")
+    private String employeeCode;
+
     @NotBlank(message = "First Name Is Required")
     @Size(max = 100, message = "First Name Must Be At Most 100 Characters")
     private String firstName;
@@ -54,6 +57,8 @@ public class EmployeeMasterRequestDto {
 
     @NotNull(message = "Religion Is Required")
     private Long religionPoid;
+
+    @NotNull(message = "Date Of Birth Is Required")
     private LocalDate dateOfBirth;
 
     @Size(max = 500, message = "Present Address Must Be At Most 500 Characters")

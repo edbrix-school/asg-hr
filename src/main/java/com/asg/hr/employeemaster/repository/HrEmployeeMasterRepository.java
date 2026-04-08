@@ -27,6 +27,18 @@ public interface HrEmployeeMasterRepository extends JpaRepository<HrEmployeeMast
 
     boolean existsByEmployeeNameAndEmployeePoidNot(@Param("employeeName") String employeeName, @Param("employeePoid") Long employeePoid);
 
+    boolean existsByEmployeeCode(@Param("employeeCode") String employeeCode);
+
+    boolean existsByEmployeeCodeAndEmployeePoidNot(@Param("employeeCode") String employeeCode, @Param("employeePoid") Long employeePoid);
+
+    boolean existsByCprNo(@Param("cprNo") String cprNo);
+
+    boolean existsByCprNoAndEmployeePoidNot(@Param("cprNo") String cprNo, @Param("employeePoid") Long employeePoid);
+
+    boolean existsByIban(@Param("iban") String iban);
+
+    boolean existsByIbanAndEmployeePoidNot(@Param("iban") String iban, @Param("employeePoid") Long employeePoid);
+
     @Query("""
                 SELECT new com.asg.hr.employeemaster.dto.EmployeeCountDto(
                     COUNT(e),

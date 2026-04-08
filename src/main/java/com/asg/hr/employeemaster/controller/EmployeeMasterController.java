@@ -66,6 +66,14 @@ public class EmployeeMasterController {
         return success("Employee retrieved successfully", response);
     }
 
+    @AllowedAction(UserRolesRightsEnum.VIEW)
+    @GetMapping("/{employeePoid}/leave-dates")
+    @Operation(summary = "Legacy PROC_HR_EMP_LEAVE_DATES — report window from join date through year-end")
+    public ResponseEntity<?> getEmployeeLeaveDates(@PathVariable @NotNull Long employeePoid) {
+        EmployeeLeaveDatesResponseDto response = employeeMasterService.getEmployeeLeaveDates(employeePoid);
+        return success("Employee leave report dates retrieved successfully", response);
+    }
+
     @AllowedAction(UserRolesRightsEnum.CREATE)
     @PostMapping
     public ResponseEntity<?> createEmployee(@Valid @RequestBody EmployeeMasterRequestDto requestDto) {
@@ -79,6 +87,24 @@ public class EmployeeMasterController {
     ) {
         EmployeeMasterResponseDto response = employeeMasterService.updateEmployee(employeePoid, requestDto);
         return success("Employee updated successfully", response);
+    }
+
+    @AllowedAction(UserRolesRightsEnum.EDIT)
+    @PostMapping("/{employeePoid}/leave-rejoin")
+    public ResponseEntity<?> updateLeaveRejoin(
+            @PathVariable @NotNull Long employeePoid,
+            @Valid @RequestBody LeaveRejoinUpdateRequestDto request) {
+        String result = employeeMasterService.updateLeaveRejoin(employeePoid, request);
+        return success("Leave rejoin processed successfully", result);
+    }
+
+    @AllowedAction(UserRolesRightsEnum.EDIT)
+    @PostMapping("/{employeePoid}/leave-rejoin/remove")
+    public ResponseEntity<?> removeLeaveRejoin(
+            @PathVariable @NotNull Long employeePoid,
+            @Valid @RequestBody LeaveRejoinRemoveRequestDto request) {
+        String result = employeeMasterService.removeLeaveRejoin(employeePoid, request);
+        return success("Leave rejoin remove processed successfully", result);
     }
 
     @AllowedAction(UserRolesRightsEnum.DELETE)

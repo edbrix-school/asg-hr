@@ -166,6 +166,10 @@ public class EmployeeMasterMapper {
 
     public void applyHeaderFields(HrEmployeeMaster entity, EmployeeMasterRequestDto requestDto) {
 
+        if (requestDto.getEmployeeCode() != null) {
+            entity.setEmployeeCode(requestDto.getEmployeeCode());
+        }
+
         entity.setLocationPoid(requestDto.getLocationPoid());
         entity.setDepartmentPoid(requestDto.getDepartmentPoid());
         entity.setDesignationPoid(requestDto.getDesignationPoid());

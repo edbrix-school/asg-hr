@@ -30,5 +30,11 @@ public interface EmployeeMasterService {
     String uploadExcel(org.springframework.web.multipart.MultipartFile file);
 
     LmraUploadResponse uploadLmraData();
+
+    EmployeeLeaveDatesResponseDto getEmployeeLeaveDates(Long employeePoid);
+
+    String updateLeaveRejoin(Long employeePoid, LeaveRejoinUpdateRequestDto request);
+
+    String removeLeaveRejoin(Long employeePoid, LeaveRejoinRemoveRequestDto request);
 }
 
