@@ -212,7 +212,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
             throw new ResourceNotFoundException("Employee", "Direct Supervisor (HOD)", requestDto.getHod());
         }
 
-        String serviceType = requestDto.getServiceType() != null ? requestDto.getServiceType().trim() : null;
+        String serviceType = requestDto.getServiceType();
         if ("PERMANENT".equalsIgnoreCase(serviceType)) {
             if (StringUtils.isBlank(requestDto.getCprNo())) {
                 throw new ValidationException("CPR Number Is Required");

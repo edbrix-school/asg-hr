@@ -58,7 +58,6 @@ public class EmployeeMasterRequestDto {
     @NotNull(message = "Religion Is Required")
     private Long religionPoid;
 
-    @NotNull(message = "Date Of Birth Is Required")
     private LocalDate dateOfBirth;
 
     @Size(max = 500, message = "Present Address Must Be At Most 500 Characters")
