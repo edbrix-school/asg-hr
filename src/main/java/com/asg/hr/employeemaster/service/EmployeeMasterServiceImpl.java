@@ -1,5 +1,6 @@
 package com.asg.hr.employeemaster.service;
 
+import com.asg.common.lib.client.ParameterServiceClient;
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
@@ -53,10 +54,7 @@ import javax.sql.DataSource;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Calendar.DATE;
@@ -91,6 +89,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     private final GlobalLocationMasterRepository locationMasterRepository;
     private final AdminCrMasterRepository crMasterRepository;
     private final EmployeeMasterMapper employeeMasterMapper;
+    private final ParameterServiceClient parameterServiceClient;
 
     private final DocumentSearchService documentSearchService;
     private final DocumentDeleteService documentDeleteService;
@@ -330,15 +329,12 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
 
     private String getGlobalParameterValue(String parameterName, String scope, String scopePoid, String defaultValue) {
         try {
-            // Legacy uses common.GetParameterValue; DB exposes RTN_GLOBAL_PARAMETER in multiple HR procedures.
-            String sql = "SELECT RTN_GLOBAL_PARAMETER(?, ?, ?, ?, ?) FROM DUAL";
-            return jdbcTemplate.queryForObject(
-                    sql,
-                    new Object[]{UserContext.getGroupPoid(), parameterName, scope, scopePoid, defaultValue},
-                    String.class
-            );
-        } catch (DataAccessException ex) {
-            // Fail safe: keep default behavior if parameter table/function isn't available in an environment.
+            Optional<String> parameterResponse = parameterServiceClient.findParameterValueByName(parameterName);
+            return parameterResponse
+                    .map(String::trim)
+                    .filter(StringUtils::isNotBlank)
+                    .orElse(defaultValue);
+        } catch (Exception ex) {
             return defaultValue;
         }
     }
