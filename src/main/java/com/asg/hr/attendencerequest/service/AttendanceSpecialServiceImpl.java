@@ -2,6 +2,7 @@ package com.asg.hr.attendencerequest.service;
 
 import com.asg.common.lib.dto.*;
 import com.asg.common.lib.enums.LogDetailsEnum;
+import org.springframework.beans.BeanUtils;
 import com.asg.common.lib.exception.ResourceNotFoundException;
 import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.security.util.UserContext;
@@ -13,6 +14,7 @@ import com.asg.hr.attendencerequest.dto.AttendanceRequestDto;
 import com.asg.hr.attendencerequest.dto.AttendanceResponseDto;
 import com.asg.hr.attendencerequest.entity.AttendanceEntity;
 import com.asg.hr.attendencerequest.repository.AttendanceRepository;
+import com.asg.hr.attendencerequest.util.AttendanceMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -36,13 +38,13 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
     private final DocumentDeleteService documentDeleteService;
     private final LoggingService loggingService;
     private final JdbcTemplate jdbcTemplate;
+    private final AttendanceMapper mapper;
 
     // ================= CREATE =================
     @Override
     @Transactional
     public AttendanceResponseDto create(AttendanceRequestDto dto) {
 
-        validate(dto);
         callValidationSP(dto);
 
         AttendanceEntity entity = AttendanceEntity.builder()
@@ -64,7 +66,7 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
                 entity.getAttendancePoid().toString()
         );
 
-        return map(entity);
+        return mapper.toResponse(entity);
     }
 
     // ================= LIST =================
@@ -100,7 +102,7 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
         AttendanceEntity entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_NAME, "id", id));
 
-        return map(entity);
+        return mapper.toResponse(entity);
     }
 
     // ================= UPDATE =================
@@ -108,21 +110,13 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
     @Transactional
     public AttendanceResponseDto update(Long id, AttendanceRequestDto dto) {
 
-        validate(dto);
         callValidationSP(dto);
 
         AttendanceEntity entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_NAME, "id", id));
 
-        AttendanceEntity old = AttendanceEntity.builder()
-                .attendancePoid(entity.getAttendancePoid())
-                .employeePoid(entity.getEmployeePoid())
-                .attendanceDate(entity.getAttendanceDate())
-                .exceptionType(entity.getExceptionType())
-                .reason(entity.getReason())
-                .hodRemarks(entity.getHodRemarks())
-                .status(entity.getStatus())
-                .build();
+        AttendanceEntity old = new AttendanceEntity();
+        BeanUtils.copyProperties(entity, old);
 
         entity.setEmployeePoid(dto.getEmployeePoid());
         entity.setAttendanceDate(dto.getAttendanceDate());
@@ -143,7 +137,7 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
                 ATTENDANCE_POID_FIELD
         );
 
-        return map(entity);
+        return mapper.toResponse(entity);
     }
 
     // ================= DELETE =================
@@ -164,13 +158,6 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
     }
 
     // ================= VALIDATION =================
-    private void validate(AttendanceRequestDto dto) {
-        if (dto.getEmployeePoid() == null) throw new ValidationException("Employee required");
-        if (dto.getAttendanceDate() == null) throw new ValidationException("Date required");
-        if (dto.getExceptionType() == null) throw new ValidationException("Exception type required");
-        if (dto.getReason() == null) throw new ValidationException("Reason required");
-    }
-
     private void callValidationSP(AttendanceRequestDto dto) {
 
         String result = jdbcTemplate.execute((Connection conn) -> {
@@ -191,21 +178,10 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
             return cs.getString(6);
         });
 
-        if (result.startsWith("ERROR")) {
+        if (result != null && result.startsWith("ERROR")) {
             throw new ValidationException(result);
         }
     }
 
-    // ================= MAPPER =================
-    private AttendanceResponseDto map(AttendanceEntity e) {
-        return AttendanceResponseDto.builder()
-                .attendancePoid(e.getAttendancePoid())
-                .employeePoid(e.getEmployeePoid())
-                .attendanceDate(e.getAttendanceDate())
-                .exceptionType(e.getExceptionType())
-                .reason(e.getReason())
-                .hodRemarks(e.getHodRemarks())
-                .status(e.getStatus())
-                .build();
-    }
+
 }
