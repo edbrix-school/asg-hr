@@ -137,7 +137,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         createEmployeeGlIfMissing(saved.getEmployeePoid());
 
         // Validate all child tables before persisting any, so logs are not written for tables that pass when a later one fails.
-        validateChildTables(saved.getEmployeePoid(),requestDto);
+        validateChildTables(saved.getEmployeePoid(), requestDto);
 
         // Child tables: apply row-level actionType (no audit-field assignment here).
         applyDependents(saved.getEmployeePoid(), requestDto.getDependentsDetails());
@@ -228,7 +228,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         }
 
         // Legacy: AirSector/Ticket fields required only for Permanent + Expat employees.
-        String bahNationalityPoid = getGlobalParameterValue("BAHRAIN_Nationality_Poid", "GROUP", String.valueOf(UserContext.getGroupPoid()), "1");
+        String bahNationalityPoid = getGlobalParameterValue("BAHRAIN_Nationality_Poid", "1");
         boolean isBahraini = requestDto.getNationalityPoid() != null && bahNationalityPoid != null && String.valueOf(requestDto.getNationalityPoid()).equalsIgnoreCase(bahNationalityPoid.trim());
 
         boolean anyTicketFieldPresent = requestDto.getAirSectorPoid() != null || requestDto.getTicketPeriod() != null || requestDto.getNoOfTickets() != null;
@@ -249,7 +249,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
 
         // Legacy: Employee code required on create when HR_MANUAL_EMPLOYEE_CODE=Y (company param).
         if (!isUpdate) {
-            String manualEmpCode = getGlobalParameterValue("HR_MANUAL_EMPLOYEE_CODE", "COMPANY", String.valueOf(UserContext.getCompanyPoid()), "");
+            String manualEmpCode = getGlobalParameterValue("HR_MANUAL_EMPLOYEE_CODE", "");
             if ("Y".equalsIgnoreCase(StringUtils.trimToEmpty(manualEmpCode)) && StringUtils.isBlank(requestDto.getEmployeeCode())) {
                 throw new ValidationException("Employee Code Is Required");
             }
@@ -352,7 +352,8 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 throw new ResourceAlreadyExistsException("Dependent Name", dto.getName());
             }
             if (dto.getActionType() == ActionType.isUpdated) {
-                if (dto.getDetRowId() == null) throw new IllegalArgumentException("detRowId is required for dependents isUpdated action");
+                if (dto.getDetRowId() == null)
+                    throw new IllegalArgumentException("detRowId is required for dependents isUpdated action");
                 HrEmployeeDependentsDtl existing = dependentRepository.findById(new HrEmployeeDependentsDtlId(employeePoid, dto.getDetRowId()))
                         .orElseThrow(() -> new ResourceNotFoundException("Dependents", DET_ROW_ID, dto.getDetRowId()));
                 if (StringUtils.isNotBlank(existing.getName()) && !existing.getName().equals(dto.getName())
@@ -385,14 +386,15 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         if (dtos == null) return;
         for (EmployeeExperienceDtlRequestDto dto : dtos) {
             if (employeePoid != null && !masterRepository.existsByEmployeePoid(employeePoid)) {
-                throw new ResourceNotFoundException("Employee", "Employee Poid",employeePoid);
+                throw new ResourceNotFoundException("Employee", "Employee Poid", employeePoid);
             }
             if (dto.getActionType() == ActionType.isCreated && StringUtils.isNotBlank(dto.getEmployer())
                     && experienceRepository.existsByEmployerIgnoreCase(dto.getEmployer())) {
                 throw new ResourceAlreadyExistsException("Employer", dto.getEmployer());
             }
             if (dto.getActionType() == ActionType.isUpdated) {
-                if (dto.getDetRowId() == null) throw new IllegalArgumentException("detRowId is required for experience isUpdated action");
+                if (dto.getDetRowId() == null)
+                    throw new IllegalArgumentException("detRowId is required for experience isUpdated action");
                 if (StringUtils.isNotBlank(dto.getEmployer()) && experienceRepository.existsByEmployerIgnoreCaseAndEmployeePoidNot(dto.getEmployer(), employeePoid)) {
                     throw new ResourceAlreadyExistsException("Employer", dto.getEmployer());
                 }
@@ -403,7 +405,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         }
     }
 
-    private String getGlobalParameterValue(String parameterName, String scope, String scopePoid, String defaultValue) {
+    private String getGlobalParameterValue(String parameterName, String defaultValue) {
         try {
             Optional<String> parameterResponse = parameterServiceClient.findParameterValueByName(parameterName);
             return parameterResponse
@@ -713,7 +715,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 entity.setRemarks(dto.getRemarks());
                 documentRepository.save(entity);
                 String logDetail = String.format("KeyId = EMPLOYEE_POID %s: DET_ROW_ID %s", entity.getEmployeePoid(), entity.getDetRowId());
-                loggingService.createLog(oldDetail, entity, HrEmployeeDocumentDtl.class, UserContext.getDocumentId(),employeePoid.toString(), logDetail);
+                loggingService.createLog(oldDetail, entity, HrEmployeeDocumentDtl.class, UserContext.getDocumentId(), employeePoid.toString(), logDetail);
             } else if (action == ActionType.isDeleted) {
                 HrEmployeeDocumentDtlId id = new HrEmployeeDocumentDtlId(employeePoid, dto.getDetRowId());
                 HrEmployeeDocumentDtl entity = documentRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Document", DET_ROW_ID, dto.getDetRowId()));
