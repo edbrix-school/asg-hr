@@ -2,14 +2,16 @@ package com.asg.hr.employeemaster.entity;
 
 import com.asg.common.lib.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 
 @Entity
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "HR_EMPLOYEE_LEAVE_HISTORY")
 @IdClass(HrEmployeeLeaveHistoryId.class)
 public class HrEmployeeLeaveHistory extends BaseEntity {

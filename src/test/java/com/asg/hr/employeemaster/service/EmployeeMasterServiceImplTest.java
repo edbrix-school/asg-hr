@@ -2841,6 +2841,77 @@ class EmployeeMasterServiceImplTest {
             verify(parameterServiceClient, atLeastOnce()).findParameterValueByName("BAHRAIN_Nationality_Poid");
             verify(parameterServiceClient, atLeastOnce()).findParameterValueByName("HR_MANUAL_EMPLOYEE_CODE");
         }
+
+        @Test
+        void isBahrainiShortCircuitsWhenNationalityPoidNull() throws Exception {
+            // Covers the `nationalityPoid != null` false branch in the isBahraini compound condition (line 234).
+            // When nationalityPoid is null the AND short-circuits so bahNationalityPoid != null is never evaluated.
+            Method val = EmployeeMasterServiceImpl.class.getDeclaredMethod("validateEmployeeMasterRequest",
+                    EmployeeMasterRequestDto.class, boolean.class, Long.class);
+            val.setAccessible(true);
+            EmployeeMasterRequestDto req = new EmployeeMasterRequestDto();
+            req.setServiceType("REMOTE");
+            req.setNationalityPoid(null);
+            when(parameterServiceClient.findParameterValueByName("BAHRAIN_Nationality_Poid")).thenReturn(Optional.of("1"));
+            when(parameterServiceClient.findParameterValueByName("HR_MANUAL_EMPLOYEE_CODE")).thenReturn(Optional.of("N"));
+            val.invoke(service, req, false, null);
+            verify(hrNationalityRepository, never()).existsByNationPoid(any());
+        }
+    }
+
+    @Nested
+    class ApplyDeleteNotFoundBranches {
+        @Test
+        void applyDependentsDeleteThrowsNotFoundWhenEntityMissing() throws Exception {
+            Method m = EmployeeMasterServiceImpl.class.getDeclaredMethod("applyDependents", Long.class, List.class);
+            m.setAccessible(true);
+            when(dependentRepository.findByEmployeePoid(1L)).thenReturn(Collections.emptyList());
+            when(dependentRepository.findById(any(HrEmployeeDependentsDtlId.class))).thenReturn(Optional.empty());
+            EmployeeDependentsDtlRequestDto dto = EmployeeDependentsDtlRequestDto.builder()
+                    .actionType(ActionType.isDeleted).detRowId(99L).build();
+            assertThatThrownBy(() -> m.invoke(service, 1L, List.of(dto)))
+                    .hasRootCauseInstanceOf(ResourceNotFoundException.class)
+                    .rootCause().hasMessageContaining("Dependents");
+        }
+
+        @Test
+        void applyLmraDetailsDeleteThrowsNotFoundWhenEntityMissing() throws Exception {
+            Method m = EmployeeMasterServiceImpl.class.getDeclaredMethod("applyLmraDetails", Long.class, List.class);
+            m.setAccessible(true);
+            when(lmraRepository.findByEmployeePoid(1L)).thenReturn(Collections.emptyList());
+            when(lmraRepository.findById(any(HrEmpDepndtsLmraDtlsId.class))).thenReturn(Optional.empty());
+            EmployeeDepndtsLmraDtlsRequestDto dto = EmployeeDepndtsLmraDtlsRequestDto.builder()
+                    .actionType(ActionType.isDeleted).detRowId(99L).build();
+            assertThatThrownBy(() -> m.invoke(service, 1L, List.of(dto)))
+                    .hasRootCauseInstanceOf(ResourceNotFoundException.class)
+                    .rootCause().hasMessageContaining("LMRA Details");
+        }
+
+        @Test
+        void applyExperienceDetailsDeleteThrowsNotFoundWhenEntityMissing() throws Exception {
+            Method m = EmployeeMasterServiceImpl.class.getDeclaredMethod("applyExperienceDetails", Long.class, List.class);
+            m.setAccessible(true);
+            when(experienceRepository.findByEmployeePoid(1L)).thenReturn(Collections.emptyList());
+            when(experienceRepository.findById(any(HrEmployeeExperienceDtlId.class))).thenReturn(Optional.empty());
+            EmployeeExperienceDtlRequestDto dto = EmployeeExperienceDtlRequestDto.builder()
+                    .actionType(ActionType.isDeleted).detRowId(99L).build();
+            assertThatThrownBy(() -> m.invoke(service, 1L, List.of(dto)))
+                    .hasRootCauseInstanceOf(ResourceNotFoundException.class)
+                    .rootCause().hasMessageContaining("Experience");
+        }
+
+        @Test
+        void applyDocumentDetailsDeleteThrowsNotFoundWhenEntityMissing() throws Exception {
+            Method m = EmployeeMasterServiceImpl.class.getDeclaredMethod("applyDocumentDetails", Long.class, List.class);
+            m.setAccessible(true);
+            when(documentRepository.findByEmployeePoid(1L)).thenReturn(Collections.emptyList());
+            when(documentRepository.findById(any(HrEmployeeDocumentDtlId.class))).thenReturn(Optional.empty());
+            EmployeeDocumentDtlRequestDto dto = EmployeeDocumentDtlRequestDto.builder()
+                    .actionType(ActionType.isDeleted).detRowId(99L).build();
+            assertThatThrownBy(() -> m.invoke(service, 1L, List.of(dto)))
+                    .hasRootCauseInstanceOf(ResourceNotFoundException.class)
+                    .rootCause().hasMessageContaining("Document");
+        }
     }
 
     private static EmployeeMasterRequestDto baseValidRequest(String serviceType, Long nationalityPoid) {

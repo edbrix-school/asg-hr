@@ -1,14 +1,14 @@
 package com.asg.hr.employeemaster.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 
 @Getter
 @Setter
 @AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class EmployeeDashboardDetailsDto {
 
     private Long employeePoid;
