@@ -57,7 +57,6 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static java.util.Calendar.DATE;
 
 @Service
 @RequiredArgsConstructor
@@ -137,6 +136,9 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         // Legacy: if EMP_GL_POID isn't set, backend creates it via PROC_GL_MASTER_CREATION after save.
         createEmployeeGlIfMissing(saved.getEmployeePoid());
 
+        // Validate all child tables before persisting any, so logs are not written for tables that pass when a later one fails.
+        validateChildTables(saved.getEmployeePoid(),requestDto);
+
         // Child tables: apply row-level actionType (no audit-field assignment here).
         applyDependents(saved.getEmployeePoid(), requestDto.getDependentsDetails());
         applyLmraDetails(saved.getEmployeePoid(), requestDto.getLmraDetails());
@@ -165,6 +167,9 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
 
         // Legacy: if EMP_GL_POID isn't set, backend creates it via PROC_GL_MASTER_CREATION after save.
         createEmployeeGlIfMissing(saved.getEmployeePoid());
+
+        // Validate all child tables before persisting any, so logs are not written for tables that pass when a later one fails.
+        validateChildTables(saved.getEmployeePoid(), requestDto);
 
         // Child tables: apply actionType updates.
         applyDependents(saved.getEmployeePoid(), requestDto.getDependentsDetails());
@@ -327,6 +332,77 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         }
     }
 
+    private void validateChildTables(Long employeePoid, EmployeeMasterRequestDto requestDto) {
+        validateDependents(employeePoid, requestDto.getDependentsDetails());
+        validateLmraDetails(employeePoid, requestDto.getLmraDetails());
+        validateExperienceDetails(employeePoid, requestDto.getExperienceDetails());
+    }
+
+    private void validateDependents(Long employeePoid, List<EmployeeDependentsDtlRequestDto> dtos) {
+        if (dtos == null) return;
+        for (EmployeeDependentsDtlRequestDto dto : dtos) {
+            if (employeePoid != null && !masterRepository.existsByEmployeePoid(employeePoid)) {
+                throw new ResourceNotFoundException("Employee", "Employee Poid", employeePoid);
+            }
+            if (dto.getNationality() != null && Boolean.FALSE.equals(hrNationalityRepository.existsByNationalityCode(dto.getNationality()))) {
+                throw new ResourceNotFoundException("Nationality", "Nationality Code", dto.getNationality());
+            }
+            if (dto.getActionType() == ActionType.isCreated && dto.getName() != null
+                    && Boolean.TRUE.equals(dependentRepository.existsByName(dto.getName()))) {
+                throw new ResourceAlreadyExistsException("Dependent Name", dto.getName());
+            }
+            if (dto.getActionType() == ActionType.isUpdated) {
+                if (dto.getDetRowId() == null) throw new IllegalArgumentException("detRowId is required for dependents isUpdated action");
+                HrEmployeeDependentsDtl existing = dependentRepository.findById(new HrEmployeeDependentsDtlId(employeePoid, dto.getDetRowId()))
+                        .orElseThrow(() -> new ResourceNotFoundException("Dependents", DET_ROW_ID, dto.getDetRowId()));
+                if (StringUtils.isNotBlank(existing.getName()) && !existing.getName().equals(dto.getName())
+                        && Boolean.TRUE.equals(dependentRepository.existsByName(dto.getName()))) {
+                    throw new ResourceAlreadyExistsException("Dependent Name", dto.getName());
+                }
+            }
+            if (dto.getActionType() == ActionType.isDeleted && dto.getDetRowId() == null) {
+                throw new IllegalArgumentException("detRowId is required for dependents isDeleted action");
+            }
+        }
+    }
+
+    private void validateLmraDetails(Long employeePoid, List<EmployeeDepndtsLmraDtlsRequestDto> dtos) {
+        if (dtos == null) return;
+        for (EmployeeDepndtsLmraDtlsRequestDto dto : dtos) {
+            if (employeePoid != null && !masterRepository.existsByEmployeePoid(employeePoid)) {
+                throw new ResourceNotFoundException("Employee", "Employee Poid", employeePoid);
+            }
+            if (dto.getActionType() == ActionType.isUpdated && dto.getDetRowId() == null) {
+                throw new IllegalArgumentException("detRowId is required for lmra isUpdated action");
+            }
+            if (dto.getActionType() == ActionType.isDeleted && dto.getDetRowId() == null) {
+                throw new IllegalArgumentException("detRowId is required for lmra isDeleted action");
+            }
+        }
+    }
+
+    private void validateExperienceDetails(Long employeePoid, List<EmployeeExperienceDtlRequestDto> dtos) {
+        if (dtos == null) return;
+        for (EmployeeExperienceDtlRequestDto dto : dtos) {
+            if (employeePoid != null && !masterRepository.existsByEmployeePoid(employeePoid)) {
+                throw new ResourceNotFoundException("Employee", "Employee Poid",employeePoid);
+            }
+            if (dto.getActionType() == ActionType.isCreated && StringUtils.isNotBlank(dto.getEmployer())
+                    && experienceRepository.existsByEmployerIgnoreCase(dto.getEmployer())) {
+                throw new ResourceAlreadyExistsException("Employer", dto.getEmployer());
+            }
+            if (dto.getActionType() == ActionType.isUpdated) {
+                if (dto.getDetRowId() == null) throw new IllegalArgumentException("detRowId is required for experience isUpdated action");
+                if (StringUtils.isNotBlank(dto.getEmployer()) && experienceRepository.existsByEmployerIgnoreCaseAndEmployeePoidNot(dto.getEmployer(), employeePoid)) {
+                    throw new ResourceAlreadyExistsException("Employer", dto.getEmployer());
+                }
+            }
+            if (dto.getActionType() == ActionType.isDeleted && dto.getDetRowId() == null) {
+                throw new IllegalArgumentException("detRowId is required for experience isDeleted action");
+            }
+        }
+    }
+
     private String getGlobalParameterValue(String parameterName, String scope, String scopePoid, String defaultValue) {
         try {
             Optional<String> parameterResponse = parameterServiceClient.findParameterValueByName(parameterName);
@@ -397,27 +473,10 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
 
         for (EmployeeDependentsDtlRequestDto dto : dtos) {
 
-            if (dto.getEmployeePoid() != null) {
-                if (!masterRepository.existsByEmployeePoid(dto.getEmployeePoid())) {
-                    throw new ResourceNotFoundException("Employee", "Employee Poid", dto.getEmployeePoid());
-                }
-            }
-            if (dto.getNationality() != null) {
-                if (Boolean.FALSE.equals(hrNationalityRepository.existsByNationalityCode(dto.getNationality()))) {
-                    throw new ResourceNotFoundException("Nationality", "Nationality Code", dto.getNationality());
-                }
-            }
-
             if (dto == null || dto.getActionType() == null || dto.getActionType() == ActionType.noChange) continue;
 
             ActionType action = dto.getActionType();
             if (action == ActionType.isCreated) {
-
-                if (dto.getName() != null) {
-                    if (Boolean.TRUE.equals(dependentRepository.existsByName(dto.getName()))) {
-                        throw new ResourceAlreadyExistsException("Dependent Name", dto.getName());
-                    }
-                }
 
                 long detRowId = dto.getDetRowId() != null ? dto.getDetRowId() : nextDetRowId++;
                 nextDetRowId = Math.max(nextDetRowId, detRowId + 1);
@@ -438,20 +497,15 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 entity.setInsuStartDt(dto.getInsuStartDt());
                 entity.setSponsor(dto.getSponsor());
                 entity.setRpExpiry(dto.getRpExpiry());
-                dependentRepository.save(entity);
+                HrEmployeeDependentsDtl saved = dependentRepository.save(entity);
+                String logDetail = String.format("Row Created on [Employee Dependent Details] with detRowId: %s", saved.getDetRowId());
+                loggingService.createLogSummaryEntry(UserContext.getDocumentId(), saved.getEmployeePoid().toString(), logDetail);
             } else if (action == ActionType.isUpdated) {
-                if (dto.getDetRowId() == null) {
-                    throw new IllegalArgumentException("detRowId is required for dependents isUpdated action");
-                }
-
                 HrEmployeeDependentsDtlId id = new HrEmployeeDependentsDtlId(employeePoid, dto.getDetRowId());
                 HrEmployeeDependentsDtl entity = dependentRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Dependents", DET_ROW_ID, dto.getDetRowId()));
 
-                if (entity != null && StringUtils.isNotBlank(entity.getName()) && !entity.getName().equals(dto.getName())) {
-                    if (Boolean.TRUE.equals(dependentRepository.existsByName(dto.getName()))) {
-                        throw new ResourceAlreadyExistsException("Dependent Name", dto.getName());
-                    }
-                }
+                HrEmployeeDependentsDtl oldDetail = new HrEmployeeDependentsDtl();
+                BeanUtils.copyProperties(entity, oldDetail);
 
                 entity.setName(dto.getName());
                 entity.setDateOfBirth(dto.getDateOfBirth());
@@ -467,12 +521,13 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 entity.setSponsor(dto.getSponsor());
                 entity.setRpExpiry(dto.getRpExpiry());
                 dependentRepository.save(entity);
+                String logDetail = String.format("KeyId = EMPLOYEE_POID %s: DET_ROW_ID %s", entity.getEmployeePoid(), entity.getDetRowId());
+                loggingService.createLog(oldDetail, entity, HrEmployeeDependentsDtl.class, UserContext.getDocumentId(), employeePoid.toString(), logDetail);
             } else if (action == ActionType.isDeleted) {
-                if (dto.getDetRowId() == null) {
-                    throw new IllegalArgumentException("detRowId is required for dependents isDeleted action");
-                }
                 HrEmployeeDependentsDtlId id = new HrEmployeeDependentsDtlId(employeePoid, dto.getDetRowId());
+                HrEmployeeDependentsDtl entity = dependentRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Dependents", DET_ROW_ID, dto.getDetRowId()));
                 dependentRepository.deleteById(id);
+                loggingService.logDelete(entity, UserContext.getDocumentId(), employeePoid.toString());
             }
         }
     }
@@ -484,12 +539,6 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         long nextDetRowId = existing.stream().mapToLong(HrEmpDepndtsLmraDtls::getDetRowId).max().orElse(0L) + 1;
 
         for (EmployeeDepndtsLmraDtlsRequestDto dto : dtos) {
-
-            if (dto.getEmployeePoid() != null) {
-                if (!masterRepository.existsByEmployeePoid(dto.getEmployeePoid())) {
-                    throw new ResourceNotFoundException("Employee", "Employee Poid", dto.getEmployeePoid());
-                }
-            }
 
             if (dto == null || dto.getActionType() == null || dto.getActionType() == ActionType.noChange) continue;
 
@@ -527,14 +576,15 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 entity.setFingerPrint(dto.getFingerPrint());
                 entity.setHealthCheckResult(dto.getHealthCheckResult());
                 entity.setAdditionalBhPermit(dto.getAdditionalBhPermit());
-                lmraRepository.save(entity);
+                HrEmpDepndtsLmraDtls saved = lmraRepository.save(entity);
+                String logDetail = String.format("Row Created on [Employee lmra Details] with detRowId: %s", saved.getDetRowId());
+                loggingService.createLogSummaryEntry(UserContext.getDocumentId(), saved.getEmployeePoid().toString(), logDetail);
             } else if (action == ActionType.isUpdated) {
-                if (dto.getDetRowId() == null) {
-                    throw new IllegalArgumentException("detRowId is required for lmra isUpdated action");
-                }
-
                 HrEmpDepndtsLmraDtlsId id = new HrEmpDepndtsLmraDtlsId(employeePoid, dto.getDetRowId());
                 HrEmpDepndtsLmraDtls entity = lmraRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("LMRA Details", DET_ROW_ID, dto.getDetRowId()));
+
+                HrEmpDepndtsLmraDtls oldDetail = new HrEmpDepndtsLmraDtls();
+                BeanUtils.copyProperties(entity, oldDetail);
 
                 entity.setExpatCpr(dto.getExpatCpr());
                 entity.setExpatPp(dto.getExpatPp());
@@ -563,12 +613,13 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 entity.setHealthCheckResult(dto.getHealthCheckResult());
                 entity.setAdditionalBhPermit(dto.getAdditionalBhPermit());
                 lmraRepository.save(entity);
+                String logDetail = String.format("KeyId = EMPLOYEE_POID %s: DET_ROW_ID %s", entity.getEmployeePoid(), entity.getDetRowId());
+                loggingService.createLog(oldDetail, entity, HrEmpDepndtsLmraDtls.class, UserContext.getDocumentId(), employeePoid.toString(), logDetail);
             } else if (action == ActionType.isDeleted) {
-                if (dto.getDetRowId() == null) {
-                    throw new IllegalArgumentException("detRowId is required for lmra isDeleted action");
-                }
                 HrEmpDepndtsLmraDtlsId id = new HrEmpDepndtsLmraDtlsId(employeePoid, dto.getDetRowId());
+                HrEmpDepndtsLmraDtls entity = lmraRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("LMRA Details", DET_ROW_ID, dto.getDetRowId()));
                 lmraRepository.deleteById(id);
+                loggingService.logDelete(entity, UserContext.getDocumentId(), employeePoid.toString());
             }
         }
     }
@@ -581,22 +632,10 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
 
         for (EmployeeExperienceDtlRequestDto dto : dtos) {
 
-            if (dto.getEmployeePoid() != null) {
-                if (!masterRepository.existsByEmployeePoid(dto.getEmployeePoid())) {
-                    throw new ResourceNotFoundException("Employee", "Employee Poid", dto.getEmployeePoid());
-                }
-            }
-
             if (dto == null || dto.getActionType() == null || dto.getActionType() == ActionType.noChange) continue;
 
             ActionType action = dto.getActionType();
             if (action == ActionType.isCreated) {
-
-                if (StringUtils.isNotBlank(dto.getEmployer())) {
-                    if (experienceRepository.existsByEmployerIgnoreCase(dto.getEmployer())) {
-                        throw new ResourceAlreadyExistsException("Employer", dto.getEmployer());
-                    }
-                }
 
                 long detRowId = dto.getDetRowId() != null ? dto.getDetRowId() : nextDetRowId++;
                 nextDetRowId = Math.max(nextDetRowId, detRowId + 1);
@@ -610,20 +649,15 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 entity.setToDate(dto.getToDate());
                 entity.setMonths(dto.getMonths());
                 entity.setDesignation(dto.getDesignation());
-                experienceRepository.save(entity);
+                HrEmployeeExperienceDtl saved = experienceRepository.save(entity);
+                String logDetail = String.format("Row Created on [Employee Experience Details] with detRowId: %s", saved.getDetRowId());
+                loggingService.createLogSummaryEntry(UserContext.getDocumentId(), saved.getEmployeePoid().toString(), logDetail);
             } else if (action == ActionType.isUpdated) {
-                if (dto.getDetRowId() == null) {
-                    throw new IllegalArgumentException("detRowId is required for experience isUpdated action");
-                }
-
-                if (StringUtils.isNotBlank(dto.getEmployer())) {
-                    if (experienceRepository.existsByEmployerIgnoreCaseAndEmployeePoidNot(dto.getEmployer(), employeePoid)) {
-                        throw new ResourceAlreadyExistsException("Employer", dto.getEmployer());
-                    }
-                }
-
                 HrEmployeeExperienceDtlId id = new HrEmployeeExperienceDtlId(employeePoid, dto.getDetRowId());
                 HrEmployeeExperienceDtl entity = experienceRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Experience", DET_ROW_ID, dto.getDetRowId()));
+
+                HrEmployeeExperienceDtl oldDetail = new HrEmployeeExperienceDtl();
+                BeanUtils.copyProperties(entity, oldDetail);
 
                 entity.setEmployer(dto.getEmployer());
                 entity.setCountryLocation(dto.getCountryLocation());
@@ -632,12 +666,13 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 entity.setMonths(dto.getMonths());
                 entity.setDesignation(dto.getDesignation());
                 experienceRepository.save(entity);
+                String logDetail = String.format("KeyId = EMPLOYEE_POID %s: DET_ROW_ID %s", entity.getEmployeePoid(), entity.getDetRowId());
+                loggingService.createLog(oldDetail, entity, HrEmployeeExperienceDtl.class, UserContext.getDocumentId(), employeePoid.toString(), logDetail);
             } else if (action == ActionType.isDeleted) {
-                if (dto.getDetRowId() == null) {
-                    throw new IllegalArgumentException("detRowId is required for experience isDeleted action");
-                }
                 HrEmployeeExperienceDtlId id = new HrEmployeeExperienceDtlId(employeePoid, dto.getDetRowId());
+                HrEmployeeExperienceDtl entity = experienceRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Experience", DET_ROW_ID, dto.getDetRowId()));
                 experienceRepository.deleteById(id);
+                loggingService.logDelete(entity, UserContext.getDocumentId(), employeePoid.toString());
             }
         }
     }
@@ -649,12 +684,6 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         long nextDetRowId = existing.stream().mapToLong(HrEmployeeDocumentDtl::getDetRowId).max().orElse(0L) + 1;
 
         for (EmployeeDocumentDtlRequestDto dto : dtos) {
-
-            if (dto.getEmployeePoid() != null) {
-                if (!masterRepository.existsByEmployeePoid(dto.getEmployeePoid())) {
-                    throw new ResourceNotFoundException("Employee", "Employee Poid", dto.getEmployeePoid());
-                }
-            }
 
             if (dto == null || dto.getActionType() == null || dto.getActionType() == ActionType.noChange) continue;
 
@@ -669,25 +698,27 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 entity.setDocName(dto.getDocName());
                 entity.setExpiryDate(dto.getExpiryDate());
                 entity.setRemarks(dto.getRemarks());
-                documentRepository.save(entity);
+                HrEmployeeDocumentDtl saved = documentRepository.save(entity);
+                String logDetail = String.format("Row Created on [Employee Document Details] with detRowId: %s", saved.getDetRowId());
+                loggingService.createLogSummaryEntry(UserContext.getDocumentId(), saved.getEmployeePoid().toString(), logDetail);
             } else if (action == ActionType.isUpdated) {
-                if (dto.getDetRowId() == null) {
-                    throw new IllegalArgumentException("detRowId is required for document isUpdated action");
-                }
-
                 HrEmployeeDocumentDtlId id = new HrEmployeeDocumentDtlId(employeePoid, dto.getDetRowId());
                 HrEmployeeDocumentDtl entity = documentRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Document", DET_ROW_ID, dto.getDetRowId()));
+
+                HrEmployeeDocumentDtl oldDetail = new HrEmployeeDocumentDtl();
+                BeanUtils.copyProperties(entity, oldDetail);
 
                 entity.setDocName(dto.getDocName());
                 entity.setExpiryDate(dto.getExpiryDate());
                 entity.setRemarks(dto.getRemarks());
                 documentRepository.save(entity);
+                String logDetail = String.format("KeyId = EMPLOYEE_POID %s: DET_ROW_ID %s", entity.getEmployeePoid(), entity.getDetRowId());
+                loggingService.createLog(oldDetail, entity, HrEmployeeDocumentDtl.class, UserContext.getDocumentId(),employeePoid.toString(), logDetail);
             } else if (action == ActionType.isDeleted) {
-                if (dto.getDetRowId() == null) {
-                    throw new IllegalArgumentException("detRowId is required for document isDeleted action");
-                }
                 HrEmployeeDocumentDtlId id = new HrEmployeeDocumentDtlId(employeePoid, dto.getDetRowId());
+                HrEmployeeDocumentDtl entity = documentRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Document", DET_ROW_ID, dto.getDetRowId()));
                 documentRepository.deleteById(id);
+                loggingService.logDelete(entity, UserContext.getDocumentId(), employeePoid.toString());
             }
         }
     }
@@ -702,9 +733,9 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
 
         for (EmployeeLeaveHistoryRequestDto dto : dtos) {
 
-            if (dto.getEmployeePoid() != null) {
-                if (!masterRepository.existsByEmployeePoid(dto.getEmployeePoid())) {
-                    throw new ResourceNotFoundException("Employee", "Employee Poid", dto.getEmployeePoid());
+            if (employeePoid != null) {
+                if (!masterRepository.existsByEmployeePoid(employeePoid)) {
+                    throw new ResourceNotFoundException("Employee", "Employee Poid", employeePoid);
                 }
             }
 
