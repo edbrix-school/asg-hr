@@ -25,8 +25,9 @@ import com.asg.hr.employeemaster.dto.*;
 import com.asg.hr.employeemaster.entity.*;
 import com.asg.hr.employeemaster.util.EmployeeMasterMapper;
 import com.asg.hr.exceptions.CustomException;
+import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperReport;
-import oracle.jdbc.internal.OracleTypes;
+import oracle.jdbc.OracleTypes;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.data.domain.Page;
 import com.asg.hr.employeemaster.enums.ActionType;
@@ -56,6 +57,7 @@ import java.sql.Types;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.function.LongPredicate;
 
 
 @Service
@@ -88,7 +90,6 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     private final HrEmpDepndtsLmraDtlsRepository lmraRepository;
     private final HrEmployeeDocumentDtlRepository documentRepository;
     private final HrEmployeeExperienceDtlRepository experienceRepository;
-    private final HrEmployeeLeaveHistoryRepository leaveHistoryRepository;
     private final HrAirsectorRepository airsectorRepository;
     private final HrDepartmentMasterRepository hrDepartmentMasterRepository;
     private final HrNationalityRepository hrNationalityRepository;
@@ -283,69 +284,53 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     }
 
     private void validateForeignKeyReferences(EmployeeMasterRequestDto requestDto) {
-        if (requestDto.getAirSectorPoid() != null && !airsectorRepository.existsByAirsecPoid(requestDto.getAirSectorPoid())) {
-            throw new ResourceNotFoundException("Air Sector", "Air Sector Poid", requestDto.getAirSectorPoid());
-        }
-        if (requestDto.getDepartmentPoid() != null && !hrDepartmentMasterRepository.existsByDeptPoid(requestDto.getDepartmentPoid())) {
-            throw new ResourceNotFoundException("Department", "Department Poid", requestDto.getDepartmentPoid());
-        }
-        if (requestDto.getNationalityPoid() != null && !hrNationalityRepository.existsByNationPoid(requestDto.getNationalityPoid())) {
-            throw new ResourceNotFoundException("Nationality", "Nationality Poid", requestDto.getNationalityPoid());
-        }
-        if (requestDto.getReligionPoid() != null && !religionRepository.existsByReligionPoid(requestDto.getReligionPoid())) {
-            throw new ResourceNotFoundException("Religion", "Religion Poid", requestDto.getReligionPoid());
-        }
-        if (requestDto.getDesignationPoid() != null && !designationRepository.existsByDesigPoid(requestDto.getDesignationPoid())) {
-            throw new ResourceNotFoundException("Designation", "Designation Poid", requestDto.getDesignationPoid());
-        }
-        if (requestDto.getShiftPoid() != null && !globalShiftMasterRepository.existsByShiftPoid(requestDto.getShiftPoid())) {
-            throw new ResourceNotFoundException("Shift", "Shift Poid", requestDto.getShiftPoid());
-        }
+        requireExists(requestDto.getAirSectorPoid(), airsectorRepository::existsByAirsecPoid, "Air Sector", "Air Sector Poid");
+        requireExists(requestDto.getDepartmentPoid(), hrDepartmentMasterRepository::existsByDeptPoid, "Department", "Department Poid");
+        requireExists(requestDto.getNationalityPoid(), hrNationalityRepository::existsByNationPoid, "Nationality", "Nationality Poid");
+        requireExists(requestDto.getReligionPoid(), religionRepository::existsByReligionPoid, "Religion", "Religion Poid");
+        requireExists(requestDto.getDesignationPoid(), designationRepository::existsByDesigPoid, "Designation", "Designation Poid");
+        requireExists(requestDto.getShiftPoid(), globalShiftMasterRepository::existsByShiftPoid, "Shift", "Shift Poid");
         if (requestDto.getDiscontinued() != null && !globalFixedVariablesRepository.existsByVariableName(requestDto.getDiscontinued())) {
-            throw new ResourceNotFoundException("Fixed Variable", "View Using", requestDto.getDiscontinued());
+            throw new ResourceNotFoundException("Discontinued", "variable name", requestDto.getDiscontinued());
         }
-        if (requestDto.getLocationPoid() != null && !locationMasterRepository.existsByLocationPoid(requestDto.getLocationPoid())) {
-            throw new ResourceNotFoundException("Location", "Location Poid", requestDto.getLocationPoid());
-        }
-        if (requestDto.getCrPoid() != null && !crMasterRepository.existsByCrPoid(requestDto.getCrPoid())) {
-            throw new ResourceNotFoundException("Admin Cr Master", "Cr Poid", requestDto.getCrPoid());
+        requireExists(requestDto.getLocationPoid(), locationMasterRepository::existsByLocationPoid, "Location", "Location Poid");
+        requireExists(requestDto.getCrPoid(), crMasterRepository::existsByCrPoid, "Emp Reg Co", "CR Poid");
+    }
+
+    private void requireExists(Long poid, LongPredicate existsFn, String entity, String field) {
+        if (poid != null && !existsFn.test(poid)) {
+            throw new ResourceNotFoundException(entity, field, poid);
         }
     }
 
     private void validateUniqueness(EmployeeMasterRequestDto requestDto, boolean isUpdate, Long currentEmployeePoid) {
-        if (requestDto.getMobile() != null) {
-            boolean duplicate = isUpdate
-                    ? masterRepository.existsByMobileAndEmployeePoidNot(requestDto.getMobile(), currentEmployeePoid)
-                    : masterRepository.existsByMobile(requestDto.getMobile());
-            if (duplicate) throw new ResourceAlreadyExistsException("Mobile", requestDto.getMobile());
-        }
-        if (requestDto.getFirstName() != null) {
-            boolean duplicate = isUpdate
-                    ? masterRepository.existsByEmployeeNameAndEmployeePoidNot(requestDto.getFirstName(), currentEmployeePoid)
-                    : masterRepository.existsByEmployeeName(requestDto.getFirstName());
-            if (duplicate) throw new ResourceAlreadyExistsException("Name", requestDto.getFirstName());
-        }
-        if (StringUtils.isNotBlank(requestDto.getEmployeeCode())) {
-            String employeeCode = requestDto.getEmployeeCode().trim();
-            boolean duplicate = isUpdate
-                    ? masterRepository.existsByEmployeeCodeAndEmployeePoidNot(employeeCode, currentEmployeePoid)
-                    : masterRepository.existsByEmployeeCode(employeeCode);
-            if (duplicate) throw new ResourceAlreadyExistsException("Employee Code", employeeCode);
-        }
-        if (StringUtils.isNotBlank(requestDto.getCprNo())) {
-            String cprNo = requestDto.getCprNo().trim();
-            boolean duplicate = isUpdate
-                    ? masterRepository.existsByCprNoAndEmployeePoidNot(cprNo, currentEmployeePoid)
-                    : masterRepository.existsByCprNo(cprNo);
-            if (duplicate) throw new ResourceAlreadyExistsException("CPR No", cprNo);
-        }
-        if (StringUtils.isNotBlank(requestDto.getIban())) {
-            String iban = requestDto.getIban().trim();
-            boolean duplicate = isUpdate
-                    ? masterRepository.existsByIbanAndEmployeePoidNot(iban, currentEmployeePoid)
-                    : masterRepository.existsByIban(iban);
-            if (duplicate) throw new ResourceAlreadyExistsException("IBAN", iban);
-        }
+        if (requestDto.getMobile() != null)
+            requireUnique(requestDto.getMobile(), "Mobile", isUpdate,
+                    masterRepository::existsByMobile,
+                    v -> masterRepository.existsByMobileAndEmployeePoidNot(v, currentEmployeePoid));
+        if (requestDto.getFirstName() != null)
+            requireUnique(requestDto.getFirstName(), "Name", isUpdate,
+                    masterRepository::existsByEmployeeName,
+                    v -> masterRepository.existsByEmployeeNameAndEmployeePoidNot(v, currentEmployeePoid));
+        if (StringUtils.isNotBlank(requestDto.getEmployeeCode()))
+            requireUnique(requestDto.getEmployeeCode().trim(), "Employee Code", isUpdate,
+                    masterRepository::existsByEmployeeCode,
+                    v -> masterRepository.existsByEmployeeCodeAndEmployeePoidNot(v, currentEmployeePoid));
+        if (StringUtils.isNotBlank(requestDto.getCprNo()))
+            requireUnique(requestDto.getCprNo().trim(), "CPR No", isUpdate,
+                    masterRepository::existsByCprNo,
+                    v -> masterRepository.existsByCprNoAndEmployeePoidNot(v, currentEmployeePoid));
+        if (StringUtils.isNotBlank(requestDto.getIban()))
+            requireUnique(requestDto.getIban().trim(), "IBAN", isUpdate,
+                    masterRepository::existsByIban,
+                    v -> masterRepository.existsByIbanAndEmployeePoidNot(v, currentEmployeePoid));
+    }
+
+    private void requireUnique(String value, String fieldName, boolean isUpdate,
+                               java.util.function.Predicate<String> existsFn,
+                               java.util.function.Predicate<String> existsExcludingSelfFn) {
+        boolean duplicate = isUpdate ? existsExcludingSelfFn.test(value) : existsFn.test(value);
+        if (duplicate) throw new ResourceAlreadyExistsException(fieldName, value);
     }
 
     private void validateGlReferences(EmployeeMasterRequestDto requestDto) {
@@ -369,26 +354,30 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
             if (employeePoid != null && !masterRepository.existsByEmployeePoid(employeePoid)) {
                 throw new ResourceNotFoundException(EMPLOYEE, "Employee Poid", employeePoid);
             }
-            if (dto.getNationality() != null && !hrNationalityRepository.existsByNationalityCode(dto.getNationality())) {
-                throw new ResourceNotFoundException("Nationality", "Nationality Code", dto.getNationality());
-            }
-            if (dto.getActionType() == ActionType.isCreated && dto.getName() != null
+            validateDependentDto(dto, employeePoid);
+        }
+    }
+
+    private void validateDependentDto(EmployeeDependentsDtlRequestDto dto, Long employeePoid) {
+        if (dto.getNationality() != null && !hrNationalityRepository.existsByNationalityCode(dto.getNationality())) {
+            throw new ResourceNotFoundException("Nationality", "Nationality Code", dto.getNationality());
+        }
+        if (dto.getActionType() == ActionType.isCreated && dto.getName() != null
+                && Boolean.TRUE.equals(dependentRepository.existsByName(dto.getName()))) {
+            throw new ResourceAlreadyExistsException("Dependent Name", dto.getName());
+        }
+        if (dto.getActionType() == ActionType.isUpdated) {
+            if (dto.getDetRowId() == null)
+                throw new IllegalArgumentException("detRowId is required for dependents isUpdated action");
+            HrEmployeeDependentsDtl existing = dependentRepository.findById(new HrEmployeeDependentsDtlId(employeePoid, dto.getDetRowId()))
+                    .orElseThrow(() -> new ResourceNotFoundException(DEPENDENTS, DET_ROW_ID, dto.getDetRowId()));
+            if (StringUtils.isNotBlank(existing.getName()) && !existing.getName().equals(dto.getName())
                     && Boolean.TRUE.equals(dependentRepository.existsByName(dto.getName()))) {
                 throw new ResourceAlreadyExistsException("Dependent Name", dto.getName());
             }
-            if (dto.getActionType() == ActionType.isUpdated) {
-                if (dto.getDetRowId() == null)
-                    throw new IllegalArgumentException("detRowId is required for dependents isUpdated action");
-                HrEmployeeDependentsDtl existing = dependentRepository.findById(new HrEmployeeDependentsDtlId(employeePoid, dto.getDetRowId()))
-                        .orElseThrow(() -> new ResourceNotFoundException(DEPENDENTS, DET_ROW_ID, dto.getDetRowId()));
-                if (StringUtils.isNotBlank(existing.getName()) && !existing.getName().equals(dto.getName())
-                        && Boolean.TRUE.equals(dependentRepository.existsByName(dto.getName()))) {
-                    throw new ResourceAlreadyExistsException("Dependent Name", dto.getName());
-                }
-            }
-            if (dto.getActionType() == ActionType.isDeleted && dto.getDetRowId() == null) {
-                throw new IllegalArgumentException("detRowId is required for dependents isDeleted action");
-            }
+        }
+        if (dto.getActionType() == ActionType.isDeleted && dto.getDetRowId() == null) {
+            throw new IllegalArgumentException("detRowId is required for dependents isDeleted action");
         }
     }
 
@@ -413,20 +402,24 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
             if (employeePoid != null && !masterRepository.existsByEmployeePoid(employeePoid)) {
                 throw new ResourceNotFoundException(EMPLOYEE, "Employee Poid", employeePoid);
             }
-            if (dto.getActionType() == ActionType.isCreated && StringUtils.isNotBlank(dto.getEmployer())
-                    && experienceRepository.existsByEmployerIgnoreCase(dto.getEmployer())) {
+            validateExperienceDto(dto, employeePoid);
+        }
+    }
+
+    private void validateExperienceDto(EmployeeExperienceDtlRequestDto dto, Long employeePoid) {
+        if (dto.getActionType() == ActionType.isCreated && StringUtils.isNotBlank(dto.getEmployer())
+                && experienceRepository.existsByEmployerIgnoreCase(dto.getEmployer())) {
+            throw new ResourceAlreadyExistsException("Employer", dto.getEmployer());
+        }
+        if (dto.getActionType() == ActionType.isUpdated) {
+            if (dto.getDetRowId() == null)
+                throw new IllegalArgumentException("detRowId is required for experience isUpdated action");
+            if (StringUtils.isNotBlank(dto.getEmployer()) && experienceRepository.existsByEmployerIgnoreCaseAndEmployeePoidNot(dto.getEmployer(), employeePoid)) {
                 throw new ResourceAlreadyExistsException("Employer", dto.getEmployer());
             }
-            if (dto.getActionType() == ActionType.isUpdated) {
-                if (dto.getDetRowId() == null)
-                    throw new IllegalArgumentException("detRowId is required for experience isUpdated action");
-                if (StringUtils.isNotBlank(dto.getEmployer()) && experienceRepository.existsByEmployerIgnoreCaseAndEmployeePoidNot(dto.getEmployer(), employeePoid)) {
-                    throw new ResourceAlreadyExistsException("Employer", dto.getEmployer());
-                }
-            }
-            if (dto.getActionType() == ActionType.isDeleted && dto.getDetRowId() == null) {
-                throw new IllegalArgumentException("detRowId is required for experience isDeleted action");
-            }
+        }
+        if (dto.getActionType() == ActionType.isDeleted && dto.getDetRowId() == null) {
+            throw new IllegalArgumentException("detRowId is required for experience isDeleted action");
         }
     }
 
@@ -821,16 +814,22 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     }
 
     @Override
-    public byte[] print(Long transactionPoid) throws Exception {
+    public byte[] print(Long transactionPoid) throws JRException {
         Map<String, Object> params = printService.buildBaseParams(transactionPoid, UserContext.getDocumentId());
         JasperReport mainReport = printService.load("EmployeeDetailsReportWithSalary.jrxml");
-        return printService.fillReportToPdf(mainReport, params, dataSource);
+        try {
+            return printService.fillReportToPdf(mainReport, params, dataSource);
+        } catch (JRException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new JRException(e);
+        }
     }
 
     @Override
     public String uploadExcel(org.springframework.web.multipart.MultipartFile file) {
         if (file.isEmpty()) {
-            throw new CustomException("File is empty",400);
+            throw new CustomException("File is empty", 400);
         }
 
         String docId = "800-001_1";
@@ -887,12 +886,12 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
 
         String status = (String) result.get("P_STATUS");
         if (!"SUCCESS".equals(status)) {
-            throw new CustomException("Failed to get Excel config: " + status,500);
+            throw new CustomException("Failed to get Excel config: " + status, 500);
         }
 
         List<Map<String, Object>> configs = (List<Map<String, Object>>) result.get("OUTDATA");
         if (configs == null || configs.isEmpty()) {
-            throw new CustomException("No Excel configuration found for DOC_ID: " + docId,400);
+            throw new CustomException("No Excel configuration found for DOC_ID: " + docId, 400);
         }
 
         Map<String, Object> configRow = configs.getFirst();
@@ -995,8 +994,6 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 throw new ValidationException(status);
             }
             return status;
-        } catch (ValidationException e) {
-            throw e;
         } catch (DataAccessException ex) {
             throw new ValidationException("PROC_HR_EMP_REJOINDT_UPDATE_V2 failed: " + ex.getMostSpecificCause().getMessage());
         }
@@ -1035,8 +1032,6 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 throw new ValidationException(status);
             }
             return status;
-        } catch (ValidationException e) {
-            throw e;
         } catch (DataAccessException ex) {
             throw new ValidationException("PROC_HR_EMP_REJOINDT_REMOVE failed: " + ex.getMostSpecificCause().getMessage());
         }

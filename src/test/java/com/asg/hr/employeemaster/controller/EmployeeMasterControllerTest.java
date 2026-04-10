@@ -20,7 +20,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.*;

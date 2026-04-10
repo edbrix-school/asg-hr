@@ -35,7 +35,12 @@ import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.FormulaError;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -55,7 +60,6 @@ import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.mock.web.MockMultipartFile;
 
 import javax.sql.DataSource;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Method;
 import java.sql.ResultSet;
@@ -64,6 +68,7 @@ import java.util.*;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -78,30 +83,52 @@ class EmployeeMasterServiceImplTest {
 
     private MockedStatic<UserContext> userContextMock;
 
-    @Mock private HrEmployeeMasterRepository masterRepository;
-    @Mock private HrEmployeeDependentRepository dependentRepository;
-    @Mock private HrEmpDepndtsLmraDtlsRepository lmraRepository;
-    @Mock private HrEmployeeDocumentDtlRepository documentRepository;
-    @Mock private HrEmployeeExperienceDtlRepository experienceRepository;
-    @Mock private HrEmployeeLeaveHistoryRepository leaveHistoryRepository;
-    @Mock private HrAirsectorRepository airsectorRepository;
-    @Mock private HrDepartmentMasterRepository hrDepartmentMasterRepository;
-    @Mock private HrNationalityRepository hrNationalityRepository;
-    @Mock private HrDesignationMasterRepository designationRepository;
-    @Mock private ReligionRepository religionRepository;
-    @Mock private GlMasterServiceClient glMasterServiceClient;
-    @Mock private GlobalFixedVariablesRepository globalFixedVariablesRepository;
-    @Mock private GlobalShiftMasterRepository globalShiftMasterRepository;
-    @Mock private GlobalLocationMasterRepository locationMasterRepository;
-    @Mock private AdminCrMasterRepository crMasterRepository;
-    @Mock private EmployeeMasterMapper employeeMasterMapper;
-    @Mock private ParameterServiceClient parameterServiceClient;
-    @Mock private DocumentSearchService documentSearchService;
-    @Mock private DocumentDeleteService documentDeleteService;
-    @Mock private LoggingService loggingService;
-    @Mock private PrintService printService;
-    @Mock private DataSource dataSource;
-    @Mock private JdbcTemplate jdbcTemplate;
+    @Mock
+    private HrEmployeeMasterRepository masterRepository;
+    @Mock
+    private HrEmployeeDependentRepository dependentRepository;
+    @Mock
+    private HrEmpDepndtsLmraDtlsRepository lmraRepository;
+    @Mock
+    private HrEmployeeDocumentDtlRepository documentRepository;
+    @Mock
+    private HrEmployeeExperienceDtlRepository experienceRepository;
+    @Mock
+    private HrAirsectorRepository airsectorRepository;
+    @Mock
+    private HrDepartmentMasterRepository hrDepartmentMasterRepository;
+    @Mock
+    private HrNationalityRepository hrNationalityRepository;
+    @Mock
+    private HrDesignationMasterRepository designationRepository;
+    @Mock
+    private ReligionRepository religionRepository;
+    @Mock
+    private GlMasterServiceClient glMasterServiceClient;
+    @Mock
+    private GlobalFixedVariablesRepository globalFixedVariablesRepository;
+    @Mock
+    private GlobalShiftMasterRepository globalShiftMasterRepository;
+    @Mock
+    private GlobalLocationMasterRepository locationMasterRepository;
+    @Mock
+    private AdminCrMasterRepository crMasterRepository;
+    @Mock
+    private EmployeeMasterMapper employeeMasterMapper;
+    @Mock
+    private ParameterServiceClient parameterServiceClient;
+    @Mock
+    private DocumentSearchService documentSearchService;
+    @Mock
+    private DocumentDeleteService documentDeleteService;
+    @Mock
+    private LoggingService loggingService;
+    @Mock
+    private PrintService printService;
+    @Mock
+    private DataSource dataSource;
+    @Mock
+    private JdbcTemplate jdbcTemplate;
 
     @InjectMocks
     private EmployeeMasterServiceImpl service;
@@ -145,8 +172,7 @@ class EmployeeMasterServiceImplTest {
 
             Map<String, Object> result = service.listEmployees("X", filters, pageable);
 
-            assertThat(result).isNotNull();
-            assertThat(result).containsKeys("content", "totalElements", "totalPages");
+            assertThat(result).isNotNull().containsKeys("content", "totalElements", "totalPages");
         }
     }
 
@@ -231,7 +257,7 @@ class EmployeeMasterServiceImplTest {
             EmployeeMasterResponseDto out = service.createEmployee(request);
 
             assertThat(out.getEmployeePoid()).isEqualTo(77L);
-            verify(loggingService).createLogSummaryEntry(eq(LogDetailsEnum.CREATED), eq(DOC_ID), eq("77"));
+            verify(loggingService).createLogSummaryEntry(LogDetailsEnum.CREATED, DOC_ID, "77");
             verify(employeeMasterMapper).applyHeaderFields(any(HrEmployeeMaster.class), eq(request));
         }
 
@@ -289,8 +315,8 @@ class EmployeeMasterServiceImplTest {
         @Test
         void throwsWhenEmployeeNotFound() {
             when(masterRepository.findByEmployeePoid(1L)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> service.updateEmployee(1L, baseValidRequest("REMOTE", 1L)))
+            EmployeeMasterRequestDto req = baseValidRequest("REMOTE", 1L);
+            assertThatThrownBy(() -> service.updateEmployee(1L, req))
                     .isInstanceOf(ResourceNotFoundException.class);
         }
     }
@@ -310,7 +336,8 @@ class EmployeeMasterServiceImplTest {
         @Test
         void throwsWhenEmployeeNotFound() {
             when(masterRepository.findByEmployeePoid(1L)).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> service.deleteEmployee(1L, new DeleteReasonDto()))
+            DeleteReasonDto reason = new DeleteReasonDto();
+            assertThatThrownBy(() -> service.deleteEmployee(1L, reason))
                     .isInstanceOf(ResourceNotFoundException.class);
         }
     }
@@ -335,7 +362,8 @@ class EmployeeMasterServiceImplTest {
         @Test
         void throwsWhenEmployeeNotFound() {
             when(masterRepository.findByEmployeePoid(3L)).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> service.updateEmployeePhoto(3L, EmployeePhotoUpdateRequestDto.builder().photo(new byte[]{9}).build()))
+            EmployeePhotoUpdateRequestDto req = EmployeePhotoUpdateRequestDto.builder().photo(new byte[]{9}).build();
+            assertThatThrownBy(() -> service.updateEmployeePhoto(3L, req))
                     .isInstanceOf(ResourceNotFoundException.class);
         }
     }
@@ -357,8 +385,8 @@ class EmployeeMasterServiceImplTest {
             EmployeeDashboardListRequestDto req = new EmployeeDashboardListRequestDto();
             req.setJoinDateFrom(LocalDate.of(2026, 1, 10));
             req.setJoinDateTo(LocalDate.of(2026, 1, 1));
-
-            assertThatThrownBy(() -> service.listEmployeeDashboardDetails(req, PageRequest.of(0, 10)))
+            Pageable pageable = PageRequest.of(0, 10);
+            assertThatThrownBy(() -> service.listEmployeeDashboardDetails(req, pageable))
                     .isInstanceOf(ValidationException.class)
                     .hasMessageContaining("joinDateFrom");
         }
@@ -529,7 +557,8 @@ class EmployeeMasterServiceImplTest {
             verify(masterRepository).searchEmployeeDashboardDetails(any(), any(), any(), any(), any(), any(), any(),
                     argThat(p -> {
                         Sort s = p.getSort();
-                        return s.getOrderFor("employeePoid") != null && s.getOrderFor("employeePoid").getDirection() == Sort.Direction.DESC;
+                        Sort.Order o = s.getOrderFor("employeePoid");
+                        return o != null && o.getDirection() == Sort.Direction.DESC;
                     }));
         }
 
@@ -561,6 +590,31 @@ class EmployeeMasterServiceImplTest {
 
             assertThat(service.print(5L)).containsExactly(1, 2);
         }
+
+        @Test
+        void rethrowsJRException() throws Exception {
+            JasperReport report = mock(JasperReport.class);
+            when(printService.buildBaseParams(5L, DOC_ID)).thenReturn(Map.of("x", 1));
+            when(printService.load("EmployeeDetailsReportWithSalary.jrxml")).thenReturn(report);
+            net.sf.jasperreports.engine.JRException jre = new net.sf.jasperreports.engine.JRException("fill error");
+            when(printService.fillReportToPdf(any(), any(), any())).thenThrow(jre);
+
+            assertThatThrownBy(() -> service.print(5L))
+                    .isInstanceOf(net.sf.jasperreports.engine.JRException.class)
+                    .hasMessageContaining("fill error");
+        }
+
+        @Test
+        void wrapsNonJRExceptionIntoJRException() throws Exception {
+            JasperReport report = mock(JasperReport.class);
+            when(printService.buildBaseParams(5L, DOC_ID)).thenReturn(Map.of("x", 1));
+            when(printService.load("EmployeeDetailsReportWithSalary.jrxml")).thenReturn(report);
+            when(printService.fillReportToPdf(any(), any(), any())).thenThrow(new RuntimeException("unexpected"));
+
+            assertThatThrownBy(() -> service.print(5L))
+                    .isInstanceOf(net.sf.jasperreports.engine.JRException.class)
+                    .hasCauseInstanceOf(RuntimeException.class);
+        }
     }
 
     @Nested
@@ -575,7 +629,7 @@ class EmployeeMasterServiceImplTest {
         void throwsWhenWorkbookCannotBeParsed() {
             MockMultipartFile file = new MockMultipartFile("file", "x.xlsx", "application/octet-stream", new byte[]{1, 2, 3});
 
-            try (MockedConstruction<SimpleJdbcCall> ignored = mockExcelConfigProcSuccess("TEMP_T", 2, 1, 4)) {
+            try (MockedConstruction<SimpleJdbcCall> ignored = mockExcelConfigProcSuccess(4)) {
                 assertThatThrownBy(() -> service.uploadExcel(file))
                         .isInstanceOf(RuntimeException.class)
                         .hasMessageContaining("Error processing Excel file");
@@ -591,7 +645,7 @@ class EmployeeMasterServiceImplTest {
             when(jdbcTemplate.update(startsWith("DELETE FROM TEMP_T"))).thenReturn(1);
             when(jdbcTemplate.update(startsWith("INSERT INTO TEMP_T"))).thenReturn(1);
 
-            try (MockedConstruction<SimpleJdbcCall> ignored = mockExcelConfigProcSuccess("TEMP_T", 2, 1, 4)) {
+            try (MockedConstruction<SimpleJdbcCall> ignored = mockExcelConfigProcSuccess(4)) {
                 String msg = service.uploadExcel(file);
                 assertThat(msg).contains("Successfully");
                 verify(jdbcTemplate, atLeastOnce()).update(startsWith("INSERT INTO TEMP_T"));
@@ -607,7 +661,7 @@ class EmployeeMasterServiceImplTest {
             when(jdbcTemplate.update(startsWith("DELETE FROM TEMP_T"))).thenReturn(1);
             when(jdbcTemplate.update(startsWith("INSERT INTO TEMP_T"))).thenReturn(1);
 
-            try (MockedConstruction<SimpleJdbcCall> ignored = mockExcelConfigProcSuccess("TEMP_T", 2, 1, 4)) {
+            try (MockedConstruction<SimpleJdbcCall> ignored = mockExcelConfigProcSuccess(4)) {
                 service.uploadExcel(file);
                 verify(jdbcTemplate).update(contains("O''Reilly"));
             }
@@ -622,7 +676,7 @@ class EmployeeMasterServiceImplTest {
             when(jdbcTemplate.update(startsWith("DELETE FROM TEMP_T"))).thenReturn(1);
             when(jdbcTemplate.update(startsWith("INSERT INTO TEMP_T"))).thenReturn(1);
 
-            try (MockedConstruction<SimpleJdbcCall> ignored = mockExcelConfigProcSuccess("TEMP_T", 2, 1, 7)) {
+            try (MockedConstruction<SimpleJdbcCall> ignored = mockExcelConfigProcSuccess(7)) {
                 String msg = service.uploadExcel(file);
                 assertThat(msg).contains("Successfully");
                 verify(jdbcTemplate, atLeastOnce()).update(startsWith("INSERT INTO TEMP_T"));
@@ -841,7 +895,7 @@ class EmployeeMasterServiceImplTest {
         }
 
         @Test
-        void uploadLmraDataReturnsMappedRowsAndThrowsOnErrorStatus() throws Exception {
+        void uploadLmraDataReturnsMappedRowsAndThrowsOnErrorStatus() {
             // status OK
             try (MockedConstruction<SimpleJdbcCall> ignored = mockConstruction(SimpleJdbcCall.class, (mock, ctx) -> {
                 when(mock.withProcedureName(anyString())).thenReturn(mock);
@@ -861,28 +915,28 @@ class EmployeeMasterServiceImplTest {
             })) {
                 when(jdbcTemplate.query(eq("SELECT * FROM HR_EMP_DEPNDTS_LMRA_DTLS ORDER BY DET_ROW_ID DESC"), any(org.springframework.jdbc.core.RowMapper.class)))
                         .thenAnswer(inv -> {
-                            @SuppressWarnings("unchecked")
-                            org.springframework.jdbc.core.RowMapper<EmployeeDepndtsLmraDtlsResponseDto> rm =
-                                    (org.springframework.jdbc.core.RowMapper<EmployeeDepndtsLmraDtlsResponseDto>) inv.getArgument(1);
+                            org.springframework.jdbc.core.RowMapper<EmployeeDepndtsLmraDtlsResponseDto> rm = inv.getArgument(1);
 
                             ResultSet rs1 = mock(ResultSet.class);
                             when(rs1.getLong("EMPLOYEE_POID")).thenReturn(1L);
                             when(rs1.getLong("DET_ROW_ID")).thenReturn(9L);
                             when(rs1.getString(anyString())).thenAnswer(a -> a.getArgument(0) + "_V");
-                            when(rs1.getObject(eq("PERMIT_MONTHS"))).thenReturn(null);
-                            when(rs1.getObject(eq("WP_EXPIRY_DATE"), eq(LocalDate.class))).thenReturn(LocalDate.of(2026, 1, 1));
-                            when(rs1.getObject(eq("PP_EXPIRY_DATE"), eq(LocalDate.class))).thenReturn(LocalDate.of(2026, 2, 1));
+                            when(rs1.getObject("PERMIT_MONTHS")).thenReturn(null);
+                            when(rs1.getObject("WP_EXPIRY_DATE", LocalDate.class)).thenReturn(LocalDate.of(2026, 1, 1));
+                            when(rs1.getObject("PP_EXPIRY_DATE", LocalDate.class)).thenReturn(LocalDate.of(2026, 2, 1));
 
                             ResultSet rs2 = mock(ResultSet.class);
                             when(rs2.getLong("EMPLOYEE_POID")).thenReturn(2L);
                             when(rs2.getLong("DET_ROW_ID")).thenReturn(10L);
                             when(rs2.getString(anyString())).thenAnswer(a -> a.getArgument(0) + "_V2");
-                            when(rs2.getObject(eq("PERMIT_MONTHS"))).thenReturn(5);
+                            when(rs2.getObject("PERMIT_MONTHS")).thenReturn(5);
                             when(rs2.getInt("PERMIT_MONTHS")).thenReturn(5);
-                            when(rs2.getObject(eq("WP_EXPIRY_DATE"), eq(LocalDate.class))).thenReturn(null);
-                            when(rs2.getObject(eq("PP_EXPIRY_DATE"), eq(LocalDate.class))).thenReturn(null);
+                            when(rs2.getObject("WP_EXPIRY_DATE", LocalDate.class)).thenReturn(null);
+                            when(rs2.getObject("PP_EXPIRY_DATE", LocalDate.class)).thenReturn(null);
 
-                            return List.of(rm.mapRow(rs1, 0), rm.mapRow(rs2, 1));
+                            EmployeeDepndtsLmraDtlsResponseDto row1 = Objects.requireNonNull(rm.mapRow(rs1, 0));
+                            EmployeeDepndtsLmraDtlsResponseDto row2 = Objects.requireNonNull(rm.mapRow(rs2, 1));
+                            return List.of(row1, row2);
                         });
 
                 LmraUploadResponse out = service.uploadLmraData();
@@ -1161,89 +1215,6 @@ class EmployeeMasterServiceImplTest {
     @Nested
     class PrivateBranchesViaReflection {
         @Test
-        void applyLeaveHistoryCoversCreatedUpdatedDeletedAndValidation() throws Exception {
-            Method m = EmployeeMasterServiceImpl.class.getDeclaredMethod("applyLeaveHistoryDetails", Long.class, List.class);
-            m.setAccessible(true);
-
-            when(masterRepository.existsByEmployeePoid(1L)).thenReturn(true);
-            when(leaveHistoryRepository.findByEmployeePoid(1L)).thenReturn(Collections.emptyList());
-
-            // created: uses UserContext fallback for company/group when null
-            EmployeeLeaveHistoryRequestDto created = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isCreated)
-                    .leaveHistPoid(null)
-                    .detRowId(null)
-                    .companyPoid(null)
-                    .groupPoid(null)
-                    .employeeName("E")
-                    .build();
-
-            // updated requires both ids; not found -> ResourceNotFound
-            EmployeeLeaveHistoryRequestDto updatedMissingIds = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isUpdated)
-                    .leaveHistPoid(null)
-                    .detRowId(null)
-                    .build();
-
-            EmployeeLeaveHistoryRequestDto deletedMissingIds = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isDeleted)
-                    .leaveHistPoid(null)
-                    .detRowId(null)
-                    .build();
-
-            when(leaveHistoryRepository.save(any(HrEmployeeLeaveHistory.class))).thenAnswer(inv -> inv.getArgument(0));
-
-            // created + noChange skip + null dto skip
-            EmployeeLeaveHistoryRequestDto noChange = EmployeeLeaveHistoryRequestDto.builder().actionType(ActionType.noChange).build();
-            @SuppressWarnings("unchecked")
-            List<EmployeeLeaveHistoryRequestDto> list = Arrays.asList(created, null, noChange);
-            m.invoke(service, 1L, list);
-            verify(leaveHistoryRepository).save(any(HrEmployeeLeaveHistory.class));
-
-            assertThatThrownBy(() -> m.invoke(service, 1L, List.of(updatedMissingIds)))
-                    .hasRootCauseInstanceOf(IllegalArgumentException.class)
-                    .rootCause()
-                    .hasMessageContaining("leaveHistPoid and detRowId");
-
-            assertThatThrownBy(() -> m.invoke(service, 1L, List.of(deletedMissingIds)))
-                    .hasRootCauseInstanceOf(IllegalArgumentException.class)
-                    .rootCause()
-                    .hasMessageContaining("leaveHistPoid and detRowId");
-
-            // updated branch with id and company/group retention
-            EmployeeLeaveHistoryRequestDto updated = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isUpdated)
-                    .leaveHistPoid(10L)
-                    .detRowId(20L)
-                    .companyPoid(null)
-                    .groupPoid(null)
-                    .employeeName("E2")
-                    .build();
-            HrEmployeeLeaveHistory existing = new HrEmployeeLeaveHistory();
-            existing.setLeaveHistPoid(10L);
-            existing.setDetRowId(20L);
-            existing.setCompanyPoid(777L);
-            existing.setGroupPoid(888L);
-            when(leaveHistoryRepository.findById(any(HrEmployeeLeaveHistoryId.class))).thenReturn(Optional.of(existing));
-            m.invoke(service, 1L, List.of(updated));
-            verify(leaveHistoryRepository, atLeast(2)).save(any(HrEmployeeLeaveHistory.class));
-
-            // deleted branch
-            EmployeeLeaveHistoryRequestDto deleted = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isDeleted)
-                    .leaveHistPoid(10L)
-                    .detRowId(20L)
-                    .build();
-            m.invoke(service, 1L, List.of(deleted));
-            verify(leaveHistoryRepository).deleteById(any(HrEmployeeLeaveHistoryId.class));
-
-            // employee missing -> ResourceNotFound
-            when(masterRepository.existsByEmployeePoid(2L)).thenReturn(false);
-            assertThatThrownBy(() -> m.invoke(service, 2L, List.of(created)))
-                    .hasRootCauseInstanceOf(ResourceNotFoundException.class);
-        }
-
-        @Test
         void applyChildTablesSkipNullAndNoChangeDtos() throws Exception {
             long employeePoid = 123L;
 
@@ -1270,166 +1241,6 @@ class EmployeeMasterServiceImplTest {
             verify(lmraRepository, never()).save(any());
             verify(experienceRepository, never()).save(any());
             verify(documentRepository, never()).save(any());
-        }
-
-        @Test
-        void applyLeaveHistoryUpdateThrowsNotFound() throws Exception {
-            Method m = EmployeeMasterServiceImpl.class.getDeclaredMethod("applyLeaveHistoryDetails", Long.class, List.class);
-            m.setAccessible(true);
-
-            when(masterRepository.existsByEmployeePoid(1L)).thenReturn(true);
-            when(leaveHistoryRepository.findByEmployeePoid(1L)).thenReturn(Collections.emptyList());
-            when(leaveHistoryRepository.findById(any(HrEmployeeLeaveHistoryId.class))).thenReturn(Optional.empty());
-
-            EmployeeLeaveHistoryRequestDto updated = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isUpdated)
-                    .leaveHistPoid(10L)
-                    .detRowId(20L)
-                    .build();
-
-            assertThatThrownBy(() -> m.invoke(service, 1L, List.of(updated)))
-                    .hasRootCauseInstanceOf(ResourceNotFoundException.class)
-                    .rootCause()
-                    .hasMessageContaining("Leave History");
-        }
-
-        @Test
-        void applyLeaveHistoryEarlyReturnForNullOrEmptyList() throws Exception {
-            Method m = EmployeeMasterServiceImpl.class.getDeclaredMethod("applyLeaveHistoryDetails", Long.class, List.class);
-            m.setAccessible(true);
-            m.invoke(service, 1L, null);
-            m.invoke(service, 1L, Collections.emptyList());
-            verify(leaveHistoryRepository, never()).save(any());
-        }
-
-        @Test
-        void applyLeaveHistorySkipsRowWhenActionTypeNull() throws Exception {
-            Method m = EmployeeMasterServiceImpl.class.getDeclaredMethod("applyLeaveHistoryDetails", Long.class, List.class);
-            m.setAccessible(true);
-            when(masterRepository.existsByEmployeePoid(1L)).thenReturn(true);
-            when(leaveHistoryRepository.findByEmployeePoid(1L)).thenReturn(Collections.emptyList());
-            EmployeeLeaveHistoryRequestDto dto = EmployeeLeaveHistoryRequestDto.builder().actionType(null).build();
-            m.invoke(service, 1L, List.of(dto));
-            verify(leaveHistoryRepository, never()).save(any());
-        }
-
-        @Test
-        void applyLeaveHistorySkipsEmployeeLookupWhenEmployeePoidNull() throws Exception {
-            Method m = EmployeeMasterServiceImpl.class.getDeclaredMethod("applyLeaveHistoryDetails", Long.class, List.class);
-            m.setAccessible(true);
-            when(leaveHistoryRepository.findByEmployeePoid(null)).thenReturn(Collections.emptyList());
-            EmployeeLeaveHistoryRequestDto created = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isCreated)
-                    .leaveHistPoid(501L)
-                    .detRowId(601L)
-                    .companyPoid(11L)
-                    .groupPoid(22L)
-                    .employeeName("E")
-                    .build();
-            when(leaveHistoryRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            m.invoke(service, null, List.of(created));
-            verify(masterRepository, never()).existsByEmployeePoid(any());
-            verify(leaveHistoryRepository).save(argThat(ent ->
-                    ent.getLeaveHistPoid() == 501L && ent.getDetRowId() == 601L
-                            && Objects.equals(ent.getCompanyPoid(), 11L) && Objects.equals(ent.getGroupPoid(), 22L)));
-        }
-
-        @Test
-        void applyLeaveHistoryUpdateThrowsWhenOnlyOneCompositeIdPresent() throws Exception {
-            Method m = EmployeeMasterServiceImpl.class.getDeclaredMethod("applyLeaveHistoryDetails", Long.class, List.class);
-            m.setAccessible(true);
-            when(masterRepository.existsByEmployeePoid(1L)).thenReturn(true);
-            when(leaveHistoryRepository.findByEmployeePoid(1L)).thenReturn(Collections.emptyList());
-
-            EmployeeLeaveHistoryRequestDto missDet = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isUpdated)
-                    .leaveHistPoid(10L)
-                    .detRowId(null)
-                    .build();
-            assertThatThrownBy(() -> m.invoke(service, 1L, List.of(missDet)))
-                    .hasRootCauseInstanceOf(IllegalArgumentException.class);
-
-            EmployeeLeaveHistoryRequestDto missHist = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isUpdated)
-                    .leaveHistPoid(null)
-                    .detRowId(20L)
-                    .build();
-            assertThatThrownBy(() -> m.invoke(service, 1L, List.of(missHist)))
-                    .hasRootCauseInstanceOf(IllegalArgumentException.class);
-
-            EmployeeLeaveHistoryRequestDto delMissHist = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isDeleted)
-                    .leaveHistPoid(null)
-                    .detRowId(20L)
-                    .build();
-            assertThatThrownBy(() -> m.invoke(service, 1L, List.of(delMissHist)))
-                    .hasRootCauseInstanceOf(IllegalArgumentException.class);
-
-            EmployeeLeaveHistoryRequestDto delMissDet = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isDeleted)
-                    .leaveHistPoid(10L)
-                    .detRowId(null)
-                    .build();
-            assertThatThrownBy(() -> m.invoke(service, 1L, List.of(delMissDet)))
-                    .hasRootCauseInstanceOf(IllegalArgumentException.class);
-        }
-
-        @Test
-        void applyLeaveHistoryUpdateKeepsExistingCompanyWhenDtoOmitsThem() throws Exception {
-            Method m = EmployeeMasterServiceImpl.class.getDeclaredMethod("applyLeaveHistoryDetails", Long.class, List.class);
-            m.setAccessible(true);
-            when(masterRepository.existsByEmployeePoid(7L)).thenReturn(true);
-            when(leaveHistoryRepository.findByEmployeePoid(7L)).thenReturn(Collections.emptyList());
-
-            HrEmployeeLeaveHistory existing = new HrEmployeeLeaveHistory();
-            existing.setLeaveHistPoid(30L);
-            existing.setDetRowId(40L);
-            existing.setCompanyPoid(910L);
-            existing.setGroupPoid(920L);
-            when(leaveHistoryRepository.findById(any(HrEmployeeLeaveHistoryId.class))).thenReturn(Optional.of(existing));
-
-            EmployeeLeaveHistoryRequestDto updated = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isUpdated)
-                    .leaveHistPoid(30L)
-                    .detRowId(40L)
-                    .companyPoid(null)
-                    .groupPoid(null)
-                    .employeeName("keepCg")
-                    .build();
-
-            when(leaveHistoryRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            m.invoke(service, 7L, List.of(updated));
-            verify(leaveHistoryRepository).save(argThat(ent ->
-                    Objects.equals(ent.getCompanyPoid(), 910L) && Objects.equals(ent.getGroupPoid(), 920L)));
-        }
-
-        @Test
-        void applyLeaveHistoryUpdateUsesExplicitCompanyAndGroupFromDto() throws Exception {
-            Method m = EmployeeMasterServiceImpl.class.getDeclaredMethod("applyLeaveHistoryDetails", Long.class, List.class);
-            m.setAccessible(true);
-            when(masterRepository.existsByEmployeePoid(3L)).thenReturn(true);
-            when(leaveHistoryRepository.findByEmployeePoid(3L)).thenReturn(Collections.emptyList());
-
-            HrEmployeeLeaveHistory existing = new HrEmployeeLeaveHistory();
-            existing.setLeaveHistPoid(10L);
-            existing.setDetRowId(20L);
-            existing.setCompanyPoid(700L);
-            existing.setGroupPoid(800L);
-            when(leaveHistoryRepository.findById(any(HrEmployeeLeaveHistoryId.class))).thenReturn(Optional.of(existing));
-
-            EmployeeLeaveHistoryRequestDto updated = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isUpdated)
-                    .leaveHistPoid(10L)
-                    .detRowId(20L)
-                    .companyPoid(701L)
-                    .groupPoid(801L)
-                    .employeeName("E3")
-                    .build();
-
-            when(leaveHistoryRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-            m.invoke(service, 3L, List.of(updated));
-            verify(leaveHistoryRepository).save(argThat(ent ->
-                    Objects.equals(ent.getCompanyPoid(), 701L) && Objects.equals(ent.getGroupPoid(), 801L)));
         }
 
         @Test
@@ -1518,45 +1329,6 @@ class EmployeeMasterServiceImplTest {
             verify(documentRepository, never()).save(any());
         }
 
-        @Test
-        void applyLeaveHistoryDeleteOnly() throws Exception {
-            Method m = EmployeeMasterServiceImpl.class.getDeclaredMethod("applyLeaveHistoryDetails", Long.class, List.class);
-            m.setAccessible(true);
-            when(masterRepository.existsByEmployeePoid(6L)).thenReturn(true);
-            when(leaveHistoryRepository.findByEmployeePoid(6L)).thenReturn(Collections.emptyList());
-            EmployeeLeaveHistoryRequestDto del = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isDeleted)
-                    .leaveHistPoid(88L)
-                    .detRowId(99L)
-                    .build();
-            m.invoke(service, 6L, List.of(del));
-            verify(leaveHistoryRepository).deleteById(argThat(id ->
-                    id.getLeaveHistPoid() == 88L && id.getDetRowId() == 99L));
-        }
-
-        @Test
-        void applyLeaveHistoryCreateCoversIdAssignmentCombinations() throws Exception {
-            Method m = EmployeeMasterServiceImpl.class.getDeclaredMethod("applyLeaveHistoryDetails", Long.class, List.class);
-            m.setAccessible(true);
-            when(masterRepository.existsByEmployeePoid(4L)).thenReturn(true);
-            HrEmployeeLeaveHistory prior = new HrEmployeeLeaveHistory();
-            prior.setLeaveHistPoid(50L);
-            prior.setDetRowId(60L);
-            when(leaveHistoryRepository.findByEmployeePoid(4L)).thenReturn(List.of(prior));
-            when(leaveHistoryRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-            EmployeeLeaveHistoryRequestDto a = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isCreated).leaveHistPoid(100L).detRowId(null).companyPoid(1L).groupPoid(2L).employeeName("a").build();
-            EmployeeLeaveHistoryRequestDto b = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isCreated).leaveHistPoid(null).detRowId(200L).companyPoid(1L).groupPoid(2L).employeeName("b").build();
-            EmployeeLeaveHistoryRequestDto c = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isCreated).leaveHistPoid(300L).detRowId(400L).companyPoid(1L).groupPoid(2L).employeeName("c").build();
-            EmployeeLeaveHistoryRequestDto d = EmployeeLeaveHistoryRequestDto.builder()
-                    .actionType(ActionType.isCreated).leaveHistPoid(5000L).detRowId(1L).companyPoid(1L).groupPoid(2L).employeeName("d").build();
-
-            m.invoke(service, 4L, new ArrayList<>(List.of(a, b, c, d)));
-            verify(leaveHistoryRepository, times(4)).save(any());
-        }
     }
 
     @Nested
@@ -1569,7 +1341,7 @@ class EmployeeMasterServiceImplTest {
             EmployeeMasterRequestDto r = baseValidRequest("REMOTE", 1L);
             r.setHod(10L);
             when(masterRepository.existsByEmployeePoid(10L)).thenReturn(true);
-            val.invoke(service, r, true, null);
+            assertThatCode(() -> val.invoke(service, r, true, null)).doesNotThrowAnyException();
         }
 
         @Test
@@ -2070,7 +1842,7 @@ class EmployeeMasterServiceImplTest {
             when(globalFixedVariablesRepository.existsByVariableName("DISC")).thenReturn(false);
             assertThatThrownBy(() -> service.createEmployee(req))
                     .isInstanceOf(ResourceNotFoundException.class)
-                    .hasMessageContaining("Fixed Variable");
+                    .hasMessageContaining("Discontinued");
 
             when(globalFixedVariablesRepository.existsByVariableName("DISC")).thenReturn(true);
             when(locationMasterRepository.existsByLocationPoid(14L)).thenReturn(false);
@@ -2082,7 +1854,7 @@ class EmployeeMasterServiceImplTest {
             when(crMasterRepository.existsByCrPoid(15L)).thenReturn(false);
             assertThatThrownBy(() -> service.createEmployee(req))
                     .isInstanceOf(ResourceNotFoundException.class)
-                    .hasMessageContaining("Admin Cr Master");
+                    .hasMessageContaining("Emp Reg Co");
         }
 
         @Test
@@ -2197,7 +1969,7 @@ class EmployeeMasterServiceImplTest {
             when(masterRepository.save(entity)).thenReturn(entity);
             when(employeeMasterMapper.toResponseDto(entity)).thenReturn(EmployeeMasterResponseDto.builder().employeePoid(99L).build());
 
-            service.updateEmployee(99L, baseValidRequest("REMOTE", 1L));
+            assertThat(service.updateEmployee(99L, baseValidRequest("REMOTE", 1L)).getEmployeePoid()).isEqualTo(99L);
         }
 
         @Test
@@ -2217,7 +1989,8 @@ class EmployeeMasterServiceImplTest {
                 when(mock.declareParameters(any(SqlParameter[].class))).thenReturn(mock);
                 when(mock.execute(any(SqlParameterSource.class))).thenReturn(Map.of("P_RESULT", "ERROR:bad"));
             })) {
-                assertThatThrownBy(() -> service.updateEmployee(100L, baseValidRequest("REMOTE", 1L)))
+                EmployeeMasterRequestDto req1 = baseValidRequest("REMOTE", 1L);
+                assertThatThrownBy(() -> service.updateEmployee(100L, req1))
                         .isInstanceOf(ValidationException.class)
                         .hasMessageContaining("ERROR");
             }
@@ -2229,7 +2002,8 @@ class EmployeeMasterServiceImplTest {
                 when(mock.declareParameters(any(SqlParameter[].class))).thenReturn(mock);
                 when(mock.execute(any(SqlParameterSource.class))).thenThrow(dae);
             })) {
-                assertThatThrownBy(() -> service.updateEmployee(100L, baseValidRequest("REMOTE", 1L)))
+                EmployeeMasterRequestDto req2 = baseValidRequest("REMOTE", 1L);
+                assertThatThrownBy(() -> service.updateEmployee(100L, req2))
                         .isInstanceOf(ValidationException.class)
                         .hasMessageContaining("PROC_GL_MASTER_CREATION failed");
             }
@@ -2251,7 +2025,7 @@ class EmployeeMasterServiceImplTest {
                 when(mock.declareParameters(any(SqlParameter[].class))).thenReturn(mock);
                 when(mock.execute(any(SqlParameterSource.class))).thenReturn(Map.of("P_RESULT", "SUCCESS"));
             })) {
-                service.updateEmployee(101L, baseValidRequest("REMOTE", 1L));
+                assertThat(service.updateEmployee(101L, baseValidRequest("REMOTE", 1L)).getEmployeePoid()).isEqualTo(101L);
             }
 
             try (MockedConstruction<SimpleJdbcCall> ignored = mockConstruction(SimpleJdbcCall.class, (mock, ctx) -> {
@@ -2259,7 +2033,7 @@ class EmployeeMasterServiceImplTest {
                 when(mock.declareParameters(any(SqlParameter[].class))).thenReturn(mock);
                 when(mock.execute(any(SqlParameterSource.class))).thenReturn(new HashMap<>());
             })) {
-                service.updateEmployee(101L, baseValidRequest("REMOTE", 1L));
+                assertThat(service.updateEmployee(101L, baseValidRequest("REMOTE", 1L)).getEmployeePoid()).isEqualTo(101L);
             }
         }
 
@@ -2275,7 +2049,8 @@ class EmployeeMasterServiceImplTest {
             when(masterRepository.findByEmployeePoid(202L)).thenReturn(Optional.of(entity), Optional.empty());
             when(masterRepository.save(entity)).thenReturn(entity);
 
-            assertThatThrownBy(() -> service.updateEmployee(202L, baseValidRequest("REMOTE", 1L)))
+            EmployeeMasterRequestDto req = baseValidRequest("REMOTE", 1L);
+            assertThatThrownBy(() -> service.updateEmployee(202L, req))
                     .isInstanceOf(ResourceNotFoundException.class);
         }
     }
@@ -2318,7 +2093,7 @@ class EmployeeMasterServiceImplTest {
                 setEmpGlPoid(1L);
             }}));
             when(employeeMasterMapper.toResponseDto(any())).thenReturn(EmployeeMasterResponseDto.builder().employeePoid(803L).build());
-            service.createEmployee(req);
+            assertThat(service.createEmployee(req).getEmployeePoid()).isEqualTo(803L);
         }
 
         @Test
@@ -2331,7 +2106,7 @@ class EmployeeMasterServiceImplTest {
             when(employeeMasterMapper.toResponseDto(existing)).thenReturn(EmployeeMasterResponseDto.builder().employeePoid(12L).build());
             EmployeeMasterRequestDto req = baseValidRequest("REMOTE", 1L);
             req.setHod(null);
-            service.updateEmployee(12L, req);
+            assertThat(service.updateEmployee(12L, req).getEmployeePoid()).isEqualTo(12L);
         }
 
         @Test
@@ -2359,18 +2134,7 @@ class EmployeeMasterServiceImplTest {
             when(employeeMasterMapper.toResponseDto(existing)).thenReturn(EmployeeMasterResponseDto.builder().employeePoid(500L).build());
             EmployeeMasterRequestDto req = baseValidRequest("REMOTE", 1L);
             req.setEmployeeCode(null);
-            service.updateEmployee(500L, req);
-        }
-
-        @Test
-        void permanentExpatRequiresAllTicketFieldsWhenOnlyPartiallyPresent() {
-            EmployeeMasterRequestDto req = baseValidRequest("PERMANENT", 2L);
-            req.setTicketPeriod(null);
-            req.setNoOfTickets(null);
-            when(parameterServiceClient.findParameterValueByName("BAHRAIN_Nationality_Poid")).thenReturn(Optional.of("1"));
-            assertThatThrownBy(() -> service.createEmployee(req))
-                    .isInstanceOf(ValidationException.class)
-                    .hasMessageContaining("AirSector");
+            assertThat(service.updateEmployee(500L, req).getEmployeePoid()).isEqualTo(500L);
         }
 
         @Test
@@ -2404,28 +2168,6 @@ class EmployeeMasterServiceImplTest {
         }
 
         @Test
-        void permanentExpatPartialTicketsWithBlankPeriodFailsAllTicketsCheck() {
-            EmployeeMasterRequestDto req = baseValidRequest("PERMANENT", 2L);
-            req.setTicketPeriod("   ");
-            req.setNoOfTickets("1");
-            when(parameterServiceClient.findParameterValueByName("BAHRAIN_Nationality_Poid")).thenReturn(Optional.of("1"));
-            assertThatThrownBy(() -> service.createEmployee(req))
-                    .isInstanceOf(ValidationException.class)
-                    .hasMessageContaining("AirSector");
-        }
-
-        @Test
-        void permanentExpatMissingNoOfTicketsFailsAllTicketsCheck() {
-            EmployeeMasterRequestDto req = baseValidRequest("PERMANENT", 2L);
-            req.setTicketPeriod("1Y");
-            req.setNoOfTickets(null);
-            when(parameterServiceClient.findParameterValueByName("BAHRAIN_Nationality_Poid")).thenReturn(Optional.of("1"));
-            assertThatThrownBy(() -> service.createEmployee(req))
-                    .isInstanceOf(ValidationException.class)
-                    .hasMessageContaining("AirSector");
-        }
-
-        @Test
         void discontinuedYWithDateDoesNotThrowDateValidation() {
             EmployeeMasterRequestDto req = baseValidRequest("FLEXI", 2L);
             req.setDiscontinued("Y");
@@ -2444,7 +2186,7 @@ class EmployeeMasterServiceImplTest {
                 setEmpGlPoid(1L);
             }}));
             when(employeeMasterMapper.toResponseDto(any())).thenReturn(EmployeeMasterResponseDto.builder().employeePoid(880L).build());
-            service.createEmployee(req);
+            assertThat(service.createEmployee(req).getEmployeePoid()).isEqualTo(880L);
         }
 
         @Test
@@ -2466,7 +2208,7 @@ class EmployeeMasterServiceImplTest {
                 setEmpGlPoid(1L);
             }}));
             when(employeeMasterMapper.toResponseDto(any())).thenReturn(EmployeeMasterResponseDto.builder().employeePoid(804L).build());
-            service.createEmployee(req);
+            assertThat(service.createEmployee(req).getEmployeePoid()).isEqualTo(804L);
         }
 
         @Test
@@ -2488,7 +2230,7 @@ class EmployeeMasterServiceImplTest {
                 setEmpGlPoid(1L);
             }}));
             when(employeeMasterMapper.toResponseDto(any())).thenReturn(EmployeeMasterResponseDto.builder().employeePoid(802L).build());
-            service.createEmployee(req);
+            assertThat(service.createEmployee(req).getEmployeePoid()).isEqualTo(802L);
         }
 
         @Test
@@ -2549,7 +2291,7 @@ class EmployeeMasterServiceImplTest {
                 setEmpGlPoid(1L);
             }}));
             when(employeeMasterMapper.toResponseDto(any())).thenReturn(EmployeeMasterResponseDto.builder().employeePoid(805L).build());
-            service.createEmployee(req);
+            assertThat(service.createEmployee(req).getEmployeePoid()).isEqualTo(805L);
         }
 
         @Test
@@ -2627,7 +2369,7 @@ class EmployeeMasterServiceImplTest {
                 setEmpGlPoid(1L);
             }}));
             when(employeeMasterMapper.toResponseDto(any())).thenReturn(EmployeeMasterResponseDto.builder().employeePoid(806L).build());
-            service.createEmployee(createReq);
+            assertThat(service.createEmployee(createReq).getEmployeePoid()).isEqualTo(806L);
 
             HrEmployeeMaster existing = new HrEmployeeMaster();
             existing.setEmployeePoid(807L);
@@ -2638,7 +2380,7 @@ class EmployeeMasterServiceImplTest {
             EmployeeMasterRequestDto updateReq = baseValidRequest("REMOTE", 1L);
             updateReq.setMobile("556");
             when(masterRepository.existsByMobileAndEmployeePoidNot("556", 807L)).thenReturn(false);
-            service.updateEmployee(807L, updateReq);
+            assertThat(service.updateEmployee(807L, updateReq).getEmployeePoid()).isEqualTo(807L);
         }
 
         @Test
@@ -2668,7 +2410,7 @@ class EmployeeMasterServiceImplTest {
             req.setIban("IB2");
             when(masterRepository.existsByCprNoAndEmployeePoidNot("CPR2", 48L)).thenReturn(false);
             when(masterRepository.existsByIbanAndEmployeePoidNot("IB2", 48L)).thenReturn(false);
-            service.updateEmployee(48L, req);
+            assertThat(service.updateEmployee(48L, req).getEmployeePoid()).isEqualTo(48L);
         }
 
         @Test
@@ -2719,6 +2461,25 @@ class EmployeeMasterServiceImplTest {
             assertThatThrownBy(() -> service.updateEmployee(46L, req))
                     .isInstanceOf(ResourceAlreadyExistsException.class)
                     .hasMessageContaining("IBAN");
+        }
+    }
+
+    @Nested
+    class PermanentExpatTicketValidation {
+        @ParameterizedTest
+        @CsvSource(nullValues = "NULL", value = {
+                "NULL, NULL",
+                "'   ', 1",
+                "1Y,   NULL"
+        })
+        void permanentExpatRequiresAllTicketFields(String ticketPeriod, String noOfTickets) {
+            EmployeeMasterRequestDto req = baseValidRequest("PERMANENT", 2L);
+            req.setTicketPeriod(ticketPeriod);
+            req.setNoOfTickets(noOfTickets);
+            when(parameterServiceClient.findParameterValueByName("BAHRAIN_Nationality_Poid")).thenReturn(Optional.of("1"));
+            assertThatThrownBy(() -> service.createEmployee(req))
+                    .isInstanceOf(ValidationException.class)
+                    .hasMessageContaining("AirSector");
         }
     }
 
@@ -2796,13 +2557,22 @@ class EmployeeMasterServiceImplTest {
             when(experienceRepository.existsByEmployerIgnoreCaseAndEmployeePoidNot(anyString(), anyLong())).thenReturn(false);
 
             // findById for updates/deletes
-            HrEmployeeDependentsDtl dep = new HrEmployeeDependentsDtl(); dep.setEmployeePoid(70L); dep.setDetRowId(5L); dep.setName("OLD");
+            HrEmployeeDependentsDtl dep = new HrEmployeeDependentsDtl();
+            dep.setEmployeePoid(70L);
+            dep.setDetRowId(5L);
+            dep.setName("OLD");
             when(dependentRepository.findById(any(HrEmployeeDependentsDtlId.class))).thenReturn(Optional.of(dep));
-            HrEmpDepndtsLmraDtls lm = new HrEmpDepndtsLmraDtls(); lm.setEmployeePoid(70L); lm.setDetRowId(6L);
+            HrEmpDepndtsLmraDtls lm = new HrEmpDepndtsLmraDtls();
+            lm.setEmployeePoid(70L);
+            lm.setDetRowId(6L);
             when(lmraRepository.findById(any(HrEmpDepndtsLmraDtlsId.class))).thenReturn(Optional.of(lm));
-            HrEmployeeExperienceDtl ex = new HrEmployeeExperienceDtl(); ex.setEmployeePoid(70L); ex.setDetRowId(7L);
+            HrEmployeeExperienceDtl ex = new HrEmployeeExperienceDtl();
+            ex.setEmployeePoid(70L);
+            ex.setDetRowId(7L);
             when(experienceRepository.findById(any(HrEmployeeExperienceDtlId.class))).thenReturn(Optional.of(ex));
-            HrEmployeeDocumentDtl doc = new HrEmployeeDocumentDtl(); doc.setEmployeePoid(70L); doc.setDetRowId(8L);
+            HrEmployeeDocumentDtl doc = new HrEmployeeDocumentDtl();
+            doc.setEmployeePoid(70L);
+            doc.setDetRowId(8L);
             when(documentRepository.findById(any(HrEmployeeDocumentDtlId.class))).thenReturn(Optional.of(doc));
 
             when(dependentRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -2970,15 +2740,15 @@ class EmployeeMasterServiceImplTest {
                 .build();
     }
 
-    private static MockedConstruction<SimpleJdbcCall> mockExcelConfigProcSuccess(String tempTable, int startRow, int startCol, int endCol) {
+    private static MockedConstruction<SimpleJdbcCall> mockExcelConfigProcSuccess(int endCol) {
         return mockConstruction(SimpleJdbcCall.class, (mock, ctx) -> {
             when(mock.withProcedureName(anyString())).thenReturn(mock);
             when(mock.declareParameters(any(SqlParameter[].class))).thenReturn(mock);
             Map<String, Object> row = new HashMap<>();
-            row.put("START_ROW_NUMBER", startRow);
-            row.put("START_COL_NUMBER", startCol);
+            row.put("START_ROW_NUMBER", 2);
+            row.put("START_COL_NUMBER", 1);
             row.put("END_COL_NUMBER", endCol);
-            row.put("TEMP_TABLE_NAME", tempTable);
+            row.put("TEMP_TABLE_NAME", "TEMP_T");
             List<Map<String, Object>> outdata = new ArrayList<>();
             outdata.add(row);
             when(mock.execute(any(SqlParameterSource.class))).thenReturn(Map.of("P_STATUS", "SUCCESS", "OUTDATA", outdata));

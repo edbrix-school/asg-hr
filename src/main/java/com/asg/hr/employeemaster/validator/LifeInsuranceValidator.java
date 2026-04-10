@@ -15,27 +15,25 @@ public class LifeInsuranceValidator implements ConstraintValidator<ValidLifeInsu
             return true;
         }
 
-        if ("Y".equalsIgnoreCase(dto.getLifeInsurance())) {
+        if ("Y".equalsIgnoreCase(dto.getLifeInsurance()) && (StringUtils.isBlank(dto.getInsuranceNominee()) ||
+                StringUtils.isBlank(dto.getInsuranceNomineeRelation()))) {
 
-            if (StringUtils.isBlank(dto.getInsuranceNominee()) ||
-                    StringUtils.isBlank(dto.getInsuranceNomineeRelation())) {
+            context.disableDefaultConstraintViolation();
 
-                context.disableDefaultConstraintViolation();
-
-                if (StringUtils.isBlank(dto.getInsuranceNominee())) {
-                    context.buildConstraintViolationWithTemplate("Insurance Nominee is required when Life Insurance is Y")
-                            .addPropertyNode("insuranceNominee")
-                            .addConstraintViolation();
-                }
-
-                if (StringUtils.isBlank(dto.getInsuranceNomineeRelation())) {
-                    context.buildConstraintViolationWithTemplate("Insurance Nominee Relation is required when Life Insurance is Y")
-                            .addPropertyNode("insuranceNomineeRelation")
-                            .addConstraintViolation();
-                }
-                return false;
+            if (StringUtils.isBlank(dto.getInsuranceNominee())) {
+                context.buildConstraintViolationWithTemplate("Insurance Nominee is required when Life Insurance is Y")
+                        .addPropertyNode("insuranceNominee")
+                        .addConstraintViolation();
             }
+
+            if (StringUtils.isBlank(dto.getInsuranceNomineeRelation())) {
+                context.buildConstraintViolationWithTemplate("Insurance Nominee Relation is required when Life Insurance is Y")
+                        .addPropertyNode("insuranceNomineeRelation")
+                        .addConstraintViolation();
+            }
+            return false;
         }
+
         return true;
     }
 }
