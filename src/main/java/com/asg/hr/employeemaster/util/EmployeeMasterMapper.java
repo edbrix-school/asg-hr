@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -156,11 +155,11 @@ public class EmployeeMasterMapper {
                 .lastModifiedBy(entity.getLastModifiedBy())
                 .lastModifiedDate(entity.getLastModifiedDate())
 
-                .dependentsDetails(dependents.stream().map(this::toDependentsResponseDto).collect(Collectors.toList()))
-                .lmraDetails(lmraDetails.stream().map(this::toLmraResponseDto).collect(Collectors.toList()))
-                .experienceDetails(experience.stream().map(this::toExperienceResponseDto).collect(Collectors.toList()))
-                .documentDetails(documents.stream().map(this::toDocumentResponseDto).collect(Collectors.toList()))
-                .leaveHistoryDetails(leaveHistory.stream().map(this::toLeaveHistoryResponseDto).collect(Collectors.toList()))
+                .dependentsDetails(dependents.stream().map(this::toDependentsResponseDto).toList())
+                .lmraDetails(lmraDetails.stream().map(this::toLmraResponseDto).toList())
+                .experienceDetails(experience.stream().map(this::toExperienceResponseDto).toList())
+                .documentDetails(documents.stream().map(this::toDocumentResponseDto).toList())
+                .leaveHistoryDetails(leaveHistory.stream().map(this::toLeaveHistoryResponseDto).toList())
                 .build();
     }
 

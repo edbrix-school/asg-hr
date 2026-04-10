@@ -24,6 +24,7 @@ import com.asg.hr.designation.repository.HrDesignationMasterRepository;
 import com.asg.hr.employeemaster.dto.*;
 import com.asg.hr.employeemaster.entity.*;
 import com.asg.hr.employeemaster.util.EmployeeMasterMapper;
+import com.asg.hr.exceptions.CustomException;
 import net.sf.jasperreports.engine.JasperReport;
 import oracle.jdbc.internal.OracleTypes;
 import org.apache.poi.ss.usermodel.*;
@@ -55,7 +56,6 @@ import java.sql.Types;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 @Service
@@ -67,9 +67,21 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     private static final String HR_EMPLOYEE_MASTER_POID_FIELD = "EMPLOYEE_POID";
     private static final String DET_ROW_ID = "DET_ROW_ID";
     private static final String EMPLOYEE = "Employee";
-    private static final Sort DEFAULT_EMPLOYEE_DASHBOARD_SORT = Sort.by(Sort.Order.desc("employeePoid"));
+    private static final String EMPLOYEE_POID = "employeePoid";
+    private static final Sort DEFAULT_EMPLOYEE_DASHBOARD_SORT = Sort.by(Sort.Order.desc(EMPLOYEE_POID));
     private static final String DOC_ID_EMPLOYEE_MASTER = "800-001";
     private static final String GL_TYPE_EMPLOYEE = "EMPLOYEE";
+    private static final String PERMANENT = "PERMANENT";
+    private static final String P_LOGIN_GROUP_POID = "P_LOGIN_GROUP_POID";
+    private static final String P_LOGIN_COMPANY_POID = "P_LOGIN_COMPANY_POID";
+    private static final String P_EMPLOYEE_POID = "P_EMPLOYEE_POID";
+    private static final String P_RESULT = "P_RESULT";
+    private static final String ERROR = "ERROR";
+    private static final String UPDATE_LOG_STRING = "KeyId = EMPLOYEE_POID %s: DET_ROW_ID %s";
+    private static final String P_REJOIN_DATE = "P_REJOIN_DATE";
+    private static final String P_REJOIN_LRQ_REF = "P_REJOIN_LRQ_REF";
+    private static final String P_LOGIN_USER = "P_LOGIN_USER";
+    private static final String DEPENDENTS = "Dependents";
 
     private final HrEmployeeMasterRepository masterRepository;
     private final HrEmployeeDependentRepository dependentRepository;
@@ -210,58 +222,74 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     }
 
     private void validateEmployeeMasterRequest(EmployeeMasterRequestDto requestDto, boolean isUpdate, Long currentEmployeePoid) {
+        validateHodReference(requestDto, isUpdate, currentEmployeePoid);
+        validatePermanentServiceType(requestDto);
+        validateTicketFields(requestDto);
+        validateDiscontinued(requestDto);
+        validateManualEmployeeCode(requestDto, isUpdate);
+        validateForeignKeyReferences(requestDto);
+        validateUniqueness(requestDto, isUpdate, currentEmployeePoid);
+        validateGlReferences(requestDto);
+    }
+
+    private void validateHodReference(EmployeeMasterRequestDto requestDto, boolean isUpdate, Long currentEmployeePoid) {
         if (isUpdate && requestDto.getHod() != null && currentEmployeePoid != null && currentEmployeePoid.equals(requestDto.getHod())) {
             throw new ValidationException("Should not select current employee as direct supervisor");
         }
         if (requestDto.getHod() != null && !masterRepository.existsByEmployeePoid(requestDto.getHod())) {
-            throw new ResourceNotFoundException("Employee", "Direct Supervisor (HOD)", requestDto.getHod());
+            throw new ResourceNotFoundException(EMPLOYEE, "Direct Supervisor (HOD)", requestDto.getHod());
         }
+    }
 
+    private void validatePermanentServiceType(EmployeeMasterRequestDto requestDto) {
+        if (!PERMANENT.equalsIgnoreCase(requestDto.getServiceType())) return;
+        if (StringUtils.isBlank(requestDto.getCprNo())) {
+            throw new ValidationException("CPR Number Is Required");
+        }
+        if (requestDto.getCrPoid() == null) {
+            throw new ValidationException("Emp Reg Co Is Required");
+        }
+    }
+
+    private void validateTicketFields(EmployeeMasterRequestDto requestDto) {
         String serviceType = requestDto.getServiceType();
-        if ("PERMANENT".equalsIgnoreCase(serviceType)) {
-            if (StringUtils.isBlank(requestDto.getCprNo())) {
-                throw new ValidationException("CPR Number Is Required");
-            }
-            if (requestDto.getCrPoid() == null) {
-                throw new ValidationException("Emp Reg Co Is Required");
-            }
-        }
-
-        // Legacy: AirSector/Ticket fields required only for Permanent + Expat employees.
         String bahNationalityPoid = getGlobalParameterValue("BAHRAIN_Nationality_Poid", "1");
-        boolean isBahraini = requestDto.getNationalityPoid() != null && bahNationalityPoid != null && String.valueOf(requestDto.getNationalityPoid()).equalsIgnoreCase(bahNationalityPoid.trim());
-
+        boolean isBahraini = requestDto.getNationalityPoid() != null && bahNationalityPoid != null
+                && String.valueOf(requestDto.getNationalityPoid()).equalsIgnoreCase(bahNationalityPoid.trim());
         boolean anyTicketFieldPresent = requestDto.getAirSectorPoid() != null || requestDto.getTicketPeriod() != null || requestDto.getNoOfTickets() != null;
-
-        boolean allTicketFieldsPresent = requestDto.getAirSectorPoid() != null && StringUtils.isNotBlank(requestDto.getTicketPeriod()) && StringUtils.isNotBlank(requestDto.getNoOfTickets());
-
-        if ("PERMANENT".equalsIgnoreCase(serviceType) && !isBahraini && !allTicketFieldsPresent) {
+        boolean allTicketFieldsPresent = requestDto.getAirSectorPoid() != null
+                && StringUtils.isNotBlank(requestDto.getTicketPeriod()) && StringUtils.isNotBlank(requestDto.getNoOfTickets());
+        if (PERMANENT.equalsIgnoreCase(serviceType) && !isBahraini && !allTicketFieldsPresent) {
             throw new ValidationException("AirSector, TicketPeriod, Number of tickets are required field for all permanent expat employees...");
         }
-        if ((!"PERMANENT".equalsIgnoreCase(serviceType) || isBahraini) && anyTicketFieldPresent) {
+        if ((!PERMANENT.equalsIgnoreCase(serviceType) || isBahraini) && anyTicketFieldPresent) {
             throw new ValidationException("AirSector, TicketPeriod, Number of tickets are NOT required for bahranini or remote or flexi visa employees...");
         }
+    }
 
-        // Legacy: Discontinued requires discontinued date.
+    private void validateDiscontinued(EmployeeMasterRequestDto requestDto) {
         if (requestDto.getDiscontinued() != null && requestDto.getDiscontinued().toUpperCase().contains("Y") && requestDto.getDiscontinuedDate() == null) {
             throw new ValidationException("Discontinued date is empty..please check");
         }
+    }
 
-        // Legacy: Employee code required on create when HR_MANUAL_EMPLOYEE_CODE=Y (company param).
-        if (!isUpdate) {
-            String manualEmpCode = getGlobalParameterValue("HR_MANUAL_EMPLOYEE_CODE", "");
-            if ("Y".equalsIgnoreCase(StringUtils.trimToEmpty(manualEmpCode)) && StringUtils.isBlank(requestDto.getEmployeeCode())) {
-                throw new ValidationException("Employee Code Is Required");
-            }
+    // Legacy: Employee code required on create when HR_MANUAL_EMPLOYEE_CODE=Y (company param).
+    private void validateManualEmployeeCode(EmployeeMasterRequestDto requestDto, boolean isUpdate) {
+        if (isUpdate) return;
+        String manualEmpCode = getGlobalParameterValue("HR_MANUAL_EMPLOYEE_CODE", "");
+        if ("Y".equalsIgnoreCase(StringUtils.trimToEmpty(manualEmpCode)) && StringUtils.isBlank(requestDto.getEmployeeCode())) {
+            throw new ValidationException("Employee Code Is Required");
         }
+    }
 
+    private void validateForeignKeyReferences(EmployeeMasterRequestDto requestDto) {
         if (requestDto.getAirSectorPoid() != null && !airsectorRepository.existsByAirsecPoid(requestDto.getAirSectorPoid())) {
             throw new ResourceNotFoundException("Air Sector", "Air Sector Poid", requestDto.getAirSectorPoid());
         }
         if (requestDto.getDepartmentPoid() != null && !hrDepartmentMasterRepository.existsByDeptPoid(requestDto.getDepartmentPoid())) {
             throw new ResourceNotFoundException("Department", "Department Poid", requestDto.getDepartmentPoid());
         }
-        if (requestDto.getNationalityPoid() != null && Boolean.FALSE.equals(hrNationalityRepository.existsByNationPoid(requestDto.getNationalityPoid()))) {
+        if (requestDto.getNationalityPoid() != null && !hrNationalityRepository.existsByNationPoid(requestDto.getNationalityPoid())) {
             throw new ResourceNotFoundException("Nationality", "Nationality Poid", requestDto.getNationalityPoid());
         }
         if (requestDto.getReligionPoid() != null && !religionRepository.existsByReligionPoid(requestDto.getReligionPoid())) {
@@ -282,48 +310,45 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         if (requestDto.getCrPoid() != null && !crMasterRepository.existsByCrPoid(requestDto.getCrPoid())) {
             throw new ResourceNotFoundException("Admin Cr Master", "Cr Poid", requestDto.getCrPoid());
         }
+    }
 
-        if (isUpdate && requestDto.getMobile() != null && masterRepository.existsByMobileAndEmployeePoidNot(requestDto.getMobile(), currentEmployeePoid)) {
-            throw new ResourceAlreadyExistsException("Mobile", requestDto.getMobile());
+    private void validateUniqueness(EmployeeMasterRequestDto requestDto, boolean isUpdate, Long currentEmployeePoid) {
+        if (requestDto.getMobile() != null) {
+            boolean duplicate = isUpdate
+                    ? masterRepository.existsByMobileAndEmployeePoidNot(requestDto.getMobile(), currentEmployeePoid)
+                    : masterRepository.existsByMobile(requestDto.getMobile());
+            if (duplicate) throw new ResourceAlreadyExistsException("Mobile", requestDto.getMobile());
         }
-        if (!isUpdate && requestDto.getMobile() != null && masterRepository.existsByMobile(requestDto.getMobile())) {
-            throw new ResourceAlreadyExistsException("Mobile", requestDto.getMobile());
+        if (requestDto.getFirstName() != null) {
+            boolean duplicate = isUpdate
+                    ? masterRepository.existsByEmployeeNameAndEmployeePoidNot(requestDto.getFirstName(), currentEmployeePoid)
+                    : masterRepository.existsByEmployeeName(requestDto.getFirstName());
+            if (duplicate) throw new ResourceAlreadyExistsException("Name", requestDto.getFirstName());
         }
-        if (isUpdate && requestDto.getFirstName() != null && masterRepository.existsByEmployeeNameAndEmployeePoidNot(requestDto.getFirstName(), currentEmployeePoid)) {
-            throw new ResourceAlreadyExistsException("Name", requestDto.getFirstName());
-        }
-        if (!isUpdate && requestDto.getFirstName() != null && masterRepository.existsByEmployeeName(requestDto.getFirstName())) {
-            throw new ResourceAlreadyExistsException("Name", requestDto.getFirstName());
-        }
-
         if (StringUtils.isNotBlank(requestDto.getEmployeeCode())) {
             String employeeCode = requestDto.getEmployeeCode().trim();
-            if (isUpdate && masterRepository.existsByEmployeeCodeAndEmployeePoidNot(employeeCode, currentEmployeePoid)) {
-                throw new ResourceAlreadyExistsException("Employee Code", employeeCode);
-            }
-            if (!isUpdate && masterRepository.existsByEmployeeCode(employeeCode)) {
-                throw new ResourceAlreadyExistsException("Employee Code", employeeCode);
-            }
+            boolean duplicate = isUpdate
+                    ? masterRepository.existsByEmployeeCodeAndEmployeePoidNot(employeeCode, currentEmployeePoid)
+                    : masterRepository.existsByEmployeeCode(employeeCode);
+            if (duplicate) throw new ResourceAlreadyExistsException("Employee Code", employeeCode);
         }
         if (StringUtils.isNotBlank(requestDto.getCprNo())) {
             String cprNo = requestDto.getCprNo().trim();
-            if (isUpdate && masterRepository.existsByCprNoAndEmployeePoidNot(cprNo, currentEmployeePoid)) {
-                throw new ResourceAlreadyExistsException("CPR No", cprNo);
-            }
-            if (!isUpdate && masterRepository.existsByCprNo(cprNo)) {
-                throw new ResourceAlreadyExistsException("CPR No", cprNo);
-            }
+            boolean duplicate = isUpdate
+                    ? masterRepository.existsByCprNoAndEmployeePoidNot(cprNo, currentEmployeePoid)
+                    : masterRepository.existsByCprNo(cprNo);
+            if (duplicate) throw new ResourceAlreadyExistsException("CPR No", cprNo);
         }
         if (StringUtils.isNotBlank(requestDto.getIban())) {
             String iban = requestDto.getIban().trim();
-            if (isUpdate && masterRepository.existsByIbanAndEmployeePoidNot(iban, currentEmployeePoid)) {
-                throw new ResourceAlreadyExistsException("IBAN", iban);
-            }
-            if (!isUpdate && masterRepository.existsByIban(iban)) {
-                throw new ResourceAlreadyExistsException("IBAN", iban);
-            }
+            boolean duplicate = isUpdate
+                    ? masterRepository.existsByIbanAndEmployeePoidNot(iban, currentEmployeePoid)
+                    : masterRepository.existsByIban(iban);
+            if (duplicate) throw new ResourceAlreadyExistsException("IBAN", iban);
         }
+    }
 
+    private void validateGlReferences(EmployeeMasterRequestDto requestDto) {
         if (requestDto.getEmpGlPoid() != null) {
             glMasterServiceClient.findById(requestDto.getEmpGlPoid());
         }
@@ -342,9 +367,9 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         if (dtos == null) return;
         for (EmployeeDependentsDtlRequestDto dto : dtos) {
             if (employeePoid != null && !masterRepository.existsByEmployeePoid(employeePoid)) {
-                throw new ResourceNotFoundException("Employee", "Employee Poid", employeePoid);
+                throw new ResourceNotFoundException(EMPLOYEE, "Employee Poid", employeePoid);
             }
-            if (dto.getNationality() != null && Boolean.FALSE.equals(hrNationalityRepository.existsByNationalityCode(dto.getNationality()))) {
+            if (dto.getNationality() != null && !hrNationalityRepository.existsByNationalityCode(dto.getNationality())) {
                 throw new ResourceNotFoundException("Nationality", "Nationality Code", dto.getNationality());
             }
             if (dto.getActionType() == ActionType.isCreated && dto.getName() != null
@@ -355,7 +380,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 if (dto.getDetRowId() == null)
                     throw new IllegalArgumentException("detRowId is required for dependents isUpdated action");
                 HrEmployeeDependentsDtl existing = dependentRepository.findById(new HrEmployeeDependentsDtlId(employeePoid, dto.getDetRowId()))
-                        .orElseThrow(() -> new ResourceNotFoundException("Dependents", DET_ROW_ID, dto.getDetRowId()));
+                        .orElseThrow(() -> new ResourceNotFoundException(DEPENDENTS, DET_ROW_ID, dto.getDetRowId()));
                 if (StringUtils.isNotBlank(existing.getName()) && !existing.getName().equals(dto.getName())
                         && Boolean.TRUE.equals(dependentRepository.existsByName(dto.getName()))) {
                     throw new ResourceAlreadyExistsException("Dependent Name", dto.getName());
@@ -371,7 +396,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         if (dtos == null) return;
         for (EmployeeDepndtsLmraDtlsRequestDto dto : dtos) {
             if (employeePoid != null && !masterRepository.existsByEmployeePoid(employeePoid)) {
-                throw new ResourceNotFoundException("Employee", "Employee Poid", employeePoid);
+                throw new ResourceNotFoundException(EMPLOYEE, "Employee Poid", employeePoid);
             }
             if (dto.getActionType() == ActionType.isUpdated && dto.getDetRowId() == null) {
                 throw new IllegalArgumentException("detRowId is required for lmra isUpdated action");
@@ -386,7 +411,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         if (dtos == null) return;
         for (EmployeeExperienceDtlRequestDto dto : dtos) {
             if (employeePoid != null && !masterRepository.existsByEmployeePoid(employeePoid)) {
-                throw new ResourceNotFoundException("Employee", "Employee Poid", employeePoid);
+                throw new ResourceNotFoundException(EMPLOYEE, "Employee Poid", employeePoid);
             }
             if (dto.getActionType() == ActionType.isCreated && StringUtils.isNotBlank(dto.getEmployer())
                     && experienceRepository.existsByEmployerIgnoreCase(dto.getEmployer())) {
@@ -435,33 +460,31 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                     .withProcedureName("PROC_GL_MASTER_CREATION")
                     .declareParameters(
                             new SqlParameter("P_TRAN_ID", Types.NUMERIC),
-                            new SqlParameter("P_LOGIN_GROUP_POID", Types.NUMERIC),
-                            new SqlParameter("P_LOGIN_COMPANY_POID", Types.NUMERIC),
-                            new SqlParameter("P_LOGIN_USER", Types.VARCHAR),
+                            new SqlParameter(P_LOGIN_GROUP_POID, Types.NUMERIC),
+                            new SqlParameter(P_LOGIN_COMPANY_POID, Types.NUMERIC),
+                            new SqlParameter(P_LOGIN_USER, Types.VARCHAR),
                             new SqlParameter("P_DOCID", Types.VARCHAR),
                             new SqlParameter("P_CODE", Types.VARCHAR),
                             new SqlParameter("P_NAME", Types.VARCHAR),
                             new SqlParameter("P_GLTYPE", Types.VARCHAR),
-                            new SqlOutParameter("P_RESULT", Types.VARCHAR)
+                            new SqlOutParameter(P_RESULT, Types.VARCHAR)
                     );
 
             Map<String, Object> result = jdbcCall.execute(new MapSqlParameterSource()
                     .addValue("P_TRAN_ID", employeePoid)
-                    .addValue("P_LOGIN_GROUP_POID", UserContext.getGroupPoid())
-                    .addValue("P_LOGIN_COMPANY_POID", UserContext.getCompanyPoid())
-                    .addValue("P_LOGIN_USER", UserContext.getUserId())
+                    .addValue(P_LOGIN_GROUP_POID, UserContext.getGroupPoid())
+                    .addValue(P_LOGIN_COMPANY_POID, UserContext.getCompanyPoid())
+                    .addValue(P_LOGIN_USER, UserContext.getUserId())
                     .addValue("P_DOCID", DOC_ID_EMPLOYEE_MASTER)
                     .addValue("P_CODE", empCode)
                     .addValue("P_NAME", empName)
                     .addValue("P_GLTYPE", GL_TYPE_EMPLOYEE)
             );
 
-            String status = (String) result.get("P_RESULT");
-            if (status != null && status.toUpperCase().contains("ERROR")) {
+            String status = (String) result.get(P_RESULT);
+            if (status != null && status.toUpperCase().contains(ERROR)) {
                 throw new ValidationException(status);
             }
-        } catch (ValidationException e) {
-            throw e;
         } catch (DataAccessException ex) {
             throw new ValidationException("PROC_GL_MASTER_CREATION failed: " + ex.getMostSpecificCause().getMessage());
         }
@@ -504,7 +527,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 loggingService.createLogSummaryEntry(UserContext.getDocumentId(), saved.getEmployeePoid().toString(), logDetail);
             } else if (action == ActionType.isUpdated) {
                 HrEmployeeDependentsDtlId id = new HrEmployeeDependentsDtlId(employeePoid, dto.getDetRowId());
-                HrEmployeeDependentsDtl entity = dependentRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Dependents", DET_ROW_ID, dto.getDetRowId()));
+                HrEmployeeDependentsDtl entity = dependentRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(DEPENDENTS, DET_ROW_ID, dto.getDetRowId()));
 
                 HrEmployeeDependentsDtl oldDetail = new HrEmployeeDependentsDtl();
                 BeanUtils.copyProperties(entity, oldDetail);
@@ -523,11 +546,11 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 entity.setSponsor(dto.getSponsor());
                 entity.setRpExpiry(dto.getRpExpiry());
                 dependentRepository.save(entity);
-                String logDetail = String.format("KeyId = EMPLOYEE_POID %s: DET_ROW_ID %s", entity.getEmployeePoid(), entity.getDetRowId());
+                String logDetail = String.format(UPDATE_LOG_STRING, entity.getEmployeePoid(), entity.getDetRowId());
                 loggingService.createLog(oldDetail, entity, HrEmployeeDependentsDtl.class, UserContext.getDocumentId(), employeePoid.toString(), logDetail);
             } else if (action == ActionType.isDeleted) {
                 HrEmployeeDependentsDtlId id = new HrEmployeeDependentsDtlId(employeePoid, dto.getDetRowId());
-                HrEmployeeDependentsDtl entity = dependentRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Dependents", DET_ROW_ID, dto.getDetRowId()));
+                HrEmployeeDependentsDtl entity = dependentRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException(DEPENDENTS, DET_ROW_ID, dto.getDetRowId()));
                 dependentRepository.deleteById(id);
                 loggingService.logDelete(entity, UserContext.getDocumentId(), employeePoid.toString());
             }
@@ -615,7 +638,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 entity.setHealthCheckResult(dto.getHealthCheckResult());
                 entity.setAdditionalBhPermit(dto.getAdditionalBhPermit());
                 lmraRepository.save(entity);
-                String logDetail = String.format("KeyId = EMPLOYEE_POID %s: DET_ROW_ID %s", entity.getEmployeePoid(), entity.getDetRowId());
+                String logDetail = String.format(UPDATE_LOG_STRING, entity.getEmployeePoid(), entity.getDetRowId());
                 loggingService.createLog(oldDetail, entity, HrEmpDepndtsLmraDtls.class, UserContext.getDocumentId(), employeePoid.toString(), logDetail);
             } else if (action == ActionType.isDeleted) {
                 HrEmpDepndtsLmraDtlsId id = new HrEmpDepndtsLmraDtlsId(employeePoid, dto.getDetRowId());
@@ -668,7 +691,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 entity.setMonths(dto.getMonths());
                 entity.setDesignation(dto.getDesignation());
                 experienceRepository.save(entity);
-                String logDetail = String.format("KeyId = EMPLOYEE_POID %s: DET_ROW_ID %s", entity.getEmployeePoid(), entity.getDetRowId());
+                String logDetail = String.format(UPDATE_LOG_STRING, entity.getEmployeePoid(), entity.getDetRowId());
                 loggingService.createLog(oldDetail, entity, HrEmployeeExperienceDtl.class, UserContext.getDocumentId(), employeePoid.toString(), logDetail);
             } else if (action == ActionType.isDeleted) {
                 HrEmployeeExperienceDtlId id = new HrEmployeeExperienceDtlId(employeePoid, dto.getDetRowId());
@@ -714,110 +737,13 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 entity.setExpiryDate(dto.getExpiryDate());
                 entity.setRemarks(dto.getRemarks());
                 documentRepository.save(entity);
-                String logDetail = String.format("KeyId = EMPLOYEE_POID %s: DET_ROW_ID %s", entity.getEmployeePoid(), entity.getDetRowId());
+                String logDetail = String.format(UPDATE_LOG_STRING, entity.getEmployeePoid(), entity.getDetRowId());
                 loggingService.createLog(oldDetail, entity, HrEmployeeDocumentDtl.class, UserContext.getDocumentId(), employeePoid.toString(), logDetail);
             } else if (action == ActionType.isDeleted) {
                 HrEmployeeDocumentDtlId id = new HrEmployeeDocumentDtlId(employeePoid, dto.getDetRowId());
                 HrEmployeeDocumentDtl entity = documentRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Document", DET_ROW_ID, dto.getDetRowId()));
                 documentRepository.deleteById(id);
                 loggingService.logDelete(entity, UserContext.getDocumentId(), employeePoid.toString());
-            }
-        }
-    }
-
-    private void applyLeaveHistoryDetails(Long employeePoid, List<EmployeeLeaveHistoryRequestDto> dtos) {
-        if (dtos == null || dtos.isEmpty()) return;
-
-        List<HrEmployeeLeaveHistory> existing = leaveHistoryRepository.findByEmployeePoid(employeePoid);
-
-        long nextLeaveHistPoid = existing.stream().mapToLong(HrEmployeeLeaveHistory::getLeaveHistPoid).max().orElse(0L) + 1;
-        long nextDetRowId = existing.stream().mapToLong(HrEmployeeLeaveHistory::getDetRowId).max().orElse(0L) + 1;
-
-        for (EmployeeLeaveHistoryRequestDto dto : dtos) {
-
-            if (employeePoid != null) {
-                if (!masterRepository.existsByEmployeePoid(employeePoid)) {
-                    throw new ResourceNotFoundException("Employee", "Employee Poid", employeePoid);
-                }
-            }
-
-            if (dto == null || dto.getActionType() == null || dto.getActionType() == ActionType.noChange) continue;
-
-            ActionType action = dto.getActionType();
-            if (action == ActionType.isCreated) {
-                long leaveHistPoid = dto.getLeaveHistPoid() != null ? dto.getLeaveHistPoid() : nextLeaveHistPoid++;
-                long detRowId = dto.getDetRowId() != null ? dto.getDetRowId() : nextDetRowId++;
-
-                nextLeaveHistPoid = Math.max(nextLeaveHistPoid, leaveHistPoid + 1);
-                nextDetRowId = Math.max(nextDetRowId, detRowId + 1);
-
-                HrEmployeeLeaveHistory entity = new HrEmployeeLeaveHistory();
-                entity.setLeaveHistPoid(leaveHistPoid);
-                entity.setDetRowId(detRowId);
-                entity.setEmployeePoid(employeePoid);
-
-                entity.setCompanyPoid(dto.getCompanyPoid() != null ? dto.getCompanyPoid() : UserContext.getCompanyPoid());
-                entity.setGroupPoid(dto.getGroupPoid() != null ? dto.getGroupPoid() : UserContext.getGroupPoid());
-                entity.setDeptPoid(dto.getDeptPoid());
-                entity.setEmployeeName(dto.getEmployeeName());
-
-                entity.setLeaveStartDate(dto.getLeaveStartDate());
-                entity.setRejoinDate(dto.getRejoinDate());
-                entity.setReffNo(dto.getReffNo());
-                entity.setRemarks(dto.getRemarks());
-                entity.setDeleted(dto.getDeleted());
-                entity.setLeaveType(dto.getLeaveType());
-                entity.setLeaveDays(dto.getLeaveDays());
-                entity.setAnnualLeaveType(dto.getAnnualLeaveType());
-                entity.setSourceDocId(dto.getSourceDocId());
-                entity.setSourceDocPoid(dto.getSourceDocPoid());
-                entity.setEmergencyLeaveType(dto.getEmergencyLeaveType());
-                entity.setExpRejoinDate(dto.getExpRejoinDate());
-                entity.setSplLeaveTypes(dto.getSplLeaveTypes());
-                entity.setEligibleLeaveDays(dto.getEligibleLeaveDays());
-                entity.setTicketIssuedCount(dto.getTicketIssuedCount());
-                entity.setTicketTillDate(dto.getTicketTillDate());
-                entity.setTicketIssueType(dto.getTicketIssueType());
-
-                leaveHistoryRepository.save(entity);
-            } else if (action == ActionType.isUpdated) {
-                if (dto.getLeaveHistPoid() == null || dto.getDetRowId() == null) {
-                    throw new IllegalArgumentException("leaveHistPoid and detRowId are required for leaveHistory isUpdated action");
-                }
-
-                HrEmployeeLeaveHistoryId id = new HrEmployeeLeaveHistoryId(dto.getLeaveHistPoid(), dto.getDetRowId());
-                HrEmployeeLeaveHistory entity = leaveHistoryRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Leave History", "leaveHistPoid/detRowId", dto.getLeaveHistPoid()));
-
-                entity.setEmployeePoid(employeePoid);
-                entity.setCompanyPoid(dto.getCompanyPoid() != null ? dto.getCompanyPoid() : entity.getCompanyPoid());
-                entity.setGroupPoid(dto.getGroupPoid() != null ? dto.getGroupPoid() : entity.getGroupPoid());
-                entity.setDeptPoid(dto.getDeptPoid());
-                entity.setEmployeeName(dto.getEmployeeName());
-                entity.setLeaveStartDate(dto.getLeaveStartDate());
-                entity.setRejoinDate(dto.getRejoinDate());
-                entity.setReffNo(dto.getReffNo());
-                entity.setRemarks(dto.getRemarks());
-                entity.setDeleted(dto.getDeleted());
-                entity.setLeaveType(dto.getLeaveType());
-                entity.setLeaveDays(dto.getLeaveDays());
-                entity.setAnnualLeaveType(dto.getAnnualLeaveType());
-                entity.setSourceDocId(dto.getSourceDocId());
-                entity.setSourceDocPoid(dto.getSourceDocPoid());
-                entity.setEmergencyLeaveType(dto.getEmergencyLeaveType());
-                entity.setExpRejoinDate(dto.getExpRejoinDate());
-                entity.setSplLeaveTypes(dto.getSplLeaveTypes());
-                entity.setEligibleLeaveDays(dto.getEligibleLeaveDays());
-                entity.setTicketIssuedCount(dto.getTicketIssuedCount());
-                entity.setTicketTillDate(dto.getTicketTillDate());
-                entity.setTicketIssueType(dto.getTicketIssueType());
-
-                leaveHistoryRepository.save(entity);
-            } else if (action == ActionType.isDeleted) {
-                if (dto.getLeaveHistPoid() == null || dto.getDetRowId() == null) {
-                    throw new IllegalArgumentException("leaveHistPoid and detRowId are required for leaveHistory isDeleted action");
-                }
-                HrEmployeeLeaveHistoryId id = new HrEmployeeLeaveHistoryId(dto.getLeaveHistPoid(), dto.getDetRowId());
-                leaveHistoryRepository.deleteById(id);
             }
         }
     }
@@ -868,7 +794,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         }
 
         Map<String, String> sortableFieldMap = new HashMap<>();
-        sortableFieldMap.put(HR_EMPLOYEE_MASTER_POID_FIELD, "employeePoid");
+        sortableFieldMap.put(HR_EMPLOYEE_MASTER_POID_FIELD, EMPLOYEE_POID);
         sortableFieldMap.put("EMPLOYEE_NAME", "employeeName");
         sortableFieldMap.put("EMPLOYEE_NAME2", "employeeName2");
         sortableFieldMap.put("DESIGNATION_POID", "designationPoid");
@@ -886,11 +812,10 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                         mapped = property;
                     }
                     if (mapped == null) {
-                        mapped = "employeePoid";
+                        mapped = EMPLOYEE_POID;
                     }
                     return new org.springframework.data.domain.Sort.Order(order.getDirection(), mapped);
-                })
-                .collect(Collectors.toList());
+                }).toList();
 
         return PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(safeOrders));
     }
@@ -905,7 +830,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     @Override
     public String uploadExcel(org.springframework.web.multipart.MultipartFile file) {
         if (file.isEmpty()) {
-            throw new RuntimeException("File is empty");
+            throw new CustomException("File is empty",400);
         }
 
         String docId = "800-001_1";
@@ -938,7 +863,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 rowsCollection.add(colCollection);
             }
         } catch (Exception e) {
-            throw new RuntimeException("Error processing Excel file: " + e.getMessage(), e);
+            throw new CustomException("Error processing Excel file: " + e.getMessage(), e);
         }
 
         saveImportedData(config.startRowNumber, rowsCollection, config.tempTableName);
@@ -962,12 +887,12 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
 
         String status = (String) result.get("P_STATUS");
         if (!"SUCCESS".equals(status)) {
-            throw new RuntimeException("Failed to get Excel config: " + status);
+            throw new CustomException("Failed to get Excel config: " + status,500);
         }
 
         List<Map<String, Object>> configs = (List<Map<String, Object>>) result.get("OUTDATA");
         if (configs == null || configs.isEmpty()) {
-            throw new RuntimeException("No Excel configuration found for DOC_ID: " + docId);
+            throw new CustomException("No Excel configuration found for DOC_ID: " + docId,400);
         }
 
         Map<String, Object> configRow = configs.getFirst();
@@ -1017,21 +942,21 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
             SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
                     .withProcedureName("PROC_HR_EMP_LEAVE_DATES")
                     .declareParameters(
-                            new SqlParameter("P_LOGIN_GROUP_POID", Types.NUMERIC),
-                            new SqlParameter("P_LOGIN_COMPANY_POID", Types.NUMERIC),
-                            new SqlParameter("P_EMPLOYEE_POID", Types.VARCHAR),
-                            new SqlOutParameter("P_RESULT", Types.VARCHAR),
+                            new SqlParameter(P_LOGIN_GROUP_POID, Types.NUMERIC),
+                            new SqlParameter(P_LOGIN_COMPANY_POID, Types.NUMERIC),
+                            new SqlParameter(P_EMPLOYEE_POID, Types.VARCHAR),
+                            new SqlOutParameter(P_RESULT, Types.VARCHAR),
                             new SqlOutParameter("P_RESULT1", Types.VARCHAR)
                     );
 
             Map<String, Object> result = jdbcCall.execute(new MapSqlParameterSource()
-                    .addValue("P_LOGIN_GROUP_POID", UserContext.getGroupPoid())
-                    .addValue("P_LOGIN_COMPANY_POID", UserContext.getCompanyPoid())
-                    .addValue("P_EMPLOYEE_POID", String.valueOf(employeePoid))
+                    .addValue(P_LOGIN_GROUP_POID, UserContext.getGroupPoid())
+                    .addValue(P_LOGIN_COMPANY_POID, UserContext.getCompanyPoid())
+                    .addValue(P_EMPLOYEE_POID, String.valueOf(employeePoid))
             );
 
             return EmployeeLeaveDatesResponseDto.builder()
-                    .startDate((String) result.get("P_RESULT"))
+                    .startDate((String) result.get(P_RESULT))
                     .periodEndDate((String) result.get("P_RESULT1"))
                     .build();
         } catch (DataAccessException ex) {
@@ -1047,26 +972,26 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
             SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
                     .withProcedureName("PROC_HR_EMP_REJOINDT_UPDATE_V2")
                     .declareParameters(
-                            new SqlParameter("P_LOGIN_GROUP_POID", Types.NUMERIC),
-                            new SqlParameter("P_LOGIN_COMPANY_POID", Types.NUMERIC),
-                            new SqlParameter("P_LOGIN_USER", Types.VARCHAR),
-                            new SqlParameter("P_EMPLOYEE_POID", Types.VARCHAR),
-                            new SqlParameter("P_REJOIN_DATE", Types.DATE),
-                            new SqlParameter("P_REJOIN_LRQ_REF", Types.VARCHAR),
-                            new SqlOutParameter("P_RESULT", Types.VARCHAR)
+                            new SqlParameter(P_LOGIN_GROUP_POID, Types.NUMERIC),
+                            new SqlParameter(P_LOGIN_COMPANY_POID, Types.NUMERIC),
+                            new SqlParameter(P_LOGIN_USER, Types.VARCHAR),
+                            new SqlParameter(P_EMPLOYEE_POID, Types.VARCHAR),
+                            new SqlParameter(P_REJOIN_DATE, Types.DATE),
+                            new SqlParameter(P_REJOIN_LRQ_REF, Types.VARCHAR),
+                            new SqlOutParameter(P_RESULT, Types.VARCHAR)
                     );
 
             Map<String, Object> result = jdbcCall.execute(new MapSqlParameterSource()
-                    .addValue("P_LOGIN_GROUP_POID", UserContext.getGroupPoid())
-                    .addValue("P_LOGIN_COMPANY_POID", UserContext.getCompanyPoid())
-                    .addValue("P_LOGIN_USER", UserContext.getUserId())
-                    .addValue("P_EMPLOYEE_POID", String.valueOf(employeePoid))
-                    .addValue("P_REJOIN_DATE", java.sql.Date.valueOf(request.getRejoinDate()))
-                    .addValue("P_REJOIN_LRQ_REF", request.getRejoinLrqRef())
+                    .addValue(P_LOGIN_GROUP_POID, UserContext.getGroupPoid())
+                    .addValue(P_LOGIN_COMPANY_POID, UserContext.getCompanyPoid())
+                    .addValue(P_LOGIN_USER, UserContext.getUserId())
+                    .addValue(P_EMPLOYEE_POID, String.valueOf(employeePoid))
+                    .addValue(P_REJOIN_DATE, java.sql.Date.valueOf(request.getRejoinDate()))
+                    .addValue(P_REJOIN_LRQ_REF, request.getRejoinLrqRef())
             );
 
-            String status = (String) result.get("P_RESULT");
-            if (status != null && status.contains("ERROR")) {
+            String status = (String) result.get(P_RESULT);
+            if (status != null && status.contains(ERROR)) {
                 throw new ValidationException(status);
             }
             return status;
@@ -1085,28 +1010,28 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
             SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
                     .withProcedureName("PROC_HR_EMP_REJOINDT_REMOVE")
                     .declareParameters(
-                            new SqlParameter("P_LOGIN_GROUP_POID", Types.NUMERIC),
-                            new SqlParameter("P_LOGIN_COMPANY_POID", Types.NUMERIC),
-                            new SqlParameter("P_LOGIN_USER", Types.VARCHAR),
-                            new SqlParameter("P_EMPLOYEE_POID", Types.VARCHAR),
-                            new SqlParameter("P_REJOIN_DATE", Types.DATE),
-                            new SqlParameter("P_REJOIN_LRQ_REF", Types.VARCHAR),
-                            new SqlOutParameter("P_RESULT", Types.VARCHAR)
+                            new SqlParameter(P_LOGIN_GROUP_POID, Types.NUMERIC),
+                            new SqlParameter(P_LOGIN_COMPANY_POID, Types.NUMERIC),
+                            new SqlParameter(P_LOGIN_USER, Types.VARCHAR),
+                            new SqlParameter(P_EMPLOYEE_POID, Types.VARCHAR),
+                            new SqlParameter(P_REJOIN_DATE, Types.DATE),
+                            new SqlParameter(P_REJOIN_LRQ_REF, Types.VARCHAR),
+                            new SqlOutParameter(P_RESULT, Types.VARCHAR)
                     );
 
             java.sql.Date rejoinSqlDate = request.getRejoinDate() != null ? java.sql.Date.valueOf(request.getRejoinDate()) : null;
 
             Map<String, Object> result = jdbcCall.execute(new MapSqlParameterSource()
-                    .addValue("P_LOGIN_GROUP_POID", UserContext.getGroupPoid())
-                    .addValue("P_LOGIN_COMPANY_POID", UserContext.getCompanyPoid())
-                    .addValue("P_LOGIN_USER", UserContext.getUserId())
-                    .addValue("P_EMPLOYEE_POID", String.valueOf(employeePoid))
-                    .addValue("P_REJOIN_DATE", rejoinSqlDate)
-                    .addValue("P_REJOIN_LRQ_REF", request.getRejoinLrqRef())
+                    .addValue(P_LOGIN_GROUP_POID, UserContext.getGroupPoid())
+                    .addValue(P_LOGIN_COMPANY_POID, UserContext.getCompanyPoid())
+                    .addValue(P_LOGIN_USER, UserContext.getUserId())
+                    .addValue(P_EMPLOYEE_POID, String.valueOf(employeePoid))
+                    .addValue(P_REJOIN_DATE, rejoinSqlDate)
+                    .addValue(P_REJOIN_LRQ_REF, request.getRejoinLrqRef())
             );
 
-            String status = (String) result.get("P_RESULT");
-            if (status != null && status.contains("ERROR")) {
+            String status = (String) result.get(P_RESULT);
+            if (status != null && status.contains(ERROR)) {
                 throw new ValidationException(status);
             }
             return status;
@@ -1122,23 +1047,23 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
                 .withProcedureName("PROC_HR_EMP_UPLOAD_LMRA_DATA")
                 .declareParameters(
-                        new SqlParameter("P_EMPLOYEE_POID", Types.VARCHAR),
-                        new SqlParameter("P_LOGIN_GROUP_POID", Types.NUMERIC),
-                        new SqlParameter("P_LOGIN_COMPANY_POID", Types.NUMERIC),
-                        new SqlParameter("P_LOGIN_USER", Types.VARCHAR),
-                        new SqlOutParameter("P_RESULT", Types.VARCHAR)
+                        new SqlParameter(P_EMPLOYEE_POID, Types.VARCHAR),
+                        new SqlParameter(P_LOGIN_GROUP_POID, Types.NUMERIC),
+                        new SqlParameter(P_LOGIN_COMPANY_POID, Types.NUMERIC),
+                        new SqlParameter(P_LOGIN_USER, Types.VARCHAR),
+                        new SqlOutParameter(P_RESULT, Types.VARCHAR)
                 );
 
         Map<String, Object> result = jdbcCall.execute(new MapSqlParameterSource()
-                .addValue("P_EMPLOYEE_POID", null)
-                .addValue("P_LOGIN_GROUP_POID", UserContext.getGroupPoid())
-                .addValue("P_LOGIN_COMPANY_POID", UserContext.getCompanyPoid())
-                .addValue("P_LOGIN_USER", UserContext.getUserId())
+                .addValue(P_EMPLOYEE_POID, null)
+                .addValue(P_LOGIN_GROUP_POID, UserContext.getGroupPoid())
+                .addValue(P_LOGIN_COMPANY_POID, UserContext.getCompanyPoid())
+                .addValue(P_LOGIN_USER, UserContext.getUserId())
         );
 
-        String status = (String) result.get("P_RESULT");
+        String status = (String) result.get(P_RESULT);
 
-        if (status != null && status.contains("ERROR")) {
+        if (status != null && status.contains(ERROR)) {
             throw new ValidationException(status);
         }
 
@@ -1146,8 +1071,8 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 jdbcTemplate.query(
                         "SELECT * FROM HR_EMP_DEPNDTS_LMRA_DTLS ORDER BY DET_ROW_ID DESC",
                         (rs, rowNum) -> EmployeeDepndtsLmraDtlsResponseDto.builder()
-                                .employeePoid(rs.getLong("EMPLOYEE_POID"))
-                                .detRowId(rs.getLong("DET_ROW_ID"))
+                                .employeePoid(rs.getLong(HR_EMPLOYEE_MASTER_POID_FIELD))
+                                .detRowId(rs.getLong(DET_ROW_ID))
                                 .expatCpr(rs.getString("EXPAT_CPR"))
                                 .expatPp(rs.getString("EXPAT_PP"))
                                 .nationality(rs.getString("NATIONALITY"))
