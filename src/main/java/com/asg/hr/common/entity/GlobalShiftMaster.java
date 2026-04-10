@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "GLOBAL_SHIFT_MASTER", schema = "PRODUCTION")
+@Table(name = "GLOBAL_SHIFT_MASTER")
 public class GlobalShiftMaster {
 
     @Id
