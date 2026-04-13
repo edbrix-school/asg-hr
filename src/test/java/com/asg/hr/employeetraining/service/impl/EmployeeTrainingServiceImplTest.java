@@ -190,8 +190,8 @@ class EmployeeTrainingServiceImplTest {
 
     @Test
     void createTraining_WhenSuccess_CreatesHeaderAndDetails() {
-        when(headerRepository.existsByCourseNameIgnoreCaseAndPeriodFromAndPeriodToAndEmployeePoidAndDeletedNot(
-                anyString(), any(), any(), anyString(), anyString())).thenReturn(false);
+        when(headerRepository.existsByCourseNameIgnoreCaseAndPeriodFromAndPeriodToAndDeletedNot(
+                anyString(), any(), any(), anyString())).thenReturn(false);
         when(mapper.toHeaderEntity(any(), anyLong(), anyLong())).thenReturn(header);
         when(headerRepository.save(header)).thenReturn(header);
         when(mapper.toDetailEntities(eq(1L), any())).thenReturn(detailEntities);
@@ -214,22 +214,20 @@ class EmployeeTrainingServiceImplTest {
 
     @Test
     void createTraining_WhenDuplicate_ThrowsValidationException() {
-        when(headerRepository.existsByCourseNameIgnoreCaseAndPeriodFromAndPeriodToAndEmployeePoidAndDeletedNot(
-                anyString(), any(), any(), anyString(), anyString())).thenReturn(true);
-
-        ValidationException ex = assertThrows(ValidationException.class, () -> service.createTraining(request));
-        assertEquals("Training already exists for the same course, period and employee", ex.getMessage());
-    }
-
-    @Test
-    void createTraining_WhenThreeColumnDuplicate_ThrowsValidationException() {
-        when(headerRepository.existsByCourseNameIgnoreCaseAndPeriodFromAndPeriodToAndEmployeePoidAndDeletedNot(
-                anyString(), any(), any(), anyString(), anyString())).thenReturn(false);
         when(headerRepository.existsByCourseNameIgnoreCaseAndPeriodFromAndPeriodToAndDeletedNot(
                 anyString(), any(), any(), anyString())).thenReturn(true);
 
         ValidationException ex = assertThrows(ValidationException.class, () -> service.createTraining(request));
-        assertEquals("Training already exists for the same course, period and employee", ex.getMessage());
+        assertEquals("Training already exists for this course and period", ex.getMessage());
+    }
+
+    @Test
+    void createTraining_WhenThreeColumnDuplicate_ThrowsValidationException() {
+        when(headerRepository.existsByCourseNameIgnoreCaseAndPeriodFromAndPeriodToAndDeletedNot(
+                anyString(), any(), any(), anyString())).thenReturn(true);
+
+        ValidationException ex = assertThrows(ValidationException.class, () -> service.createTraining(request));
+        assertEquals("Training already exists for this course and period", ex.getMessage());
     }
 
     @Test
@@ -244,8 +242,7 @@ class EmployeeTrainingServiceImplTest {
                 .build();
 
         when(headerRepository.findByTransactionPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.of(header));
-        when(headerRepository.existsDuplicateOnUpdate(anyString(), any(), any(), anyString(), anyString(), eq(1L))).thenReturn(false);
-        when(headerRepository.existsDuplicateThreeColumnOnUpdate(anyString(), any(), any(), anyString(), eq(1L))).thenReturn(false);
+        when(headerRepository.existsDuplicateOnUpdate(anyString(), any(), any(), anyString(), eq(1L))).thenReturn(false);
         when(headerRepository.save(any(EmployeeTrainingHeaderEntity.class))).thenReturn(header);
         when(detailRepository.findByIdTransactionPoidOrderByIdDetRowIdAsc(1L)).thenReturn(List.of(existingDetail));
         // mapper response will be returned with detail list built in service
@@ -285,11 +282,10 @@ class EmployeeTrainingServiceImplTest {
     @Test
     void updateTraining_WhenThreeColumnDuplicate_ThrowsValidationException() {
         when(headerRepository.findByTransactionPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.of(header));
-        when(headerRepository.existsDuplicateOnUpdate(anyString(), any(), any(), anyString(), anyString(), eq(1L))).thenReturn(false);
-        when(headerRepository.existsDuplicateThreeColumnOnUpdate(anyString(), any(), any(), anyString(), eq(1L))).thenReturn(true);
+        when(headerRepository.existsDuplicateOnUpdate(anyString(), any(), any(), anyString(), eq(1L))).thenReturn(true);
 
         ValidationException ex = assertThrows(ValidationException.class, () -> service.updateTraining(1L, request));
-        assertEquals("Training already exists for the same course, period and employee", ex.getMessage());
+        assertEquals("Training already exists for this course and period", ex.getMessage());
     }
 
     @Test
