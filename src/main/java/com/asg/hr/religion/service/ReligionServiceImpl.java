@@ -23,7 +23,6 @@ import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.utility.PaginationUtil;
-import com.asg.hr.exceptions.ResourceAlreadyExistsException;
 import com.asg.hr.exceptions.ValidationException;
 import com.asg.hr.religion.dto.ReligionDtoRequest;
 import com.asg.hr.religion.dto.ReligionDtoResponse;
@@ -57,6 +56,7 @@ public class ReligionServiceImpl implements ReligionService {
 		response.setDescription(entity.getReligionDescription());
 		response.setActive(entity.getActive());
 		response.setCreatedBy(entity.getCreatedBy());
+        response.setSeqNo(entity.getSeqNo());
 		response.setCreatedDate(entity.getCreatedDate());
 		response.setLastModifiedBy(entity.getLastModifiedBy());
 		response.setLastModifiedDate(entity.getLastModifiedDate());
@@ -109,12 +109,12 @@ public class ReligionServiceImpl implements ReligionService {
 		religion.setSeqNo(religionDto.getSeqNo());
 		religion.setActive(religionDto.getActive());
 
-		HrReligionMaster updated = repository.save(religion);
-		log.info("Updated Religion with ID: {}", updated.getReligionPoid());
+		repository.save(religion);
+		log.info("Updated Religion with ID: {}", religionPoid);
 
 		// Log the update with changes
-		String key = updated.getReligionPoid().toString();
-		loggingService.logChanges(oldEntity, updated, HrReligionMaster.class, UserContext.getDocumentId(), key,
+		String key = religionPoid.toString();
+		loggingService.logChanges(oldEntity, religion, HrReligionMaster.class, UserContext.getDocumentId(), key,
 				LogDetailsEnum.MODIFIED, RELIGION_POID);
 
 		return getReligionById(religionPoid);
