@@ -2,6 +2,7 @@ package com.asg.hr.personaldatasheet.service;
 
 import com.asg.common.lib.exception.ValidationException;
 import com.asg.hr.personaldatasheet.dto.PersonalDataSheetRequestDto;
+import com.asg.hr.personaldatasheet.util.PersonalDataSheetValidator;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -22,11 +23,7 @@ public class ValidatorTestRunner {
         
         ValidationException exception = assertThrows(ValidationException.class, 
             () -> validator.validateRequest(request));
-        
-        System.out.println("Exception message: " + exception.getMessage());
-        System.out.println("Total: " + (99.98 + 0.005));
-        System.out.println("Difference from 100: " + Math.abs((99.98 + 0.005) - 100.0));
-        System.out.println("Is outside tolerance (>0.01): " + (Math.abs((99.98 + 0.005) - 100.0) > 0.01));
+
     }
     
     private PersonalDataSheetRequestDto createValidRequest() {

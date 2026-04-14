@@ -6,18 +6,22 @@ import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.RawSearchResult;
 import com.asg.common.lib.dto.request.LogRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
+import com.asg.common.lib.exception.AsgException;
+import com.asg.common.lib.exception.ResourceNotFoundException;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.service.DocumentSearchService;
+import com.asg.common.lib.service.PrintService;
 import com.asg.common.lib.utility.PaginationUtil;
-import com.asg.hr.exceptions.ResourceNotFoundException;
 import com.asg.hr.personaldatasheet.dto.PersonalDataSheetRequestDto;
 import com.asg.hr.personaldatasheet.dto.PersonalDataSheetResponseDto;
 import com.asg.hr.personaldatasheet.entity.*;
 import com.asg.hr.personaldatasheet.repository.*;
+import com.asg.hr.personaldatasheet.util.PersonalDataSheetValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.sf.jasperreports.engine.JasperReport;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
@@ -25,6 +29,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -36,6 +41,75 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
+
+    private static class ProcessingContext<T> {
+        final Long transactionPoid;
+        final Map<Long, T> existingMap;
+        final Long[] maxDetRowId;
+        final List<T> toSave;
+        final List<T> toUpdate;
+        final List<Long> toDelete;
+        final List<LogRequestDto<T>> logRequests;
+        final String docId;
+
+        private ProcessingContext(Builder<T> builder) {
+            this.transactionPoid = builder.transactionPoid;
+            this.existingMap = builder.existingMap;
+            this.maxDetRowId = builder.maxDetRowId;
+            this.toSave = builder.toSave;
+            this.toUpdate = builder.toUpdate;
+            this.toDelete = builder.toDelete;
+            this.logRequests = builder.logRequests;
+            this.docId = builder.docId;
+        }
+
+        static <T> Builder<T> builder() {
+            return new Builder<>();
+        }
+
+        static class Builder<T> {
+            private Long transactionPoid;
+            private Map<Long, T> existingMap;
+            private Long[] maxDetRowId;
+            private List<T> toSave;
+            private List<T> toUpdate;
+            private List<Long> toDelete;
+            private List<LogRequestDto<T>> logRequests;
+            private String docId;
+
+            Builder<T> transactionPoid(Long transactionPoid) {
+                this.transactionPoid = transactionPoid;
+                return this;
+            }
+
+            Builder<T> existingMap(Map<Long, T> existingMap) {
+                this.existingMap = existingMap;
+                return this;
+            }
+
+            Builder<T> maxDetRowId(Long[] maxDetRowId) {
+                this.maxDetRowId = maxDetRowId;
+                return this;
+            }
+
+            Builder<T> collections(List<T> toSave, List<T> toUpdate, List<Long> toDelete, List<LogRequestDto<T>> logRequests) {
+                this.toSave = toSave;
+                this.toUpdate = toUpdate;
+                this.toDelete = toDelete;
+                this.logRequests = logRequests;
+                return this;
+            }
+
+            Builder<T> docId(String docId) {
+                this.docId = docId;
+                return this;
+            }
+
+            ProcessingContext<T> build() {
+                return new ProcessingContext<>(this);
+            }
+        }
+    }
 
     // Constants for duplicated string literals
     private static final String ACTION_CREATED = "ISCREATED";
@@ -76,6 +150,8 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
     private final LoggingService loggingService;
     private final PersonalDataSheetValidator validator;
     private final PersonalDataSheetProcedureRepository procedureRepository;
+    private final PrintService printService;
+    private final DataSource dataSource;
 
     @Override
     @Transactional
@@ -124,7 +200,7 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
         log.info(LOG_FETCH_MSG, transactionPoid);
 
         HrPersonalDataHdr entity = repository.findByTransactionPoidAndNotDeleted(transactionPoid)
-                .orElseThrow(() -> new ResourceNotFoundException(ERROR_NOT_FOUND + transactionPoid));
+                .orElseThrow(() -> new AsgException(ERROR_NOT_FOUND + transactionPoid));
 
         return mapToResponseDto(entity);
     }
@@ -135,7 +211,7 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
         log.info(LOG_UPDATE_MSG, transactionPoid);
 
         HrPersonalDataHdr entity = repository.findByTransactionPoidAndNotDeleted(transactionPoid)
-                .orElseThrow(() -> new ResourceNotFoundException(ERROR_NOT_FOUND + transactionPoid));
+                .orElseThrow(() -> new AsgException(ERROR_NOT_FOUND + transactionPoid));
 
         validator.validateRequest(request);
         updateEntity(entity, request);
@@ -155,7 +231,7 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
         log.info(LOG_DELETE_MSG, transactionPoid);
 
         HrPersonalDataHdr entity = repository.findByTransactionPoidAndNotDeleted(transactionPoid)
-                .orElseThrow(() -> new ResourceNotFoundException(ERROR_NOT_FOUND + transactionPoid));
+                .orElseThrow(() -> new AsgException(ERROR_NOT_FOUND + transactionPoid));
 
         documentDeleteService.deleteDocument(
                 transactionPoid,
@@ -206,6 +282,24 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
                 UserContext.getDocumentId(), // docId for Personal Data Sheet
                 docKeyPoid
         );
+    }
+
+    @Override
+    public byte[] print(Long transactionPoid) {
+        log.info("Generating PDF for Personal Data Sheet: {}", transactionPoid);
+        
+        HrPersonalDataHdr entity = repository.findByTransactionPoidAndNotDeleted(transactionPoid)
+                .orElseThrow(() -> new AsgException(ERROR_NOT_FOUND + transactionPoid));
+
+        try {
+            Map<String, Object> params = printService.buildBaseParams(entity.getTransactionPoid(), UserContext.getDocumentId());
+            
+            JasperReport mainReport = printService.load("HR_JRXML/Emp_Personal_Data.jrxml");
+            return printService.fillReportToPdf(mainReport, params, dataSource);
+        } catch (Exception e) {
+            log.error("Failed to generate PDF for Personal Data Sheet: {}", transactionPoid, e);
+            throw new AsgException("Failed to generate PDF report", e);
+        }
     }
 
     private HrPersonalDataHdr mapToEntity(PersonalDataSheetRequestDto request) {
@@ -285,40 +379,46 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
                 .max(Long::compareTo)
                 .orElse(0L) };
 
+        ProcessingContext<HrPersonalDataDependent> context = ProcessingContext.<HrPersonalDataDependent>builder()
+                .transactionPoid(transactionPoid)
+                .existingMap(existingMap)
+                .maxDetRowId(maxDetRowId)
+                .collections(toSave, toUpdate, toDelete, logRequests)
+                .docId(docId)
+                .build();
+
         for (PersonalDataSheetRequestDto.DependentDto dto : dependentDtos) {
             String action = dto.getActionType() != null ? dto.getActionType().toUpperCase() : ACTION_CREATED;
-            processDependentAction(action, dto, transactionPoid, existingMap, maxDetRowId, toSave, toUpdate, toDelete, logRequests, docId);
+            processDependentAction(action, dto, context);
         }
 
         saveDependentBatch(toSave, toUpdate, toDelete, existingList, logRequests, transactionPoid, docId);
     }
 
-    private void processDependentAction(String action, PersonalDataSheetRequestDto.DependentDto dto, Long transactionPoid,
-                                      Map<Long, HrPersonalDataDependent> existingMap, Long[] maxDetRowId,
-                                      List<HrPersonalDataDependent> toSave, List<HrPersonalDataDependent> toUpdate,
-                                      List<Long> toDelete, List<LogRequestDto<HrPersonalDataDependent>> logRequests, String docId) {
+    private void processDependentAction(String action, PersonalDataSheetRequestDto.DependentDto dto,
+                                      ProcessingContext<HrPersonalDataDependent> context) {
         switch (action) {
             case ACTION_CREATED:
-                Long detRowId = dto.getDetRowId() != null ? dto.getDetRowId() : ++maxDetRowId[0];
-                HrPersonalDataDependent newDependent = mapDependentDtoToEntity(dto, transactionPoid);
+                Long detRowId = dto.getDetRowId() != null ? dto.getDetRowId() : ++context.maxDetRowId[0];
+                HrPersonalDataDependent newDependent = mapDependentDtoToEntity(dto, context.transactionPoid);
                 newDependent.setDetRowId(detRowId);
-                toSave.add(newDependent);
+                context.toSave.add(newDependent);
                 break;
             case ACTION_UPDATED:
-                HrPersonalDataDependent existing = existingMap.get(dto.getDetRowId());
+                HrPersonalDataDependent existing = context.existingMap.get(dto.getDetRowId());
                 if (existing == null) {
                     throw new ResourceNotFoundException(DEPENDENT_DETAIL, DET_ROW_ID_FIELD, dto.getDetRowId());
                 }
                 HrPersonalDataDependent oldDependent = new HrPersonalDataDependent();
                 BeanUtils.copyProperties(existing, oldDependent);
                 updateDependentEntity(existing, dto);
-                toUpdate.add(existing);
-                String logDetail = String.format(KEY_ID_FORMAT, transactionPoid, dto.getDetRowId());
-                logRequests.add(new LogRequestDto<>(oldDependent, existing, HrPersonalDataDependent.class, docId, transactionPoid.toString(), logDetail));
+                context.toUpdate.add(existing);
+                String logDetail = String.format(KEY_ID_FORMAT, context.transactionPoid, dto.getDetRowId());
+                context.logRequests.add(new LogRequestDto<>(oldDependent, existing, HrPersonalDataDependent.class, context.docId, context.transactionPoid.toString(), logDetail));
                 break;
             case ACTION_DELETED:
-                toDelete.add(dto.getDetRowId());
-                loggingService.logDelete(dto, docId, transactionPoid.toString());
+                context.toDelete.add(dto.getDetRowId());
+                loggingService.logDelete(dto, context.docId, context.transactionPoid.toString());
                 break;
             default:
                 log.warn(UNKNOWN_ACTION_LOG, action, "dependent", dto.getDetRowId());
@@ -364,40 +464,46 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
                 .max(Long::compareTo)
                 .orElse(0L) };
 
+        ProcessingContext<HrPersonalDataEmergency> context = ProcessingContext.<HrPersonalDataEmergency>builder()
+                .transactionPoid(transactionPoid)
+                .existingMap(existingMap)
+                .maxDetRowId(maxDetRowId)
+                .collections(toSave, toUpdate, toDelete, logRequests)
+                .docId(docId)
+                .build();
+
         for (PersonalDataSheetRequestDto.EmergencyContactDto dto : emergencyDtos) {
             String action = dto.getActionType() != null ? dto.getActionType().toUpperCase() : ACTION_CREATED;
-            processEmergencyAction(action, dto, transactionPoid, existingMap, maxDetRowId, toSave, toUpdate, toDelete, logRequests, docId);
+            processEmergencyAction(action, dto, context);
         }
 
         saveEmergencyBatch(toSave, toUpdate, toDelete, existingList, logRequests, transactionPoid, docId);
     }
 
-    private void processEmergencyAction(String action, PersonalDataSheetRequestDto.EmergencyContactDto dto, Long transactionPoid,
-                                      Map<Long, HrPersonalDataEmergency> existingMap, Long[] maxDetRowId,
-                                      List<HrPersonalDataEmergency> toSave, List<HrPersonalDataEmergency> toUpdate,
-                                      List<Long> toDelete, List<LogRequestDto<HrPersonalDataEmergency>> logRequests, String docId) {
+    private void processEmergencyAction(String action, PersonalDataSheetRequestDto.EmergencyContactDto dto,
+                                      ProcessingContext<HrPersonalDataEmergency> context) {
         switch (action) {
             case ACTION_CREATED:
-                Long detRowId = dto.getDetRowId() != null ? dto.getDetRowId() : ++maxDetRowId[0];
-                HrPersonalDataEmergency newEmergency = mapEmergencyContactDtoToEntity(dto, transactionPoid);
+                Long detRowId = dto.getDetRowId() != null ? dto.getDetRowId() : ++context.maxDetRowId[0];
+                HrPersonalDataEmergency newEmergency = mapEmergencyContactDtoToEntity(dto, context.transactionPoid);
                 newEmergency.setDetRowId(detRowId);
-                toSave.add(newEmergency);
+                context.toSave.add(newEmergency);
                 break;
             case ACTION_UPDATED:
-                HrPersonalDataEmergency existing = existingMap.get(dto.getDetRowId());
+                HrPersonalDataEmergency existing = context.existingMap.get(dto.getDetRowId());
                 if (existing == null) {
                     throw new ResourceNotFoundException(EMERGENCY_CONTACT_DETAIL, DET_ROW_ID_FIELD, dto.getDetRowId());
                 }
                 HrPersonalDataEmergency oldEmergency = new HrPersonalDataEmergency();
                 BeanUtils.copyProperties(existing, oldEmergency);
                 updateEmergencyContactEntity(existing, dto);
-                toUpdate.add(existing);
-                String logDetail = String.format(KEY_ID_FORMAT, transactionPoid, dto.getDetRowId());
-                logRequests.add(new LogRequestDto<>(oldEmergency, existing, HrPersonalDataEmergency.class, docId, transactionPoid.toString(), logDetail));
+                context.toUpdate.add(existing);
+                String logDetail = String.format(KEY_ID_FORMAT, context.transactionPoid, dto.getDetRowId());
+                context.logRequests.add(new LogRequestDto<>(oldEmergency, existing, HrPersonalDataEmergency.class, context.docId, context.transactionPoid.toString(), logDetail));
                 break;
             case ACTION_DELETED:
-                toDelete.add(dto.getDetRowId());
-                loggingService.logDelete(dto, docId, transactionPoid.toString());
+                context.toDelete.add(dto.getDetRowId());
+                loggingService.logDelete(dto, context.docId, context.transactionPoid.toString());
                 break;
             default:
                 log.warn(UNKNOWN_ACTION_LOG, action, "emergency contact", dto.getDetRowId());
@@ -443,40 +549,46 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
                 .max(Long::compareTo)
                 .orElse(0L) };
 
+        ProcessingContext<HrPersonalDataNominee> context = ProcessingContext.<HrPersonalDataNominee>builder()
+                .transactionPoid(transactionPoid)
+                .existingMap(existingMap)
+                .maxDetRowId(maxDetRowId)
+                .collections(toSave, toUpdate, toDelete, logRequests)
+                .docId(docId)
+                .build();
+
         for (PersonalDataSheetRequestDto.NomineeDto dto : nomineeDtos) {
             String action = dto.getActionType() != null ? dto.getActionType().toUpperCase() : ACTION_CREATED;
-            processNomineeAction(action, dto, transactionPoid, existingMap, maxDetRowId, toSave, toUpdate, toDelete, logRequests, docId);
+            processNomineeAction(action, dto, context);
         }
 
         saveNomineeBatch(toSave, toUpdate, toDelete, existingList, logRequests, transactionPoid, docId);
     }
 
-    private void processNomineeAction(String action, PersonalDataSheetRequestDto.NomineeDto dto, Long transactionPoid,
-                                    Map<Long, HrPersonalDataNominee> existingMap, Long[] maxDetRowId,
-                                    List<HrPersonalDataNominee> toSave, List<HrPersonalDataNominee> toUpdate,
-                                    List<Long> toDelete, List<LogRequestDto<HrPersonalDataNominee>> logRequests, String docId) {
+    private void processNomineeAction(String action, PersonalDataSheetRequestDto.NomineeDto dto,
+                                    ProcessingContext<HrPersonalDataNominee> context) {
         switch (action) {
             case ACTION_CREATED:
-                Long detRowId = dto.getDetRowId() != null ? dto.getDetRowId() : ++maxDetRowId[0];
-                HrPersonalDataNominee newNominee = mapNomineeDtoToEntity(dto, transactionPoid);
+                Long detRowId = dto.getDetRowId() != null ? dto.getDetRowId() : ++context.maxDetRowId[0];
+                HrPersonalDataNominee newNominee = mapNomineeDtoToEntity(dto, context.transactionPoid);
                 newNominee.setDetRowId(detRowId);
-                toSave.add(newNominee);
+                context.toSave.add(newNominee);
                 break;
             case ACTION_UPDATED:
-                HrPersonalDataNominee existing = existingMap.get(dto.getDetRowId());
+                HrPersonalDataNominee existing = context.existingMap.get(dto.getDetRowId());
                 if (existing == null) {
                     throw new ResourceNotFoundException(NOMINEE_DETAIL, DET_ROW_ID_FIELD, dto.getDetRowId());
                 }
                 HrPersonalDataNominee oldNominee = new HrPersonalDataNominee();
                 BeanUtils.copyProperties(existing, oldNominee);
                 updateNomineeEntity(existing, dto);
-                toUpdate.add(existing);
-                String logDetail = String.format(KEY_ID_FORMAT, transactionPoid, dto.getDetRowId());
-                logRequests.add(new LogRequestDto<>(oldNominee, existing, HrPersonalDataNominee.class, docId, transactionPoid.toString(), logDetail));
+                context.toUpdate.add(existing);
+                String logDetail = String.format(KEY_ID_FORMAT, context.transactionPoid, dto.getDetRowId());
+                context.logRequests.add(new LogRequestDto<>(oldNominee, existing, HrPersonalDataNominee.class, context.docId, context.transactionPoid.toString(), logDetail));
                 break;
             case ACTION_DELETED:
-                toDelete.add(dto.getDetRowId());
-                loggingService.logDelete(dto, docId, transactionPoid.toString());
+                context.toDelete.add(dto.getDetRowId());
+                loggingService.logDelete(dto, context.docId, context.transactionPoid.toString());
                 break;
             default:
                 log.warn(UNKNOWN_ACTION_LOG, action, "nominee", dto.getDetRowId());
@@ -522,40 +634,46 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
                 .max(Long::compareTo)
                 .orElse(0L) };
 
+        ProcessingContext<HrPersonalDataPolicies> context = ProcessingContext.<HrPersonalDataPolicies>builder()
+                .transactionPoid(transactionPoid)
+                .existingMap(existingMap)
+                .maxDetRowId(maxDetRowId)
+                .collections(toSave, toUpdate, toDelete, logRequests)
+                .docId(docId)
+                .build();
+
         for (PersonalDataSheetRequestDto.PolicyDto dto : policyDtos) {
             String action = dto.getActionType() != null ? dto.getActionType().toUpperCase() : ACTION_CREATED;
-            processPolicyAction(action, dto, transactionPoid, existingMap, maxDetRowId, toSave, toUpdate, toDelete, logRequests, docId);
+            processPolicyAction(action, dto, context);
         }
 
         savePolicyBatch(toSave, toUpdate, toDelete, existingList, logRequests, transactionPoid, docId);
     }
 
-    private void processPolicyAction(String action, PersonalDataSheetRequestDto.PolicyDto dto, Long transactionPoid,
-                                   Map<Long, HrPersonalDataPolicies> existingMap, Long[] maxDetRowId,
-                                   List<HrPersonalDataPolicies> toSave, List<HrPersonalDataPolicies> toUpdate,
-                                   List<Long> toDelete, List<LogRequestDto<HrPersonalDataPolicies>> logRequests, String docId) {
+    private void processPolicyAction(String action, PersonalDataSheetRequestDto.PolicyDto dto,
+                                   ProcessingContext<HrPersonalDataPolicies> context) {
         switch (action) {
             case ACTION_CREATED:
-                Long detRowId = dto.getDetRowId() != null ? dto.getDetRowId() : ++maxDetRowId[0];
-                HrPersonalDataPolicies newPolicy = mapPolicyDtoToEntity(dto, transactionPoid);
+                Long detRowId = dto.getDetRowId() != null ? dto.getDetRowId() : ++context.maxDetRowId[0];
+                HrPersonalDataPolicies newPolicy = mapPolicyDtoToEntity(dto, context.transactionPoid);
                 newPolicy.setDetRowId(detRowId);
-                toSave.add(newPolicy);
+                context.toSave.add(newPolicy);
                 break;
             case ACTION_UPDATED:
-                HrPersonalDataPolicies existing = existingMap.get(dto.getDetRowId());
+                HrPersonalDataPolicies existing = context.existingMap.get(dto.getDetRowId());
                 if (existing == null) {
                     throw new ResourceNotFoundException(POLICY_DETAIL, DET_ROW_ID_FIELD, dto.getDetRowId());
                 }
                 HrPersonalDataPolicies oldPolicy = new HrPersonalDataPolicies();
                 BeanUtils.copyProperties(existing, oldPolicy);
                 updatePolicyEntity(existing, dto);
-                toUpdate.add(existing);
-                String logDetail = String.format(KEY_ID_FORMAT, transactionPoid, dto.getDetRowId());
-                logRequests.add(new LogRequestDto<>(oldPolicy, existing, HrPersonalDataPolicies.class, docId, transactionPoid.toString(), logDetail));
+                context.toUpdate.add(existing);
+                String logDetail = String.format(KEY_ID_FORMAT, context.transactionPoid, dto.getDetRowId());
+                context.logRequests.add(new LogRequestDto<>(oldPolicy, existing, HrPersonalDataPolicies.class, context.docId, context.transactionPoid.toString(), logDetail));
                 break;
             case ACTION_DELETED:
-                toDelete.add(dto.getDetRowId());
-                loggingService.logDelete(dto, docId, transactionPoid.toString());
+                context.toDelete.add(dto.getDetRowId());
+                loggingService.logDelete(dto, context.docId, context.transactionPoid.toString());
                 break;
             default:
                 log.warn(UNKNOWN_ACTION_LOG, action, "policy", dto.getDetRowId());

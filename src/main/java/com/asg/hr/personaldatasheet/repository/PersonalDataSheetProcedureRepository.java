@@ -1,5 +1,6 @@
 package com.asg.hr.personaldatasheet.repository;
 
+import com.asg.common.lib.exception.AsgException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
@@ -48,7 +49,7 @@ public class PersonalDataSheetProcedureRepository {
 
         } catch (Exception e) {
             log.error("Error calling PROC_GET_LOGIN_USER_EMP_ID", e);
-            throw new RuntimeException("Failed to get login user employee ID", e);
+            throw new AsgException("Failed to get login user employee ID", e);
         }
     }
 
@@ -79,22 +80,22 @@ public class PersonalDataSheetProcedureRepository {
             String status = cs.getString(6);
             List<Map<String, Object>> policies = new ArrayList<>();
             
-            try (ResultSet rs = (ResultSet) cs.getObject(7)) {
+            ResultSet rs = (ResultSet) cs.getObject(7);
+            if (rs != null) {
                 while (rs.next()) {
                     Map<String, Object> policy = new HashMap<>();
                     policy.put("docPoid", rs.getLong("DOC_POID"));
                     policy.put("docName", rs.getString("DOC_NAME"));
-                    // Handle the case where remarks column might be missing in the first query
-                    try {
-                        policy.put("remarks", rs.getString("REMARKS"));
-                    } catch (Exception ex) {
-                        policy.put("remarks", ""); // Default empty string if column doesn't exist
-                    }
+                    
+                    String remarks = getRemarksColumn(rs);
+                    policy.put("remarks", remarks);
+                    
                     policy.put("drilldownLinkInfo", rs.getString("DRILLDOWN_LINK_INFO"));
                     policy.put("policyAccepted", rs.getString("POLICY_ACCEPTED"));
                     policy.put("policyAcceptedOn", rs.getDate("POLICY_ACCEPTED_ON"));
                     policies.add(policy);
                 }
+                rs.close();
             }
             
             log.info("User policies loaded: {} policies found, status={}", policies.size(), status);
@@ -103,7 +104,16 @@ public class PersonalDataSheetProcedureRepository {
             
         } catch (Exception e) {
             log.error("Error calling PROC_HR_LOAD_USER_POLICIES for docKeyPoid={}", docKeyPoid, e);
-            throw new RuntimeException("Failed to load user policies", e);
+            throw new AsgException("Failed to load user policies", e);
+        }
+    }
+    
+    private String getRemarksColumn(ResultSet rs) {
+        try {
+            String remarks = rs.getString("REMARKS");
+            return remarks != null ? remarks : "";
+        } catch (Exception e) {
+            return "";
         }
     }
 }

@@ -4,7 +4,7 @@ import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.dto.RawSearchResult;
 import com.asg.common.lib.enums.LogDetailsEnum;
-import com.asg.hr.exceptions.ResourceNotFoundException;
+import com.asg.common.lib.exception.AsgException;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
@@ -12,6 +12,7 @@ import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.personaldatasheet.dto.PersonalDataSheetRequestDto;
 import com.asg.hr.personaldatasheet.entity.*;
 import com.asg.hr.personaldatasheet.repository.*;
+import com.asg.hr.personaldatasheet.util.PersonalDataSheetValidator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -90,7 +91,7 @@ class PersonalDataSheetServiceImplTest {
         when(repository.findByTransactionPoidAndNotDeleted(1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getById(1L))
-                .isInstanceOf(ResourceNotFoundException.class)
+                .isInstanceOf(AsgException.class)
                 .hasMessageContaining("Personal data sheet not found with ID: 1");
     }
 
@@ -116,7 +117,7 @@ class PersonalDataSheetServiceImplTest {
         when(repository.findByTransactionPoidAndNotDeleted(5L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.update(5L, req))
-                .isInstanceOf(ResourceNotFoundException.class)
+                .isInstanceOf(AsgException.class)
                 .hasMessageContaining("Personal data sheet not found with ID: 5");
     }
 
@@ -155,7 +156,7 @@ class PersonalDataSheetServiceImplTest {
         when(repository.findByTransactionPoidAndNotDeleted(7L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.delete(7L, reason))
-                .isInstanceOf(ResourceNotFoundException.class)
+                .isInstanceOf(AsgException.class)
                 .hasMessageContaining("Personal data sheet not found with ID: 7");
     }
 

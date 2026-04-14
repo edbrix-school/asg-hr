@@ -24,4 +24,6 @@ public interface PersonalDataSheetService {
     Map<String, Object> getLoginUserEmployee();
 
     List<Map<String, Object>> loadUserPolicies(Long employeePoid);
+
+    byte[] print(Long transactionPoid);
 }
