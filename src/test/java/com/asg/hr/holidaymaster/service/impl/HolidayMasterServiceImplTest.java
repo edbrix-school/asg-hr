@@ -172,7 +172,7 @@ class HolidayMasterServiceImplTest {
         HolidayMasterRequest updateRequest = new HolidayMasterRequest();
         updateRequest.setHolidayDate(LocalDate.of(2030, 12, 25));
 
-        when(repository.findByHolidayPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.of(entity));
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
         when(repository.existsByHolidayDate(LocalDate.of(2030, 12, 25))).thenReturn(true);
 
         assertThrows(ValidationException.class, () -> service.update(1L, updateRequest));
@@ -180,8 +180,19 @@ class HolidayMasterServiceImplTest {
 
     @Test
     void update_WhenNotFound_ThrowsException() {
-        when(repository.findByHolidayPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.empty());
+        when(repository.findById(1L)).thenReturn(Optional.empty());
         assertThrows(ResourceNotFoundException.class, () -> service.update(1L, request));
+    }
+
+    @Test
+    void update_WhenAlreadyDeleted_ThrowsValidationException() {
+        HolidayMasterRequest updateRequest = new HolidayMasterRequest();
+        updateRequest.setHolidayReason("Updated");
+        entity.setDeleted("Y");
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+
+        ValidationException ex = assertThrows(ValidationException.class, () -> service.update(1L, updateRequest));
+        assertEquals("Holiday record is already deleted", ex.getMessage());
     }
 
     @Test
@@ -189,7 +200,7 @@ class HolidayMasterServiceImplTest {
         HolidayMasterRequest updateRequest = new HolidayMasterRequest();
         updateRequest.setHolidayReason("Updated");
 
-        when(repository.findByHolidayPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.of(entity));
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
         when(mapper.toResponse(entity)).thenReturn(response);
         when(repository.save(entity)).thenReturn(entity);
 

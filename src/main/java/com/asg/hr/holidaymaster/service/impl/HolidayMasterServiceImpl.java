@@ -117,12 +117,16 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
         log.info("Updating holiday with id: {}", holidayPoid);
 
         HolidayMasterEntity entity =
-                repository.findByHolidayPoidAndDeletedNot(holidayPoid, "Y")
+                repository.findById(holidayPoid)
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 HolidayMasterConstants.HOLIDAY_MASTER,
                                 HolidayMasterConstants.HOLIDAYPOID,
                                 holidayPoid
                         ));
+
+        if ("Y".equalsIgnoreCase(entity.getDeleted())) {
+            throw new ValidationException("Holiday record is already deleted");
+        }
 
         if (request.getHolidayDate() != null
                 && !request.getHolidayDate().equals(entity.getHolidayDate())
