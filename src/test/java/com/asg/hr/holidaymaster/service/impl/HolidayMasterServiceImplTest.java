@@ -126,7 +126,7 @@ class HolidayMasterServiceImplTest {
 
     @Test
     void getById_WhenFound_ReturnsResponse() {
-        when(repository.findByHolidayPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.of(entity));
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
         when(mapper.toResponse(entity)).thenReturn(response);
 
         HolidayMasterResponse result = service.getById(1L);
@@ -137,7 +137,7 @@ class HolidayMasterServiceImplTest {
 
     @Test
     void getById_WhenNotFound_ThrowsException() {
-        when(repository.findByHolidayPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.empty());
+        when(repository.findById(1L)).thenReturn(Optional.empty());
         assertThrows(ResourceNotFoundException.class, () -> service.getById(1L));
     }
 

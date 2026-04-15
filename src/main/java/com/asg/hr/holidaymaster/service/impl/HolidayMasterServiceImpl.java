@@ -81,7 +81,7 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
         log.info("Getting holiday with id: {}", holidayPoid);
 
         HolidayMasterEntity entity =
-                repository.findByHolidayPoidAndDeletedNot(holidayPoid, "Y")
+                repository.findById(holidayPoid)
                         .orElseThrow(() -> new ResourceNotFoundException(
                                 HolidayMasterConstants.HOLIDAY_MASTER,
                                 HolidayMasterConstants.HOLIDAYPOID,
