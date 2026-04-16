@@ -288,7 +288,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         requireExists(requestDto.getDepartmentPoid(), hrDepartmentMasterRepository::existsByDeptPoid, "Department", "Department Poid");
         requireExists(requestDto.getNationalityPoid(), hrNationalityRepository::existsByNationPoid, "Nationality", "Nationality Poid");
         requireExists(requestDto.getReligionPoid(), religionRepository::existsByReligionPoid, "Religion", "Religion Poid");
-        requireExists(requestDto.getDesignationPoid(), designationRepository::existsByDesigPoid, "Designation", "Designation Poid");
+        requireExists(requestDto.getDesignationPoid(), designationRepository::existsByDesignationPoid, "Designation", "Designation Poid");
         requireExists(requestDto.getShiftPoid(), globalShiftMasterRepository::existsByShiftPoid, "Shift", "Shift Poid");
         if (requestDto.getDiscontinued() != null && !globalFixedVariablesRepository.existsByVariableName(requestDto.getDiscontinued())) {
             throw new ResourceNotFoundException("Discontinued", "variable name", requestDto.getDiscontinued());

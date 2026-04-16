@@ -65,7 +65,7 @@ public interface HrEmployeeMasterRepository extends JpaRepository<HrEmployeeMast
                 )
                 FROM HrEmployeeMaster e
                 LEFT JOIN HrDepartmentMaster d ON d.deptPoid = e.departmentPoid
-                LEFT JOIN HrDesignationMaster des ON des.desigPoid = e.designationPoid
+                LEFT JOIN HrDesignationMaster des ON des.designationPoid = e.designationPoid
                 LEFT JOIN GlobalLocationMaster loc ON loc.locationPoid = e.locationPoid
                 WHERE COALESCE(e.deleted, 'N') = 'N'
                   AND (:designationPoid IS NULL OR e.designationPoid = :designationPoid)
@@ -79,7 +79,7 @@ public interface HrEmployeeMasterRepository extends JpaRepository<HrEmployeeMast
                         OR (e.employeeName2 IS NOT NULL AND LOWER(e.employeeName2) LIKE LOWER(CONCAT('%', :filter, '%')))
                         OR (e.mobile IS NOT NULL AND LOWER(e.mobile) LIKE LOWER(CONCAT('%', :filter, '%')))
                         OR (d.deptPoid IS NOT NULL AND LOWER(d.deptName) LIKE LOWER(CONCAT('%', :filter, '%')))
-                        OR (des.desigPoid IS NOT NULL AND LOWER(des.designationName) LIKE LOWER(CONCAT('%', :filter, '%')))
+                        OR (des.designationPoid IS NOT NULL AND LOWER(des.designationName) LIKE LOWER(CONCAT('%', :filter, '%')))
                         OR (loc.locationPoid IS NOT NULL AND (
                               LOWER(loc.locationName) LIKE LOWER(CONCAT('%', :filter, '%'))
                               OR (loc.locationName2 IS NOT NULL AND LOWER(loc.locationName2) LIKE LOWER(CONCAT('%', :filter, '%')))

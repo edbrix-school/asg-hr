@@ -6,5 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface HrDesignationMasterRepository extends JpaRepository<HrDesignationMaster, Long> {
-    boolean existsByDesigPoid(Long desigPoid);
+    boolean existsByDesignationPoid(Long desigPoid);
 }

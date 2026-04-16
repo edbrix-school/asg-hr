@@ -1827,12 +1827,12 @@ class EmployeeMasterServiceImplTest {
                     .hasMessageContaining("Religion");
 
             when(religionRepository.existsByReligionPoid(11L)).thenReturn(true);
-            when(designationRepository.existsByDesigPoid(12L)).thenReturn(false);
+            when(designationRepository.existsByDesignationPoid(12L)).thenReturn(false);
             assertThatThrownBy(() -> service.createEmployee(req))
                     .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessageContaining("Designation");
 
-            when(designationRepository.existsByDesigPoid(12L)).thenReturn(true);
+            when(designationRepository.existsByDesignationPoid(12L)).thenReturn(true);
             when(globalShiftMasterRepository.existsByShiftPoid(13L)).thenReturn(false);
             assertThatThrownBy(() -> service.createEmployee(req))
                     .isInstanceOf(ResourceNotFoundException.class)
