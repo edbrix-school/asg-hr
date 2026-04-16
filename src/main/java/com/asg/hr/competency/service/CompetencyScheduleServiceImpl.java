@@ -52,6 +52,7 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
     @Transactional
     public Long createSchedule(CompetencyScheduleRequestDto requestDto) {
         validatePeriod(requestDto, null);
+        validateEvaluationDate(requestDto);
         
         HrCompetencySchedule schedule = HrCompetencySchedule.builder()
                 .groupPoid(UserContext.getGroupPoid())
@@ -81,6 +82,7 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
                 .orElseThrow(() -> new ResourceNotFoundException(SCHEDULE_FIELD, SCHEDULE_POID_FIELD, schedulePoid));
         
         validatePeriod(requestDto, schedulePoid);
+        validateEvaluationDate(requestDto);
         
         // Create a copy of the existing entity for logging
         HrCompetencySchedule oldEntity = new HrCompetencySchedule();
@@ -152,6 +154,8 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
         LocalDate evalDate = evaluationDate != null ? evaluationDate : schedule.getEvaluationDate();
         procRepository.createBatchEvaluation(schedulePoid, schedule.getGroupPoid(), recreate, evalDate);
         log.info("Batch evaluation created for schedule ID: {}", schedulePoid);
+        
+        loggingService.createLogSummaryEntry(UserContext.getDocumentId(),  schedulePoid.toString(), "Batch evaluation created successfully");
     }
     
     private void validatePeriod(CompetencyScheduleRequestDto requestDto, Long schedulePoid) {
@@ -169,6 +173,13 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
         
         if (overlaps) {
             throw new ValidationException("Period overlaps with an existing schedule");
+        }
+    }
+    
+    private void validateEvaluationDate(CompetencyScheduleRequestDto requestDto) {
+        if (requestDto.getEvaluationDate() != null && 
+            requestDto.getEvaluationDate().isBefore(requestDto.getPeriodFrom())) {
+            throw new ValidationException("Evaluation date cannot be before the period from date");
         }
     }
     
