@@ -75,7 +75,9 @@ public class HrDepartmentMasterServiceImpl implements HrDepartmentMasterService 
             throw new ResourceAlreadyExistsException("Department name", request.getDeptName());
         }
 
-        costCenterServiceClient.findById(request.getCostCentrePoid());
+        if (request.getCostCentrePoid() != null) {
+            costCenterServiceClient.findById(request.getCostCentrePoid());
+        }
 
         HrDepartmentMaster entity = new HrDepartmentMaster();
         entity.setGroupPoid(groupPoid);
