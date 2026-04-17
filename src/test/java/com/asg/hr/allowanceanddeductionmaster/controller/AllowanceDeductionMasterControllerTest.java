@@ -214,7 +214,7 @@ class AllowanceDeductionMasterControllerTest {
 
         when(service.list(any(FilterRequestDto.class), any(), any(), any())).thenReturn(responseMap);
 
-        mockMvc.perform(post("/v1/allowance-deduction-master/search?startDate=2024-01-01&endDate=2024-12-31")
+        mockMvc.perform(post("/v1/allowance-deduction-master/list?startDate=2024-01-01&endDate=2024-12-31")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(filters)))
                 .andExpect(status().isOk());
@@ -229,7 +229,7 @@ class AllowanceDeductionMasterControllerTest {
         when(service.list(any(FilterRequestDto.class), any(), any(), any()))
                 .thenThrow(new RuntimeException("Search failed"));
 
-        mockMvc.perform(post("/v1/allowance-deduction-master/search?startDate=2024-01-01&endDate=2024-12-31")
+        mockMvc.perform(post("/v1/allowance-deduction-master/list?startDate=2024-01-01&endDate=2024-12-31")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(filters)))
                 .andExpect(status().isInternalServerError());
@@ -248,7 +248,7 @@ class AllowanceDeductionMasterControllerTest {
 
         when(service.list(any(FilterRequestDto.class), isNull(), isNull(), any())).thenReturn(responseMap);
 
-        mockMvc.perform(post("/v1/allowance-deduction-master/search")
+        mockMvc.perform(post("/v1/allowance-deduction-master/list")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(filters)))
                 .andExpect(status().isOk());
@@ -265,7 +265,7 @@ class AllowanceDeductionMasterControllerTest {
 
         when(service.list(isNull(), isNull(), isNull(), any())).thenReturn(responseMap);
 
-        mockMvc.perform(post("/v1/allowance-deduction-master/search")
+        mockMvc.perform(post("/v1/allowance-deduction-master/list")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
