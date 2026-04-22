@@ -121,7 +121,7 @@ class HrResignationServiceImplTest {
         List<FilterDto> resolvedFilters = List.of(new FilterDto("EMPLOYEE_POID", "1001"));
         when(documentService.resolveOperator(filters)).thenReturn("OR");
         when(documentService.resolveIsDeleted(filters)).thenReturn("N");
-        when(documentService.resolveFilters(filters)).thenReturn(resolvedFilters);
+        when(documentService.resolveDateFilters(filters, "TRANSACTION_DATE", null, null)).thenReturn(resolvedFilters);
 
         Map<String, Object> row = Map.of("DOC_REF", "DOC-1", "TRANSACTION_POID", 1L);
         Map<String, String> display = Map.of("DOC_REF", "Doc Ref");
@@ -139,7 +139,7 @@ class HrResignationServiceImplTest {
 
         try (MockedStatic<UserContext> userContext = Mockito.mockStatic(UserContext.class)) {
             userContext.when(UserContext::getDocumentId).thenReturn(DOCUMENT_ID);
-            Map<String, Object> result = service.listResignations(filters, pageable);
+            Map<String, Object> result = service.listResignations(filters, null, null, pageable);
 
             assertNotNull(result);
             assertEquals(1L, result.get("totalElements"));

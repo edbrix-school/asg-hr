@@ -29,9 +29,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
+import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
@@ -52,9 +53,11 @@ public class HrResignationController {
     )
     public ResponseEntity<?> listResignations(
             @ParameterObject Pageable pageable,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
             @RequestBody(required = false) FilterRequestDto filters
     ) {
-        Map<String, Object> result = resignationService.listResignations(filters, pageable);
+        Map<String, Object> result = resignationService.listResignations(filters, startDate, endDate, pageable);
         return ApiResponse.success("Resignation list retrieved successfully", result);
     }
 

@@ -156,7 +156,7 @@ class HrResignationControllerTest {
 
     @Test
     void listResignations_Returns200() throws Exception {
-        when(resignationService.listResignations(any(), any())).thenReturn(Map.of("totalElements", 0));
+        when(resignationService.listResignations(any(), any(), any(), any())).thenReturn(Map.of("totalElements", 0));
         mockMvc.perform(post("/v1/resignation/list")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))

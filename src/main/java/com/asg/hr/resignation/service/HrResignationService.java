@@ -5,11 +5,12 @@ import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.hr.resignation.dto.*;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 public interface HrResignationService {
 
-    Map<String, Object> listResignations(FilterRequestDto filters, Pageable pageable);
+    Map<String, Object> listResignations(FilterRequestDto filters, LocalDate startDate, LocalDate endDate, Pageable pageable);
 
     HrResignationResponse getById(Long transactionPoid);
 

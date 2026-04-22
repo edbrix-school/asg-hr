@@ -51,11 +51,21 @@ public class HrResignationServiceImpl implements HrResignationService {
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> listResignations(FilterRequestDto filters, Pageable pageable) {
+    public Map<String, Object> listResignations(
+            FilterRequestDto filters,
+            LocalDate startDate,
+            LocalDate endDate,
+            Pageable pageable
+    ) {
         String docId = getRequiredDocumentId();
         String operator = documentService.resolveOperator(filters);
         String isDeleted = documentService.resolveIsDeleted(filters);
-        List<FilterDto> resolvedFilters = documentService.resolveFilters(filters);
+        List<FilterDto> resolvedFilters = documentService.resolveDateFilters(
+                filters,
+                "TRANSACTION_DATE",
+                startDate,
+                endDate
+        );
 
         RawSearchResult raw = documentService.search(
                 docId,
