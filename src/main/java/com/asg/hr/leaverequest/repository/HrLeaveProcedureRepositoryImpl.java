@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.ParameterMode;
 import jakarta.persistence.StoredProcedureQuery;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
@@ -17,9 +18,18 @@ import java.util.*;
 import org.hibernate.Session;
 import oracle.jdbc.OracleTypes;
 
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class HrLeaveProcedureRepositoryImpl implements HrLeaveProcedureRepository {
+
+    private static final String KEY_STATUS = "status";
+    private static final String KEY_DATA = "data";
+    private static final String KEY_HOD = "hod";
+    private static final String ERROR_PREFIX = "ERROR: ";
+    private static final String PARAM_P_STATUS = "P_STATUS";
+    private static final String PARAM_P_EMPLOYEE_POID = "P_EMPLOYEE_POID";
+    private static final String PARAM_P_TRN_NO = "P_TRN_NO";
 
     private final EntityManager entityManager;
 
@@ -32,29 +42,29 @@ public class HrLeaveProcedureRepositoryImpl implements HrLeaveProcedureRepositor
             StoredProcedureQuery query =
                     entityManager.createStoredProcedureQuery("PROC_HR_GET_EMP_DETAILS");
 
-            query.registerStoredProcedureParameter("P_EMPLOYEE_POID", Long.class, ParameterMode.IN);
+            query.registerStoredProcedureParameter(PARAM_P_EMPLOYEE_POID, Long.class, ParameterMode.IN);
             query.registerStoredProcedureParameter("OUTDATA", void.class, ParameterMode.REF_CURSOR);
-            query.registerStoredProcedureParameter("P_STATUS", String.class, ParameterMode.OUT);
+            query.registerStoredProcedureParameter(PARAM_P_STATUS, String.class, ParameterMode.OUT);
 
-            query.setParameter("P_EMPLOYEE_POID", employeePoid);
+            query.setParameter(PARAM_P_EMPLOYEE_POID, employeePoid);
 
             query.execute();
 
-            String status = (String) query.getOutputParameterValue("P_STATUS");
+            String status = (String) query.getOutputParameterValue(PARAM_P_STATUS);
 
             if (status != null && status.contains("SUCCESS")) {
                 List<Object[]> result = query.getResultList();
-                map.put("data", normalizeEmployeeDetails(result));
+                map.put(KEY_DATA, normalizeEmployeeDetails(result));
             } else {
-                // ERROR case → no data
-                map.put("data", Collections.emptyList());
+                map.put(KEY_DATA, Collections.emptyList());
             }
 
-            map.put("status", status);
+            map.put(KEY_STATUS, status);
 
         } catch (Exception ex) {
-            map.put("status", "ERROR: " + ex.getMessage());
-            map.put("data", Collections.emptyList());
+            log.error("Error in getEmployeeDetails", ex);
+            map.put(KEY_STATUS, ERROR_PREFIX + ex.getMessage());
+            map.put(KEY_DATA, Collections.emptyList());
         }
 
         return map;
@@ -69,15 +79,15 @@ public class HrLeaveProcedureRepositoryImpl implements HrLeaveProcedureRepositor
             StoredProcedureQuery query =
                     entityManager.createStoredProcedureQuery("PROC_HR_GET_EMP_HOD");
 
-            query.registerStoredProcedureParameter("P_EMPLOYEE_POID", Long.class, ParameterMode.IN);
+            query.registerStoredProcedureParameter(PARAM_P_EMPLOYEE_POID, Long.class, ParameterMode.IN);
             query.registerStoredProcedureParameter("OUTDATA", void.class, ParameterMode.REF_CURSOR);
-            query.registerStoredProcedureParameter("P_STATUS", String.class, ParameterMode.OUT);
+            query.registerStoredProcedureParameter(PARAM_P_STATUS, String.class, ParameterMode.OUT);
 
-            query.setParameter("P_EMPLOYEE_POID", employeePoid);
+            query.setParameter(PARAM_P_EMPLOYEE_POID, employeePoid);
 
             query.execute();
 
-            String status = (String) query.getOutputParameterValue("P_STATUS");
+            String status = (String) query.getOutputParameterValue(PARAM_P_STATUS);
 
             if (status != null && status.contains("SUCCESS")) {
 
@@ -92,16 +102,17 @@ public class HrLeaveProcedureRepositoryImpl implements HrLeaveProcedureRepositor
                     }
                 }
 
-                map.put("hod", hod);
+                map.put(KEY_HOD, hod);
             } else {
-                map.put("hod", null);
+                map.put(KEY_HOD, null);
             }
 
-            map.put("status", status);
+            map.put(KEY_STATUS, status);
 
         } catch (Exception ex) {
-            map.put("status", "ERROR: " + ex.getMessage());
-            map.put("hod", null);
+            log.error("Error in getEmployeeHod", ex);
+            map.put(KEY_STATUS, ERROR_PREFIX + ex.getMessage());
+            map.put(KEY_HOD, null);
         }
 
         return map;
@@ -118,18 +129,10 @@ public class HrLeaveProcedureRepositoryImpl implements HrLeaveProcedureRepositor
 
         Map<String, Object> map = new HashMap<>();
 
-        Connection conn = null;
-        CallableStatement stmt = null;
-        ResultSet rs = null;
+        Connection conn = entityManager.unwrap(Session.class)
+                .doReturningWork(connection -> connection);
 
-        try {
-            conn = entityManager.unwrap(Session.class)
-                    .doReturningWork(connection -> connection);
-
-            String sql = "{call PROC_HR_ELIGIBLELEAVE_DAYS(?,?,?,?,?,?,?)}";
-
-            stmt = conn.prepareCall(sql);
-
+        try (CallableStatement stmt = conn.prepareCall("{call PROC_HR_ELIGIBLELEAVE_DAYS(?,?,?,?,?,?,?)}")) {
 
             stmt.setBigDecimal(1, BigDecimal.valueOf(companyId));
             stmt.setBigDecimal(2, BigDecimal.valueOf(empPoid));
@@ -139,9 +142,8 @@ public class HrLeaveProcedureRepositoryImpl implements HrLeaveProcedureRepositor
             if (settlementPoid != null && settlementPoid > 0) {
                 stmt.setBigDecimal(5, BigDecimal.valueOf(settlementPoid));
             } else {
-                stmt.setNull(5, Types.NUMERIC); //  IMPORTANT
+                stmt.setNull(5, Types.NUMERIC);
             }
-
 
             stmt.registerOutParameter(6, OracleTypes.CURSOR);
             stmt.registerOutParameter(7, Types.VARCHAR);
@@ -150,34 +152,32 @@ public class HrLeaveProcedureRepositoryImpl implements HrLeaveProcedureRepositor
 
             String status = stmt.getString(7);
 
-            rs = (ResultSet) stmt.getObject(6);
+            try (ResultSet rs = (ResultSet) stmt.getObject(6)) {
+                List<Map<String, Object>> data = new ArrayList<>();
 
-            List<Map<String, Object>> data = new ArrayList<>();
+                while (rs.next()) {
+                    Map<String, Object> row = new HashMap<>();
+                    row.put("eligibleLeave", rs.getObject(1));
+                    row.put("eligibleTicket", rs.getObject(2));
+                    row.put("ticketPeriod", rs.getObject(3));
+                    row.put("earnedTicket", rs.getObject(4));
+                    row.put("airSectorPoid", rs.getObject(5));
+                    row.put("paidLeavesTaken", rs.getObject(6));
+                    row.put("medicalTaken", rs.getObject(7));
+                    row.put("medicalEligible", rs.getObject(8));
+                    row.put("lastLeaveDetails", rs.getObject(9));
+                    row.put("lastTicketDetails", rs.getObject(10));
+                    data.add(row);
+                }
 
-            while (rs.next()) {
-                Map<String, Object> row = new HashMap<>();
-
-                row.put("eligibleLeave", rs.getObject(1));
-                row.put("eligibleTicket", rs.getObject(2));
-                row.put("ticketPeriod", rs.getObject(3));
-                row.put("earnedTicket", rs.getObject(4));
-                row.put("airSectorPoid", rs.getObject(5));
-                row.put("paidLeavesTaken", rs.getObject(6));
-                row.put("medicalTaken", rs.getObject(7));
-                row.put("medicalEligible", rs.getObject(8));
-                row.put("lastLeaveDetails", rs.getObject(9));
-                row.put("lastTicketDetails", rs.getObject(10));
-
-                data.add(row);
+                map.put(KEY_STATUS, status);
+                map.put(KEY_DATA, data);
             }
 
-            map.put("status", status);
-            map.put("data", data);
-
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            map.put("status", "ERROR: " + ex.getMessage());
-            map.put("data", Collections.emptyList());
+        } catch (java.sql.SQLException ex) {
+            log.error("Error in getEligibleLeaveDays", ex);
+            map.put(KEY_STATUS, ERROR_PREFIX + ex.getMessage());
+            map.put(KEY_DATA, Collections.emptyList());
         }
 
         return map;
@@ -222,7 +222,7 @@ public class HrLeaveProcedureRepositoryImpl implements HrLeaveProcedureRepositor
             }
 
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("Error in getTicketFamilyDetails", ex);
         }
 
         return list;
@@ -240,27 +240,20 @@ public class HrLeaveProcedureRepositoryImpl implements HrLeaveProcedureRepositor
                     entityManager.createStoredProcedureQuery("PROC_HR_LEAVE_REQ_POST_IN_HIST");
 
 
-            query.registerStoredProcedureParameter("P_TRN_NO", Long.class, ParameterMode.IN);
-
-
-            query.registerStoredProcedureParameter("P_STATUS", String.class, ParameterMode.OUT);
-
-
+            query.registerStoredProcedureParameter(PARAM_P_TRN_NO, Long.class, ParameterMode.IN);
+            query.registerStoredProcedureParameter(PARAM_P_STATUS, String.class, ParameterMode.OUT);
             query.registerStoredProcedureParameter("pHrTicketIssueType", String.class, ParameterMode.IN);
             query.registerStoredProcedureParameter("pHrTicketTillDate", String.class, ParameterMode.IN);
             query.registerStoredProcedureParameter("pHrTicketIssuedCount", String.class, ParameterMode.IN);
 
-
-            query.setParameter("P_TRN_NO", tranId);
+            query.setParameter(PARAM_P_TRN_NO, tranId);
             query.setParameter("pHrTicketIssueType", ticketIssueType);
             query.setParameter("pHrTicketTillDate", ticketTillDate);
             query.setParameter("pHrTicketIssuedCount", ticketIssuedCount);
 
             query.execute();
 
-            String status = (String) query.getOutputParameterValue("P_STATUS");
-
-            return status;
+            return (String) query.getOutputParameterValue(PARAM_P_STATUS);
     }
 
     @Override
@@ -332,10 +325,11 @@ public class HrLeaveProcedureRepositoryImpl implements HrLeaveProcedureRepositor
             query.execute();
 
             map.put("leaveDays", query.getOutputParameterValue(7));
-            map.put("status", query.getOutputParameterValue(8));
+            map.put(KEY_STATUS, query.getOutputParameterValue(8));
 
         } catch (Exception e) {
-            map.put("status", "ERROR: " + e.getMessage());
+            log.error("Error in validateLeave", e);
+            map.put(KEY_STATUS, ERROR_PREFIX + e.getMessage());
         }
 
         return map;
@@ -350,24 +344,15 @@ public class HrLeaveProcedureRepositoryImpl implements HrLeaveProcedureRepositor
             StoredProcedureQuery query =
                     entityManager.createStoredProcedureQuery("PROC_HR_LEV_REQ_UNUPDATE_HIST");
 
-            // IN parameter
-            query.registerStoredProcedureParameter("P_TRN_NO", Long.class, ParameterMode.IN);
-
-            // OUT parameter
+            query.registerStoredProcedureParameter(PARAM_P_TRN_NO, Long.class, ParameterMode.IN);
             query.registerStoredProcedureParameter("P_RESULT", String.class, ParameterMode.OUT);
-
-            // set value
-            query.setParameter("P_TRN_NO", tranId);
-
-            // execute
+            query.setParameter(PARAM_P_TRN_NO, tranId);
             query.execute();
-
-            // get result
             result = (String) query.getOutputParameterValue("P_RESULT");
 
         } catch (Exception ex) {
-            ex.printStackTrace();
-            result = "ERROR: " + ex.getMessage();
+            log.error("Error in unUpdateLeaveHistory", ex);
+            result = ERROR_PREFIX + ex.getMessage();
         }
 
         return result;
@@ -375,13 +360,10 @@ public class HrLeaveProcedureRepositoryImpl implements HrLeaveProcedureRepositor
 
     @Override
     public BigDecimal getHolidayCount(LocalDate leaveStartDate, LocalDate planedRejoinDate) {
-        Connection conn = null;
-        CallableStatement stmt = null;
+        Connection conn = entityManager.unwrap(Session.class)
+                .doReturningWork(connection -> connection);
 
-        try {
-            conn = entityManager.unwrap(Session.class)
-                    .doReturningWork(connection -> connection);
-            stmt = conn.prepareCall("begin ? := FUNC_RTN_HOLIDAY_COUNT(?,?); end;");
+        try (CallableStatement stmt = conn.prepareCall("begin ? := FUNC_RTN_HOLIDAY_COUNT(?,?); end;")) {
             stmt.registerOutParameter(1, Types.VARCHAR);
             stmt.setDate(2, java.sql.Date.valueOf(leaveStartDate));
             stmt.setDate(3, java.sql.Date.valueOf(planedRejoinDate.minusDays(1)));
@@ -390,14 +372,8 @@ public class HrLeaveProcedureRepositoryImpl implements HrLeaveProcedureRepositor
             Object value = stmt.getObject(1);
             return value != null ? new BigDecimal(value.toString()) : BigDecimal.ZERO;
         } catch (Exception ex) {
+            log.error("Error in getHolidayCount", ex);
             return BigDecimal.ZERO;
-        } finally {
-            try {
-                if (stmt != null) {
-                    stmt.close();
-                }
-            } catch (Exception ignored) {
-            }
         }
     }
 
@@ -448,6 +424,7 @@ public class HrLeaveProcedureRepositoryImpl implements HrLeaveProcedureRepositor
             return result != null ? ((Number) result).longValue() : null;
 
         } catch (Exception e) {
+            log.error("Error in getLoginUserEmployeeId", e);
             return null;
         }
     }

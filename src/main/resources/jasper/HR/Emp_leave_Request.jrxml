@@ -1,0 +1,532 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Emp_leave_Request" language="groovy" pageWidth="595" pageHeight="842" columnWidth="539" leftMargin="36" rightMargin="20" topMargin="20" bottomMargin="20" uuid="51f26c1c-332c-43f0-beb9-5722768520c7">
+	<property name="ireport.zoom" value="1.9487171000000025"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<style name="Title" fontName="Times New Roman" fontSize="50" isBold="true" pdfFontName="Times-Bold"/>
+	<style name="SubTitle" forecolor="#736343" fontName="Arial" fontSize="18"/>
+	<style name="Column header" forecolor="#666666" fontName="Arial" fontSize="12" isBold="true"/>
+	<style name="Detail" fontName="Arial" fontSize="12"/>
+	<style name="Row" mode="Transparent">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{REPORT_COUNT}%2 == 0]]></conditionExpression>
+			<style backcolor="#E6DAC3"/>
+		</conditionalStyle>
+	</style>
+	<parameter name="LOGIN_GROUP_POID" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA[1]]></defaultValueExpression>
+	</parameter>
+	<parameter name="LOGIN_COMP_POID" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA[1]]></defaultValueExpression>
+	</parameter>
+	<parameter name="LOGIN_DIV_POID" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="LOGIN_USER_POID" class="java.lang.String" isForPrompting="false"/>
+	<parameter name="DOC_ID" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA[800-106]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DOC_KEY_POID" class="java.lang.String"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["\\\\shippingbahrain.com\\data\\ERP_REPORTS\\Reports\\"]]></defaultValueExpression>
+	</parameter>
+    <parameter name="SUB_HEADER" class="net.sf.jasperreports.engine.JasperReport"/>
+    <parameter name="SUB_FOOTER_ISO" class="net.sf.jasperreports.engine.JasperReport"/>
+    <parameter name="SUBREPORT_GL" class="net.sf.jasperreports.engine.JasperReport"/>
+	<queryString>
+		<![CDATA[SELECT GROUP_POID,COMPANY_POID,TRANSACTION_POID,TRANSACTION_DATE, EMPLOYEE_POID,GET_EMPLOYEE_CODE(EMPLOYEE_POID)EMP_CODE,GET_EMPLOYEE_NAME(
+      EMPLOYEE_POID)EMP_NAME, LEAVE_TYPE,CONTACT_NUMBER,LEAVE_START_DATE,PLANED_REJOIN_DATE,LEAVE_DAYS,ELIGIBLE_LEAVE_DAYS, BALANCE_LEAVE_DAYS,
+      TICKET_ELIGIBLITY,GET_AIRSECTOR_NAME(AIR_SECTOR_POID) AIR_SECTOR,TICKET_BOOKBY,BOOKED_TICKET,HOD_REMARKS, MEDICAL_RECORDS_ATTACHED,
+      OTHER_LEAVE_REASON,STATUS,DOC_REF,DELETED, TICKET_REQUIRED, TICKET_FROM_LOCN, TICKET_TO_LOCN, TICKET_TRAVEL_DATE, TICKET_RETURN_DATE,
+      TICKET_COUNT, TICKET_REMARKS, TICKET_EARNED, TICKET_PERIOD
+FROM  HR_LEAVE_REQUEST_HDR
+WHERE TRANSACTION_POID = $P{DOC_KEY_POID}]]>
+	</queryString>
+	<field name="GROUP_POID" class="java.math.BigDecimal"/>
+	<field name="COMPANY_POID" class="java.math.BigDecimal"/>
+	<field name="TRANSACTION_POID" class="java.math.BigDecimal"/>
+	<field name="TRANSACTION_DATE" class="java.sql.Timestamp"/>
+	<field name="EMPLOYEE_POID" class="java.math.BigDecimal"/>
+	<field name="EMP_CODE" class="java.lang.String"/>
+	<field name="EMP_NAME" class="java.lang.String"/>
+	<field name="LEAVE_TYPE" class="java.lang.String"/>
+	<field name="CONTACT_NUMBER" class="java.lang.String"/>
+	<field name="LEAVE_START_DATE" class="java.sql.Timestamp"/>
+	<field name="PLANED_REJOIN_DATE" class="java.sql.Timestamp"/>
+	<field name="LEAVE_DAYS" class="java.math.BigDecimal"/>
+	<field name="ELIGIBLE_LEAVE_DAYS" class="java.math.BigDecimal"/>
+	<field name="BALANCE_LEAVE_DAYS" class="java.math.BigDecimal"/>
+	<field name="TICKET_ELIGIBLITY" class="java.math.BigDecimal"/>
+	<field name="AIR_SECTOR" class="java.lang.String"/>
+	<field name="TICKET_BOOKBY" class="java.lang.String"/>
+	<field name="BOOKED_TICKET" class="java.lang.String"/>
+	<field name="HOD_REMARKS" class="java.lang.String"/>
+	<field name="MEDICAL_RECORDS_ATTACHED" class="java.lang.String"/>
+	<field name="OTHER_LEAVE_REASON" class="java.lang.String"/>
+	<field name="STATUS" class="java.lang.String"/>
+	<field name="DOC_REF" class="java.lang.String"/>
+	<field name="DELETED" class="java.lang.String"/>
+	<field name="TICKET_REQUIRED" class="java.lang.String"/>
+	<field name="TICKET_FROM_LOCN" class="java.lang.String"/>
+	<field name="TICKET_TO_LOCN" class="java.lang.String"/>
+	<field name="TICKET_TRAVEL_DATE" class="java.sql.Timestamp"/>
+	<field name="TICKET_RETURN_DATE" class="java.sql.Timestamp"/>
+	<field name="TICKET_COUNT" class="java.math.BigDecimal"/>
+	<field name="TICKET_REMARKS" class="java.lang.String"/>
+	<field name="TICKET_EARNED" class="java.math.BigDecimal"/>
+	<field name="TICKET_PERIOD" class="java.math.BigDecimal"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="37" splitType="Stretch">
+			<subreport>
+				<reportElement x="0" y="0" width="531" height="34" uuid="11dd97b8-4c92-45fe-85bb-3b9358474446"/>
+				<subreportParameter name="LOGIN_COMP_POID">
+					<subreportParameterExpression><![CDATA[$P{LOGIN_COMP_POID}]]></subreportParameterExpression>
+				</subreportParameter>
+				<subreportParameter name="LOGIN_DIV_POID">
+					<subreportParameterExpression><![CDATA[$P{LOGIN_DIV_POID}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[$P{SUB_HEADER}]]></subreportExpression>
+			</subreport>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="25" splitType="Stretch">
+			<staticText>
+				<reportElement x="104" y="0" width="368" height="20" uuid="60786225-ed72-496f-8cff-dcbb27139727"/>
+				<textElement textAlignment="Center">
+					<font size="14" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Leave / Ticket Request ]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band height="5" splitType="Stretch">
+			<line>
+				<reportElement positionType="FixRelativeToBottom" x="0" y="2" width="555" height="1" uuid="9ec55f57-eda0-48ce-a06e-ffab81edbcc6"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineColor="#999999"/>
+				</graphicElement>
+			</line>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="164" splitType="Stretch">
+			<staticText>
+				<reportElement x="4" y="29" width="88" height="16" uuid="8bdbb2c7-473d-4e5e-9243-a3aad1491077"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<text><![CDATA[Employee Name ]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="154" y="29" width="341" height="16" uuid="0f47804a-6399-46bd-881c-cb8c305666e4"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{EMP_NAME}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="106" y="29" width="35" height="16" uuid="bd707e04-92a5-4188-96b1-3e8b23b9a00e"/>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{EMP_CODE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="4" y="74" width="77" height="16" uuid="2c5e688b-0925-40d7-8ffd-28c1702b0d2a"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<text><![CDATA[Leave Type]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="104" y="74" width="135" height="16" uuid="1618c069-29e3-4a3e-a438-a14945c73d50"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{LEAVE_TYPE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="4" y="125" width="78" height="16" uuid="f24714f0-4406-420d-b9a7-3c18aeb465cf"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<text><![CDATA[Leave Contact ]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="104" y="125" width="133" height="16" uuid="ffda7e1c-6e8c-4c0f-a1e8-3f784b69a51b"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{CONTACT_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="4" y="95" width="77" height="16" uuid="087794cd-f6f9-4dd5-9e3b-f8ca08880484"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<text><![CDATA[From]]></text>
+			</staticText>
+			<textField pattern="dd-MMM-yyyy" isBlankWhenNull="true">
+				<reportElement x="104" y="95" width="86" height="16" uuid="1f643617-3147-458f-a85c-955f9e3730c1"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{LEAVE_START_DATE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="192" y="95" width="85" height="16" uuid="11aec93e-a5e0-44d3-8665-b5039e34212f"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<text><![CDATA[Exp. Rejoin Date]]></text>
+			</staticText>
+			<textField pattern="dd-MMM-yyyy">
+				<reportElement x="290" y="95" width="81" height="16" uuid="985d172a-41d0-49c7-8b1f-2702ff8acc11"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{PLANED_REJOIN_DATE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="403" y="95" width="60" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="9c771d0a-1162-4582-90ee-27192d7ccd40"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Leave Days]]></text>
+			</staticText>
+			<textField>
+				<reportElement mode="Transparent" x="482" y="95" width="49" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="51cf9b40-5663-47ef-b71c-82e939b91658"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{LEAVE_DAYS}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="104" y="142" width="425" height="16" uuid="dc3cadc7-d2fb-4965-a400-e7eb6b535cfb"/>
+				<textElement>
+					<font fontName="Arial"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{OTHER_LEAVE_REASON}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="359" y="0" width="69" height="16" uuid="a201258d-b164-49a3-b010-1284924d7129"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Doc Ref :]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="431" y="0" width="100" height="16" uuid="b349497f-ce31-4382-a706-a00933e3d031"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{DOC_REF}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="4" y="0" width="38" height="16" uuid="3deb5739-8375-4f71-8c85-d259ccaf5558"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[Date]]></text>
+			</staticText>
+			<textField pattern="dd-MMM-yyyy">
+				<reportElement x="104" y="0" width="100" height="16" uuid="98d181df-0ed6-4e99-a1fb-858b960d2cea"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{TRANSACTION_DATE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="4" y="55" width="527" height="15" backcolor="#CCCCCC" uuid="7b113856-0aab-4496-a36b-92f8c0ffcb1f"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[1)    LEAVE PLAN]]></text>
+			</staticText>
+			<line>
+				<reportElement x="6" y="72" width="525" height="2" uuid="68782fee-be5c-47dc-a193-a77eede4c686"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineColor="#999999"/>
+				</graphicElement>
+			</line>
+			<staticText>
+				<reportElement mode="Transparent" x="94" y="29" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="db1a1128-ce57-4073-bec9-0ac4db30775a"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="94" y="74" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="bfb471ec-4605-4cc8-b473-9155b86e6029"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="94" y="95" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="b012a304-c689-48d0-aaf8-509a4317e2d9"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="277" y="95" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="455be44f-cdba-4ff2-bb91-4da4a34bab02"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="463" y="95" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="13559bb6-d789-47ef-82f8-d3c33ae5dda4"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="94" y="125" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="2cd94f53-a159-4688-993f-822a5687c592"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="4" y="142" width="78" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="2b6d5cc8-9e09-43e5-86ae-ea4991a8b40e"/>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Remarks]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="94" y="142" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="4d06dccb-b67f-44ba-82ed-06e23ed62bde"/>
+				<textElement textAlignment="Left" verticalAlignment="Top" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="94" y="0" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="df2ba9d1-f010-458e-9131-53d8b1a1d401"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="141" y="29" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="dd2810c3-353f-4000-9387-531efdb4e946"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[/]]></text>
+			</staticText>
+		</band>
+		<band height="145">
+			<printWhenExpression><![CDATA[$F{TICKET_REQUIRED} == "Y"]]></printWhenExpression>
+			<subreport>
+				<reportElement x="3" y="71" width="528" height="57" uuid="1835b45f-897b-4544-9ddc-f6aaa828188d"/>
+				<subreportParameter name="P_TRN_NO">
+					<subreportParameterExpression><![CDATA[$P{DOC_KEY_POID}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[$P{SUBREPORT_GL}]]></subreportExpression>
+			</subreport>
+			<staticText>
+				<reportElement mode="Transparent" x="3" y="0" width="528" height="15" backcolor="#CCCCCC" uuid="d93af6ec-b8b6-473b-9755-02d351ef2280"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial" size="12" isBold="true"/>
+				</textElement>
+				<text><![CDATA[2)   TICKET REQUISITION]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="75" y="19" width="135" height="16" uuid="9c6fa717-a56a-447d-9de5-a69aab7d91bd"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{TICKET_FROM_LOCN}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="6" y="19" width="57" height="16" uuid="65c5d213-4932-4142-a3c6-47541256afca"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<text><![CDATA[Ticket From]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="67" y="19" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="b44f2072-7948-4020-b853-0a4f998a846b"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="237" y="19" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="66db6826-6a34-4d6c-a0ce-5f18292e2377"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="249" y="19" width="135" height="16" uuid="918529be-c051-43d8-ba7a-3701c399c11c"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{TICKET_TO_LOCN}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="214" y="19" width="23" height="16" uuid="52aa5fba-7cf8-4b6a-b78c-ca2287f6fc48"/>
+				<textElement textAlignment="Right" verticalAlignment="Middle">
+					<font fontName="Arial" isItalic="true"/>
+				</textElement>
+				<text><![CDATA[To]]></text>
+			</staticText>
+			<textField pattern="dd-MMM-yyyy">
+				<reportElement x="75" y="55" width="76" height="16" uuid="39645539-ad84-4e11-9f43-66c1d7970a77"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{TICKET_RETURN_DATE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="6" y="55" width="60" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="6d9588e1-8852-42b4-bf5f-03f3b86cd37f"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Return Date]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="67" y="39" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="7894906e-f44b-4e79-9e35-4be892c98471"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField pattern="dd-MMM-yyyy">
+				<reportElement x="75" y="39" width="76" height="16" uuid="3b0de5ba-862c-4a80-b025-8edd36be7389"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{TICKET_TRAVEL_DATE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="67" y="55" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="71955a2f-c008-4268-8f75-c11eb9713e3b"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="6" y="39" width="57" height="16" uuid="7bb56a66-f3a3-4b51-adbd-4858870104d9"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<text><![CDATA[Travel Date]]></text>
+			</staticText>
+			<line direction="BottomUp">
+				<reportElement x="5" y="16" width="527" height="1" uuid="ad340049-c16e-40d2-ba36-5c6145d9d7be"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineColor="#999999"/>
+				</graphicElement>
+			</line>
+			<staticText>
+				<reportElement mode="Transparent" x="163" y="55" width="98" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="f36946b0-e21b-4abf-ad2b-ec91eb247419"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[Remarks]]></text>
+			</staticText>
+			<textField>
+				<reportElement mode="Transparent" x="261" y="55" width="268" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="a41ad090-97f6-4a6b-ac9b-035811d29819"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="false" isItalic="true" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{TICKET_REMARKS}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band height="11" splitType="Stretch">
+			<line>
+				<reportElement positionType="FixRelativeToBottom" x="0" y="3" width="555" height="1" uuid="d289b3ef-2b1e-48fd-b978-d9a4aded8371"/>
+				<graphicElement>
+					<pen lineWidth="0.5" lineColor="#999999"/>
+				</graphicElement>
+			</line>
+		</band>
+	</columnFooter>
+	<pageFooter>
+		<band height="174" splitType="Stretch">
+			<staticText>
+				<reportElement x="5" y="10" width="148" height="20" uuid="6181b186-e20c-4e08-a8b5-83fda23cb193"/>
+				<textElement verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<text><![CDATA[HOD Remarks :]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="3" y="30" width="235" height="31" uuid="236965ec-e542-4baf-8266-abf7f6742f07"/>
+				<textElement verticalAlignment="Top">
+					<font fontName="Arial"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{HOD_REMARKS}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="3" y="61" width="138" height="26" uuid="df86baa3-5885-40e9-beb9-646d99d71054"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<text><![CDATA[Recommended Authority
+(Dept Head)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="388" y="61" width="148" height="41" uuid="73284660-c07d-4227-b123-aee4ecc53ad6"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<text><![CDATA[Sanctioning Authority
+]]></text>
+			</staticText>
+			<line>
+				<reportElement x="4" y="115" width="147" height="1" uuid="50f8fb43-8213-40d4-9cf0-456c97ee7606"/>
+			</line>
+			<line>
+				<reportElement x="388" y="115" width="148" height="1" uuid="64b74ca3-1ff2-4201-96c5-a9ac7be1e75f"/>
+			</line>
+			<staticText>
+				<reportElement x="384" y="12" width="148" height="18" uuid="ec340cfa-deea-4962-91be-365eb595531a"/>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<font fontName="Arial"/>
+				</textElement>
+				<text><![CDATA[Signature of Employee]]></text>
+			</staticText>
+			<line>
+				<reportElement x="386" y="12" width="147" height="1" uuid="6a9450ef-5b4a-463a-917d-21e7aceca607"/>
+			</line>
+		</band>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

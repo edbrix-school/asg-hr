@@ -8,6 +8,7 @@ import com.asg.hr.leaverequest.dto.LeaveHistoryUpdateRequestDto;
 import com.asg.hr.leaverequest.dto.LeaveResponseDto;
 import com.asg.hr.leaverequest.dto.LeaveTicketUpdateRequestDto;
 import com.asg.hr.leaverequest.dto.LeaveUpdateRequestDto;
+import net.sf.jasperreports.engine.JRException;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
@@ -66,5 +67,5 @@ public interface HrLeaveRequestService {
 
     Map<String, Object> handleLeaveTypeChange(String leaveType, String leaveDaysMethod);
 
-    byte[] print(Long transactionPoid) throws Exception;
+    byte[] print(Long transactionPoid) throws JRException;
 }

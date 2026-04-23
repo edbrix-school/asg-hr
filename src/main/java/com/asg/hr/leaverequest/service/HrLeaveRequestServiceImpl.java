@@ -26,8 +26,8 @@ import com.asg.hr.leaverequest.repository.HrLeaveRequestDtlRepository;
 import com.asg.hr.leaverequest.repository.HrLeaveRequestHdrRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperReport;
-import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -53,6 +53,20 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
 
     private static final DateTimeFormatter LEGACY_DATE_FORMAT =
             DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH);
+
+    private static final String ANNUAL = "ANNUAL";
+    private static final String EMERGENCY = "EMERGENCY";
+    private static final String SPECIAL_LEAVE = "SPECIAL_LEAVE";
+    private static final String MEDICAL = "MEDICAL";
+    private static final String STATUS = "status";
+    private static final String MESSAGE = "message";
+    private static final String LEAVE_DAYS = "leaveDays";
+    private static final String EMERGENCY_LEAVE_TYPE = "emergencyLeaveType";
+    private static final String ERROR = "ERROR";
+    private static final String SUCCESS = "SUCCESS";
+    private static final String LEAVE_REQUEST_NOT_FOUND = "Leave request not found";
+    private static final String LEAVE_TYPE= "Leavetype";
+    private static final String ANNUAL_LEAVE_TYPE = "annualLeaveType";
 
     private final HrLeaveRequestHdrRepository hdrRepo;
     private final HrLeaveRequestDtlRepository dtlRepo;
@@ -83,8 +97,8 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
                         UserContext.getUserPoid()
                 );
 
-        String status = (String) validationResult.get("status");
-        handleValidationStatus(status, req.getLeaveType());
+        String status = (String) validationResult.get(STATUS);
+        handleValidationStatus(status);
 
         BigDecimal leaveDays = getRequiredLeaveDays(validationResult);
 
@@ -118,12 +132,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
             id.setTransactionPoid(tranId);
             id.setDetRowId(d.getDetRowId() != null ? d.getDetRowId() : ++nextRowId);
             dtl.setId(id);
-            dtl.setName(d.getName());
-            dtl.setRelation(d.getRelation());
-            dtl.setTicketAgeGroup(d.getTicketAgeGroup());
-            dtl.setDateFrom(d.getDateFrom());
-            dtl.setDateTo(d.getDateTo());
-            dtl.setRemarks(d.getRemarks());
+            applyDetailFields(dtl, d);
             dtlRepo.save(dtl);
         }
     }
@@ -132,52 +141,55 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         if (details == null) return;
 
         Long maxRowId = dtlRepo.findMaxDetRowIdByTransactionPoid(tranId);
-        long nextRowId = (maxRowId != null ? maxRowId : 0L);
+        long[] nextRowId = { maxRowId != null ? maxRowId : 0L };
 
         for (LeaveRequestDetailDto d : details) {
             String action = d.getActionType() != null ? d.getActionType().toUpperCase() : "ISCREATED";
-
             switch (action) {
-                case "ISDELETED" -> {
-                    if (d.getDetRowId() != null) {
-                        HrLeaveRequestDtlId id = new HrLeaveRequestDtlId();
-                        id.setTransactionPoid(tranId);
-                        id.setDetRowId(d.getDetRowId());
-                        dtlRepo.deleteById(id);
-                    }
-                }
-                case "ISUPDATED" -> {
-                    if (d.getDetRowId() == null) break;
-                    HrLeaveRequestDtlId id = new HrLeaveRequestDtlId();
-                    id.setTransactionPoid(tranId);
-                    id.setDetRowId(d.getDetRowId());
-                    HrLeaveRequestDtl dtl = dtlRepo.findById(id).orElse(new HrLeaveRequestDtl());
-                    dtl.setId(id);
-                    dtl.setName(d.getName());
-                    dtl.setRelation(d.getRelation());
-                    dtl.setTicketAgeGroup(d.getTicketAgeGroup());
-                    dtl.setDateFrom(d.getDateFrom());
-                    dtl.setDateTo(d.getDateTo());
-                    dtl.setRemarks(d.getRemarks());
-                    dtlRepo.save(dtl);
-                }
-                case "NOCHANGE" -> { /* nothing */ }
-                default -> { // ISCREATED
-                    HrLeaveRequestDtl dtl = new HrLeaveRequestDtl();
-                    HrLeaveRequestDtlId id = new HrLeaveRequestDtlId();
-                    id.setTransactionPoid(tranId);
-                    id.setDetRowId(d.getDetRowId() != null ? d.getDetRowId() : ++nextRowId);
-                    dtl.setId(id);
-                    dtl.setName(d.getName());
-                    dtl.setRelation(d.getRelation());
-                    dtl.setTicketAgeGroup(d.getTicketAgeGroup());
-                    dtl.setDateFrom(d.getDateFrom());
-                    dtl.setDateTo(d.getDateTo());
-                    dtl.setRemarks(d.getRemarks());
-                    dtlRepo.save(dtl);
-                }
+                case "ISDELETED" -> deleteDetail(tranId, d);
+                case "ISUPDATED" -> updateDetail(tranId, d);
+                case "NOCHANGE"  -> { /* nothing */ }
+                default          -> createDetail(tranId, d, nextRowId);
             }
         }
+    }
+
+    private void deleteDetail(Long tranId, LeaveRequestDetailDto d) {
+        if (d.getDetRowId() == null) return;
+        HrLeaveRequestDtlId id = new HrLeaveRequestDtlId();
+        id.setTransactionPoid(tranId);
+        id.setDetRowId(d.getDetRowId());
+        dtlRepo.deleteById(id);
+    }
+
+    private void updateDetail(Long tranId, LeaveRequestDetailDto d) {
+        if (d.getDetRowId() == null) return;
+        HrLeaveRequestDtlId id = new HrLeaveRequestDtlId();
+        id.setTransactionPoid(tranId);
+        id.setDetRowId(d.getDetRowId());
+        HrLeaveRequestDtl dtl = dtlRepo.findById(id).orElse(new HrLeaveRequestDtl());
+        dtl.setId(id);
+        applyDetailFields(dtl, d);
+        dtlRepo.save(dtl);
+    }
+
+    private void createDetail(Long tranId, LeaveRequestDetailDto d, long[] nextRowId) {
+        HrLeaveRequestDtl dtl = new HrLeaveRequestDtl();
+        HrLeaveRequestDtlId id = new HrLeaveRequestDtlId();
+        id.setTransactionPoid(tranId);
+        id.setDetRowId(d.getDetRowId() != null ? d.getDetRowId() : ++nextRowId[0]);
+        dtl.setId(id);
+        applyDetailFields(dtl, d);
+        dtlRepo.save(dtl);
+    }
+
+    private void applyDetailFields(HrLeaveRequestDtl dtl, LeaveRequestDetailDto d) {
+        dtl.setName(d.getName());
+        dtl.setRelation(d.getRelation());
+        dtl.setTicketAgeGroup(d.getTicketAgeGroup());
+        dtl.setDateFrom(d.getDateFrom());
+        dtl.setDateTo(d.getDateTo());
+        dtl.setRemarks(d.getRemarks());
     }
 
 
@@ -186,9 +198,9 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
 
         String subType = null;
 
-        if (contains(req.getLeaveType(), "ANNUAL")) {
+        if (contains(req.getLeaveType(), ANNUAL)) {
             subType = req.getAnnualLeaveType();
-        } else if (contains(req.getLeaveType(), "EMERGENCY")) {
+        } else if (contains(req.getLeaveType(), EMERGENCY)) {
             subType = req.getEmergencyLeaveType();
         } else {
             subType = req.getSplLeaveTypes();
@@ -206,7 +218,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
     public LeaveResponseDto update(LeaveUpdateRequestDto req) {
 
         HrLeaveRequestHdrEntity entity = hdrRepo.findById(req.getTransactionPoid())
-                .orElseThrow(() -> new ResourceNotFoundException("Leave request not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(LEAVE_REQUEST_NOT_FOUND));
 
         normalizeLeaveTypeFields(req);
         LeaveCreateRequestDto createRequest = convertToCreate(req, entity);
@@ -226,8 +238,8 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
                         UserContext.getUserPoid()
                 );
 
-        String status = (String) validationResult.get("status");
-        handleValidationStatus(status, req.getLeaveType());
+        String status = (String) validationResult.get(STATUS);
+        handleValidationStatus(status);
 
         BigDecimal leaveDays = getRequiredLeaveDays(validationResult);
 
@@ -310,10 +322,10 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
 
     private String getSubType(LeaveUpdateRequestDto req) {
 
-        if (contains(req.getLeaveType(), "ANNUAL"))
+        if (contains(req.getLeaveType(), ANNUAL))
             return req.getAnnualLeaveType();
 
-        if (contains(req.getLeaveType(), "EMERGENCY"))
+        if (contains(req.getLeaveType(), EMERGENCY))
             return req.getEmergencyLeaveType();
 
         return req.getSplLeaveTypes();
@@ -370,18 +382,18 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         applyRequest(entity, create);
     }
 
-    private void handleValidationStatus(String status, String leaveType) {
+    private void handleValidationStatus(String status) {
         if (status == null) {
             throw new ValidationException("Leave validation did not return a status");
         }
 
-        if (status.contains("ERROR")) {
+        if (status.contains(ERROR)) {
             throw new ValidationException(status);
         }
     }
 
     private BigDecimal getRequiredLeaveDays(Map<String, Object> validationResult) {
-        Object value = validationResult.get("leaveDays");
+        Object value = validationResult.get(LEAVE_DAYS);
         if (value == null) {
             throw new ValidationException("Leave days is not calculated, please check the dates entered");
         }
@@ -401,7 +413,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         if (!isLeaveHolidayRunning(req.getLeaveType(), req.getLeaveDaysMethod())) {
             return;
         }
-        if (!contains(req.getLeaveType(), "ANNUAL")) {
+        if (!contains(req.getLeaveType(), ANNUAL)) {
             return;
         }
         if (Boolean.TRUE.equals(req.getAnnualEncashmentRight())) {
@@ -423,65 +435,61 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
             return false;
         }
 
-        if (contains(leaveType, "ANNUAL") || contains(leaveType, "EMERGENCY")) {
-            return true;
-        }
-
-        return false;
+        return contains(leaveType, ANNUAL) || contains(leaveType, EMERGENCY);
     }
 
     private void normalizeLeaveTypeFields(LeaveCreateRequestDto req) {
-        if (contains(req.getLeaveType(), "ANNUAL")) {
+        if (contains(req.getLeaveType(), ANNUAL)) {
             req.setEmergencyLeaveType(null);
             req.setSplLeaveTypes(null);
             return;
         }
 
-        if (contains(req.getLeaveType(), "EMERGENCY")) {
+        if (contains(req.getLeaveType(), EMERGENCY)) {
             req.setAnnualLeaveType(null);
             req.setSplLeaveTypes(null);
             return;
         }
 
-        if (contains(req.getLeaveType(), "SPECIAL_LEAVE")) {
+        if (contains(req.getLeaveType(), SPECIAL_LEAVE)) {
             req.setAnnualLeaveType(null);
             req.setEmergencyLeaveType(null);
             return;
         }
 
-        if (contains(req.getLeaveType(), "MEDICAL")) {
+        if (contains(req.getLeaveType(), MEDICAL)) {
             req.setAnnualLeaveType(null);
             req.setEmergencyLeaveType(null);
         }
     }
 
     private void normalizeLeaveTypeFields(LeaveUpdateRequestDto req) {
-        if (contains(req.getLeaveType(), "ANNUAL")) {
+        if (contains(req.getLeaveType(), ANNUAL)) {
             req.setEmergencyLeaveType(null);
             req.setSplLeaveTypes(null);
             return;
         }
 
-        if (contains(req.getLeaveType(), "EMERGENCY")) {
+        if (contains(req.getLeaveType(), EMERGENCY)) {
             req.setAnnualLeaveType(null);
             req.setSplLeaveTypes(null);
             return;
         }
 
-        if (contains(req.getLeaveType(), "SPECIAL_LEAVE")) {
+        if (contains(req.getLeaveType(), SPECIAL_LEAVE)) {
             req.setAnnualLeaveType(null);
             req.setEmergencyLeaveType(null);
             return;
         }
 
-        if (contains(req.getLeaveType(), "MEDICAL")) {
+        if (contains(req.getLeaveType(), MEDICAL)) {
             req.setAnnualLeaveType(null);
             req.setEmergencyLeaveType(null);
         }
     }
 
     private void validateAnnualProbation(LeaveCreateRequestDto req) {
-        if (!contains(req.getLeaveType(), "ANNUAL")) {
+        if (!contains(req.getLeaveType(), ANNUAL)) {
             return;
         }
 
@@ -505,9 +513,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
             throw new ValidationException("Annual Leave can not be requested for employees in probation, try without pay");
         }
 
-        System.out.println("Employee Data Row: " + firstRow);
-        System.out.println("Probation: " + probationMonths);
-        System.out.println("JoinDate: " + joinDate);
+
     }
 
     private void validateNoDateOverlap(Long transactionPoid, Long employeePoid, LocalDate leaveStartDate, LocalDate planedRejoinDate) {
@@ -579,7 +585,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
     public LeaveResponseDto getById(Long transactionPoid) {
 
         HrLeaveRequestHdrEntity entity = hdrRepo.findById(transactionPoid)
-                .orElseThrow(() -> new ResourceNotFoundException("Leave request not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(LEAVE_REQUEST_NOT_FOUND));
 
         List<HrLeaveRequestDtl> dtls =
                 dtlRepo.findByIdTransactionPoid(transactionPoid);
@@ -681,9 +687,9 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
             dto.setLastLeaveDetails(row.get("lastLeaveDetails") != null ? row.get("lastLeaveDetails").toString() : null);
             dto.setLastTicketDetails(row.get("lastTicketDetails") != null ? row.get("lastTicketDetails").toString() : null);
 
-            BigDecimal leaveDays = dto.getLeaveDays() != null ? dto.getLeaveDays() : BigDecimal.ZERO;
+            BigDecimal leaveDaysVal = dto.getLeaveDays() != null ? dto.getLeaveDays() : BigDecimal.ZERO;
             if (dto.getEligibleLeaveDays() != null) {
-                dto.setBalanceTillRejoin(dto.getEligibleLeaveDays().subtract(leaveDays));
+                dto.setBalanceTillRejoin(dto.getEligibleLeaveDays().subtract(leaveDaysVal));
             }
         }
 
@@ -705,32 +711,10 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         return PaginationUtil.wrapPage(page, raw.displayFields());
     }
 
-    private LeaveResponseDto mapHeaderToResponse(HrLeaveRequestHdrEntity entity) {
-        LeaveResponseDto dto = new LeaveResponseDto();
-
-        dto.setTransactionPoid(entity.getTransactionPoid());
-        dto.setGroupPoid(entity.getGroupPoid());
-        dto.setCompanyPoid(entity.getCompanyPoid());
-        dto.setEmployeePoid(entity.getEmployeePoid());
-        dto.setLeaveType(entity.getLeaveType());
-        dto.setAnnualLeaveType(entity.getAnnualLeaveType());
-        dto.setEmergencyLeaveType(entity.getEmergencyLeaveType());
-        dto.setSplLeaveTypes(entity.getSplLeaveTypes());
-        dto.setLeaveStartDate(entity.getLeaveStartDate());
-        dto.setPlanedRejoinDate(entity.getPlanedRejoinDate());
-        dto.setLeaveDays(entity.getLeaveDays());
-        dto.setStatus(entity.getStatus());
-        dto.setOtherLeaveReason(entity.getOtherLeaveReason());
-        dto.setTicketRequired(entity.getTicketRequired());
-        dto.setTicketCount(entity.getTicketCount());
-        dto.setHod(entity.getHod());
-        return dto;
-    }
-
     public void delete(Long transactionPoid, DeleteReasonDto deleteReasonDto) {
 
         HrLeaveRequestHdrEntity entity = hdrRepo.findById(transactionPoid)
-                .orElseThrow(() -> new ResourceNotFoundException("Leave request not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(LEAVE_REQUEST_NOT_FOUND));
 
 
         if ("APPROVED".equalsIgnoreCase(entity.getStatus())) {
@@ -756,18 +740,18 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
             Map<String, Object> repoResponse =
                     repository.getEmployeeDetails(employeePoid);
 
-            String status = (String) repoResponse.get("status");
+            String status = (String) repoResponse.get(STATUS);
 
-            if (status != null && status.contains("SUCCESS")) {
+            if (status != null && status.contains(SUCCESS)) {
                 response.put("data", repoResponse.getOrDefault("data", Collections.emptyList()));
             } else {
                 response.put("data", Collections.emptyList());
             }
 
-            response.put("status", status);
+            response.put(STATUS, status);
 
         } catch (Exception ex) {
-            response.put("status", "ERROR: " + ex.getMessage());
+            response.put(STATUS, ERROR + ": " + ex.getMessage());
             response.put("data", Collections.emptyList());
         }
 
@@ -783,18 +767,18 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
             Map<String, Object> repoResponse =
                     repository.getEmployeeHod(employeePoid);
 
-            String status = (String) repoResponse.get("status");
+            String status = (String) repoResponse.get(STATUS);
 
-            if (status != null && status.contains("SUCCESS")) {
+            if (status != null && status.contains(SUCCESS)) {
                 response.put("hod", repoResponse.get("hod"));
             } else {
                 response.put("hod", null);
             }
 
-            response.put("status", status);
+            response.put(STATUS, status);
 
         } catch (Exception ex) {
-            response.put("status", "ERROR: " + ex.getMessage());
+            response.put(STATUS, ERROR + ": " + ex.getMessage());
             response.put("hod", null);
         }
 
@@ -821,19 +805,19 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
                             settlementPoid
                     );
 
-            String status = (String) repoResponse.get("status");
+            String status = (String) repoResponse.get(STATUS);
 
-            if (status != null && status.contains("SUCCESS")) {
+            if (status != null && status.contains(SUCCESS)) {
                 response.put("data", repoResponse.get("data"));
             } else {
                 response.put("data", Collections.emptyMap());
             }
 
-            response.put("status", status);
+            response.put(STATUS, status);
 
         } catch (Exception ex) {
             ex.printStackTrace();
-            response.put("status", "ERROR: " + ex.getMessage());
+            response.put(STATUS, ERROR + ": " + ex.getMessage());
             response.put("data", Collections.emptyMap());
         }
 
@@ -852,15 +836,15 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
 
             if (data != null && !data.isEmpty()) {
                 response.put("data", data);
-                response.put("status", "SUCCESS");
+                response.put(STATUS, SUCCESS);
             } else {
                 response.put("data", Collections.emptyList());
-                response.put("status", "NO_DATA");
+                response.put(STATUS, "NO_DATA");
             }
 
         } catch (Exception ex) {
             ex.printStackTrace();
-            response.put("status", "ERROR: " + ex.getMessage());
+            response.put(STATUS, ERROR + ": " + ex.getMessage());
             response.put("data", Collections.emptyList());
         }
 
@@ -885,17 +869,17 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
                     ticketIssuedCount
             );
 
-            if (status != null && status.contains("SUCCESS")) {
-                response.put("status", status);
+            if (status != null && status.contains(SUCCESS)) {
+                response.put(STATUS, status);
                 response.put("data", "UPDATED");
             } else {
-                response.put("status", status);
+                response.put(STATUS, status);
                 response.put("data", null);
             }
 
         } catch (Exception ex) {
             ex.printStackTrace();
-            response.put("status", "ERROR: " + ex.getMessage());
+            response.put(STATUS, ERROR + ": " + ex.getMessage());
             response.put("data", null);
         }
 
@@ -909,7 +893,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         }
 
         HrLeaveRequestHdrEntity entity = hdrRepo.findById(request.getTransactionPoid())
-                .orElseThrow(() -> new ResourceNotFoundException("Leave request not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(LEAVE_REQUEST_NOT_FOUND));
 
         String ticketTillDate = request.getHrTicketTillDate() != null
                 ? request.getHrTicketTillDate().format(LEGACY_DATE_FORMAT)
@@ -925,7 +909,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
                 ticketIssuedCount
         );
 
-        if (status != null && status.contains("ERROR")) {
+        if (status != null && status.contains(ERROR)) {
             throw new ValidationException(status);
         }
 
@@ -935,8 +919,8 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         hdrRepo.save(entity);
 
         return Map.of(
-                "status", status != null ? status : "SUCCESS",
-                "message", "Leave history updated"
+                STATUS, status != null ? status : SUCCESS,
+                MESSAGE, "Leave history updated"
         );
     }
 
@@ -947,20 +931,20 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         }
 
         hdrRepo.findById(tranId)
-                .orElseThrow(() -> new ResourceNotFoundException("Leave request not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(LEAVE_REQUEST_NOT_FOUND));
 
         String status = repository.unUpdateLeaveHistory(tranId);
 
         if ("NO_DATA".equalsIgnoreCase(status)) {
             throw new ResourceNotFoundException("Please check, no record found");
         }
-        if (status != null && status.contains("ERROR")) {
+        if (status != null && status.contains(ERROR)) {
             throw new ValidationException(status);
         }
 
         return Map.of(
-                "status", status != null ? status : "SUCCESS",
-                "message", "This record is removed from history"
+                STATUS, status != null ? status : SUCCESS,
+                MESSAGE, "This record is removed from history"
         );
     }
 
@@ -972,7 +956,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         }
 
         HrLeaveRequestHdrEntity entity = hdrRepo.findById(request.getTransactionPoid())
-                .orElseThrow(() -> new ResourceNotFoundException("Leave request not found"));
+                .orElseThrow(() -> new ResourceNotFoundException(LEAVE_REQUEST_NOT_FOUND));
 
         String status = repository.updateTicketDetails(
                 request.getTransactionPoid(),
@@ -983,7 +967,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
                 request.getPjDocRef()
         );
 
-        if (status != null && status.contains("ERROR")) {
+        if (status != null && status.contains(ERROR)) {
             throw new ValidationException(status);
         }
 
@@ -995,8 +979,8 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         hdrRepo.save(entity);
 
         return Map.of(
-                "status", status != null ? status : "SUCCESS",
-                "message", "Ticket details updated"
+                STATUS, status != null ? status : SUCCESS,
+                MESSAGE, "Ticket details updated"
         );
     }
 
@@ -1026,21 +1010,30 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
             throw new ValidationException("Planned rejoin date should be after leave start date");
         }
 
+        String subType;
+        if (contains(leaveType, ANNUAL)) {
+            subType = annualLeaveType;
+        } else if (contains(leaveType, EMERGENCY)) {
+            subType = emergencyLeaveType;
+        } else {
+            subType = splLeaveTypes;
+        }
+
         Map<String, Object> validationResult = repository.validateLeave(
                 transactionPoid,
                 leaveStartDate,
                 planedRejoinDate,
                 employeePoid,
                 leaveType,
-                contains(leaveType, "ANNUAL") ? annualLeaveType : contains(leaveType, "EMERGENCY") ? emergencyLeaveType : splLeaveTypes,
+                subType,
                 UserContext.getUserPoid()
         );
 
-        String status = (String) validationResult.get("status");
-        handleValidationStatus(status, leaveType);
+        String status = (String) validationResult.get(STATUS);
+        handleValidationStatus(status);
 
-        BigDecimal leaveDays = validationResult.get("leaveDays") != null
-                ? new BigDecimal(validationResult.get("leaveDays").toString())
+        BigDecimal leaveDays = validationResult.get(LEAVE_DAYS) != null
+                ? new BigDecimal(validationResult.get(LEAVE_DAYS).toString())
                 : BigDecimal.ZERO;
         BigDecimal calendarDays = BigDecimal.valueOf(java.time.temporal.ChronoUnit.DAYS.between(leaveStartDate, planedRejoinDate));
         BigDecimal holidays = repository.getHolidayCount(leaveStartDate, planedRejoinDate);
@@ -1065,58 +1058,44 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         response.put("planedRejoinDate", null);
         response.put("calendarDays", null);
         response.put("holidays", null);
-        response.put("leaveDays", null);
+        response.put(LEAVE_DAYS, null);
         response.put("balanceTillRejoin", null);
 
-        if (contains(leaveType, "ANNUAL")) {
+        if (contains(leaveType, ANNUAL)) {
             response.put("annualLeaveTypeVisible", true);
-            response.put("emergencyLeaveType", null);
+            response.put(EMERGENCY_LEAVE_TYPE, null);
             response.put("splLeaveTypes", null);
-        } else if (contains(leaveType, "EMERGENCY")) {
+        } else if (contains(leaveType, EMERGENCY)) {
             response.put("emergencyLeaveTypeVisible", true);
-            response.put("annualLeaveType", null);
+            response.put(ANNUAL_LEAVE_TYPE, null);
             response.put("splLeaveTypes", null);
-        } else if (contains(leaveType, "SPECIAL_LEAVE")) {
+        } else if (contains(leaveType, SPECIAL_LEAVE)) {
             response.put("specialLeaveTypeVisible", true);
-            response.put("annualLeaveType", null);
-            response.put("emergencyLeaveType", null);
-        } else if (contains(leaveType, "MEDICAL")) {
-            response.put("annualLeaveType", null);
-            response.put("emergencyLeaveType", null);
+            response.put(ANNUAL_LEAVE_TYPE, null);
+            response.put(EMERGENCY_LEAVE_TYPE, null);
+        } else if (contains(leaveType, MEDICAL)) {
+            response.put(ANNUAL_LEAVE_TYPE, null);
+            response.put(EMERGENCY_LEAVE_TYPE, null);
         }
 
         return response;
     }
 
     @Override
-    public byte[] print(Long transactionPoid) throws Exception  {
+    public byte[] print(Long transactionPoid) throws JRException  {
 
         Map<String, Object> params = printService.buildBaseParams(transactionPoid, UserContext.getDocumentId());
         params.put("SUBREPORT_GL", printService.load("HR/Emp_leave_Request_subreport1.jrxml"));
         JasperReport mainReport = printService.load("HR/Emp_leave_Request.jrxml");
-        return printService.fillReportToPdf(mainReport, params, dataSource);
+        try{
+            return printService.fillReportToPdf(mainReport, params, dataSource);
+        }catch (JRException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new JRException(e);
+        }
+
     }
-
-
-   /* private Long resolveEmployeePoid(Long requestEmployeePoid) {
-
-        boolean hasEmpSelectionRight =
-                commonService.isGrantedRights("000-219", "Edit"); // implement this
-
-        if (hasEmpSelectionRight) {
-            return requestEmployeePoid;
-        }
-
-        Long loginUserId = UserContext.getUserPoid();
-
-        Long empId = repository.getLoginUserEmployeeId(loginUserId);
-
-        if (empId == null) {
-            throw new ValidationException("Employee not mapped with logged-in user");
-        }
-
-        return empId;
-    }*/
 
     private BigDecimal toBigDecimal(Object value) {
         if (value == null) return null;

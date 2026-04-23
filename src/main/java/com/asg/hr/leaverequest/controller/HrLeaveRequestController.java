@@ -28,7 +28,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -170,16 +169,6 @@ public class HrLeaveRequestController {
 
         return ResponseEntity.ok(response);
     }
-
-   /* @AllowedAction(UserRolesRightsEnum.CREATE)
-    @PostMapping("/history")
-    public ResponseEntity<Map<String, Object>> updateLeaveHistory(
-            @RequestBody LeaveHistoryUpdateRequestDto request) {
-
-        Map<String, Object> response = service.updateLeaveHistory(request);
-
-        return ResponseEntity.ok(response);
-    }*/
 
     @AllowedAction(UserRolesRightsEnum.EDIT)
     @PostMapping("/history/{transactionPoid}/cancel")
