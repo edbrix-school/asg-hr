@@ -4,9 +4,13 @@ import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.dto.RawSearchResult;
+import com.asg.common.lib.dto.request.LogRequestDto;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
+import com.asg.common.lib.service.LoggingService;
+import com.asg.common.lib.service.LovDataService;
 import com.asg.common.lib.service.PrintService;
 import com.asg.common.lib.utility.PaginationUtil;
 import com.asg.hr.exceptions.ResourceNotFoundException;
@@ -76,6 +80,8 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
     private final DataSource dataSource;
     private final DocumentDeleteService documentDeleteService;
     private final DocumentSearchService documentService;
+    private final LovDataService lovService;
+    private final LoggingService loggingService;
 
 
     public LeaveResponseDto create(LeaveCreateRequestDto req) {
@@ -114,6 +120,9 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         entity.setDeleted("N");
 
         entity = hdrRepo.save(entity);
+
+        loggingService.createLogSummaryEntry(UserContext.getDocumentId(), entity.getTransactionPoid().toString(),
+                String.format("%s", LogDetailsEnum.CREATED));
 
         saveDetails(entity.getTransactionPoid(), req.getDetails());
 
@@ -160,6 +169,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         id.setTransactionPoid(tranId);
         id.setDetRowId(d.getDetRowId());
         dtlRepo.deleteById(id);
+        loggingService.logDelete(d, UserContext.getDocumentId(), tranId.toString());
     }
 
     private void updateDetail(Long tranId, LeaveRequestDetailDto d) {
@@ -167,10 +177,20 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         HrLeaveRequestDtlId id = new HrLeaveRequestDtlId();
         id.setTransactionPoid(tranId);
         id.setDetRowId(d.getDetRowId());
-        HrLeaveRequestDtl dtl = dtlRepo.findById(id).orElse(new HrLeaveRequestDtl());
+        HrLeaveRequestDtl oldDtl = dtlRepo.findById(id).orElse(new HrLeaveRequestDtl());
+        HrLeaveRequestDtl dtl = new HrLeaveRequestDtl();
+        org.springframework.beans.BeanUtils.copyProperties(oldDtl, dtl);
         dtl.setId(id);
         applyDetailFields(dtl, d);
         dtlRepo.save(dtl);
+
+        String docId = UserContext.getDocumentId();
+        String docKeyPoid = tranId.toString();
+        String logDetail = String.format("KeyId = TRANSACTION_POID:%s DET_ROW_ID:%s", docKeyPoid, d.getDetRowId());
+        List<LogRequestDto<HrLeaveRequestDtl>> logRequests = List.of(
+                new LogRequestDto<>(oldDtl, dtl, HrLeaveRequestDtl.class, docId, docKeyPoid, logDetail)
+        );
+        loggingService.createLogBatch(logRequests);
     }
 
     private void createDetail(Long tranId, LeaveRequestDetailDto d, long[] nextRowId) {
@@ -181,6 +201,8 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         dtl.setId(id);
         applyDetailFields(dtl, d);
         dtlRepo.save(dtl);
+        loggingService.createLogSummaryEntry(UserContext.getDocumentId(), tranId.toString(),
+                String.format("Row Created on Leave Request Detail with DetRowId: %s", id.getDetRowId()));
     }
 
     private void applyDetailFields(HrLeaveRequestDtl dtl, LeaveRequestDetailDto d) {
@@ -220,6 +242,9 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         HrLeaveRequestHdrEntity entity = hdrRepo.findById(req.getTransactionPoid())
                 .orElseThrow(() -> new ResourceNotFoundException(LEAVE_REQUEST_NOT_FOUND));
 
+        HrLeaveRequestHdrEntity oldEntity = new HrLeaveRequestHdrEntity();
+        org.springframework.beans.BeanUtils.copyProperties(entity, oldEntity);
+
         normalizeLeaveTypeFields(req);
         LeaveCreateRequestDto createRequest = convertToCreate(req, entity);
         validation.validateBeforeSave(createRequest);
@@ -247,6 +272,11 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         entity.setLeaveDays(leaveDays);
 
         hdrRepo.save(entity);
+
+        loggingService.logChanges(oldEntity, entity,
+                HrLeaveRequestHdrEntity.class, UserContext.getDocumentId(),
+                entity.getTransactionPoid().toString(),
+                LogDetailsEnum.MODIFIED, "TRANSACTION_POID");
 
         mergeDetails(entity.getTransactionPoid(), req.getDetails());
 
@@ -664,6 +694,16 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
                 }).toList()
         );
 
+        dto.setEmployeeDtl(lovService.getDetailsByPoidAndLovNameFast(entity.getEmployeePoid(), "EMPLOYEE_NAME"));
+        dto.setLeaveTypeDtl(lovService.getLovItemByCodeFast(entity.getLeaveType(), "EMP_LEAVE_TYPE"));
+        dto.setAnnualLeaveTypeDtl(lovService.getLovItemByCodeFast(entity.getAnnualLeaveType(), "ANNUAL_LEAVE_TYPE"));
+        dto.setEmergencyLeaveTypeDtl(lovService.getLovItemByCodeFast(entity.getEmergencyLeaveType(), "ANNUAL_LEAVE_TYPE"));
+        dto.setSplLeaveTypesDtl(lovService.getLovItemByCodeFast(entity.getSplLeaveTypes(), "SPL_LEAVE_TYPE"));
+        dto.setHodDtl(lovService.getDetailsByPoidAndLovNameFast(entity.getHod(), "HOD_LEAVE_REQUEST"));
+        dto.setAirSectorDtl(lovService.getDetailsByPoidAndLovNameFast(entity.getAirSectorPoid(), "EMP_AIRSECTOR"));
+        dto.setSettlementDtl(lovService.getDetailsByPoidAndLovNameFast(entity.getSettlementPoid(), "LEAVE_SETTLEMENT_TICKET_TYPE"));
+        dto.setTicketBookByDtl(lovService.getLovItemByCodeFast(entity.getTicketBookBy(), "HR_TICKET_BOOKEDBY"));
+
         Map<String, Object> eligible =
                 repository.getEligibleLeaveDays(
                         entity.getCompanyPoid(),
@@ -918,6 +958,9 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         entity.setHrTicketIssuedCount(request.getHrTicketIssuedCount());
         hdrRepo.save(entity);
 
+        loggingService.createLogSummaryEntry(UserContext.getDocumentId(), request.getTransactionPoid().toString(),
+                String.format("%s - Leave history updated", LogDetailsEnum.MODIFIED));
+
         return Map.of(
                 STATUS, status != null ? status : SUCCESS,
                 MESSAGE, "Leave history updated"
@@ -977,6 +1020,9 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         entity.setTicketsIssued(request.getTicketsIssued());
         entity.setPjDocRef(request.getPjDocRef());
         hdrRepo.save(entity);
+
+        loggingService.createLogSummaryEntry(UserContext.getDocumentId(), request.getTransactionPoid().toString(),
+                String.format("%s - Ticket details updated", LogDetailsEnum.MODIFIED));
 
         return Map.of(
                 STATUS, status != null ? status : SUCCESS,

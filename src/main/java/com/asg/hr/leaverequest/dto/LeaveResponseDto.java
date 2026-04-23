@@ -1,5 +1,6 @@
 package com.asg.hr.leaverequest.dto;
 
+import com.asg.common.lib.dto.LovGetListDto;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -13,11 +14,16 @@ public class LeaveResponseDto {
     private Long groupPoid;
     private Long companyPoid;
     private Long employeePoid;
+    private LovGetListDto employeeDtl;
 
     private String leaveType;
+    private LovGetListDto leaveTypeDtl;
     private String annualLeaveType;
+    private LovGetListDto annualLeaveTypeDtl;
     private String emergencyLeaveType;
+    private LovGetListDto emergencyLeaveTypeDtl;
     private String splLeaveTypes;
+    private LovGetListDto splLeaveTypesDtl;
 
     private LocalDate leaveStartDate;
     private LocalDate planedRejoinDate;
@@ -35,6 +41,7 @@ public class LeaveResponseDto {
     private String otherLeaveReason;
     private String hodRemarks;
     private Long hod;
+    private LovGetListDto hodDtl;
 
     private String ticketRequired;
     private String ticketFromLocn;
@@ -48,9 +55,12 @@ public class LeaveResponseDto {
     private BigDecimal ticketEarned;
     private BigDecimal ticketPeriod;
     private Long settlementPoid;
+    private LovGetListDto settlementDtl;
     private String bookedTicket;
     private Long airSectorPoid;
+    private LovGetListDto airSectorDtl;
     private String ticketBookBy;
+    private LovGetListDto ticketBookByDtl;
     private String ticketProcessed;
     private BigDecimal ticketsIssued;
     private String pjDocRef;
