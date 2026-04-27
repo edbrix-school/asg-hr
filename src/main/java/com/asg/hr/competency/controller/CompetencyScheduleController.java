@@ -5,6 +5,7 @@ import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.enums.UserRolesRightsEnum;
+import com.asg.common.lib.exception.ResourceNotFoundException;
 import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.LoggingService;
@@ -232,10 +233,18 @@ public class CompetencyScheduleController {
     public ResponseEntity<?> createBatchEvaluation(
             @Parameter(description = "Schedule ID", required = true)
             @PathVariable Long schedulePoid,
-            @RequestBody CreateBatchRequest request) {
+            @RequestBody(required = false) CreateBatchRequest request) {
         try {
-            competencyScheduleService.createBatchEvaluation(schedulePoid, request.getEvaluationDate(), request.getRecreate());
-            return success("Batch evaluation created successfully");
+            String statusMessage = competencyScheduleService.createBatchEvaluation(
+                    schedulePoid,
+                    request != null ? request.getEvaluationDate() : null,
+                    request != null ? request.getRecreate() : null
+            );
+            return success(statusMessage);
+        } catch (ResourceNotFoundException ex) {
+            return notFound(ex.getMessage());
+        } catch (ValidationException ex) {
+            return badRequest(ex.getMessage());
         } catch (Exception ex) {
             return internalServerError(ex.getMessage());
         }
