@@ -22,4 +22,6 @@ public interface GlobalLocationMasterRepository extends JpaRepository<GlobalLoca
     @Query("SELECT l FROM GlobalLocationMaster l WHERE l.locationPoid = :locationPoid AND l.companyPoid = :companyPoid AND (l.deleted IS NULL OR l.deleted = '' OR l.deleted = 'N')")
     Optional<GlobalLocationMaster> findByIdAndCompanyPoidAndNotDeleted(@Param("locationPoid") Long locationPoid, @Param("companyPoid") Long companyPoid);
 
+    boolean existsByLocationPoid(Long locationPoid);
+
 }
