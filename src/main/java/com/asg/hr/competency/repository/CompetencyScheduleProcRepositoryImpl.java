@@ -30,13 +30,18 @@ public class CompetencyScheduleProcRepositoryImpl implements CompetencyScheduleP
     private static final String BATCH_EVALUATION_STATUS_MSG = "Batch evaluation status: {}";
     private static final String ERROR_CREATING_BATCH_MSG = "Error creating batch evaluation: {}";
     private static final String FAILED_TO_CREATE_BATCH_MSG = "Failed to create batch evaluation: ";
+    private static final String DEFAULT_SUCCESS_MSG = "Batch evaluation created successfully";
     
     @PersistenceContext
     private EntityManager entityManager;
     
     @Override
-    public void createBatchEvaluation(Long schedulePoid, Long groupPoid, Boolean recreate, LocalDate evaluationDate) {
+    public String createBatchEvaluation(Long schedulePoid, Long groupPoid, Boolean recreate, LocalDate evaluationDate) {
         try {
+            if (evaluationDate == null) {
+                throw new ValidationException("Please enter Evaluation Date ...");
+            }
+
             StoredProcedureQuery query = entityManager.createStoredProcedureQuery(PROC_NAME);
             
             query.registerStoredProcedureParameter(P_LOGIN_COMPANY_POID, Long.class, ParameterMode.IN);
@@ -49,20 +54,33 @@ public class CompetencyScheduleProcRepositoryImpl implements CompetencyScheduleP
             query.setParameter(P_LOGIN_COMPANY_POID, getCompanyId());
             query.setParameter(P_LOGIN_USER_POID, getUserPoid());
             query.setParameter(P_SCHEDULE_POID, schedulePoid);
-            query.setParameter(P_EVALUATION_DATE, java.sql.Date.valueOf(evaluationDate != null ? evaluationDate : LocalDate.now()));
+            query.setParameter(P_EVALUATION_DATE, java.sql.Date.valueOf(evaluationDate));
             query.setParameter(P_RECREATE, recreate != null && recreate ? "Y" : "N");
             
             query.execute();
             
-            String status = (String) query.getOutputParameterValue(P_STATUS);
+            String rawStatus = (String) query.getOutputParameterValue(P_STATUS);
+            String status = sanitizeStatus(rawStatus);
             log.info(BATCH_EVALUATION_STATUS_MSG, status);
             
-            if (status != null && status.contains(ERROR_KEYWORD)) {
-                throw new ValidationException(status.replaceAll(HTML_TAG_REGEX, ""));
+            if (rawStatus != null && rawStatus.toUpperCase().contains(ERROR_KEYWORD)) {
+                throw new ValidationException(status);
             }
+            return status;
+        } catch (ValidationException ex) {
+            throw ex;
         } catch (Exception e) {
             log.error(ERROR_CREATING_BATCH_MSG, e.getMessage(), e);
             throw new ValidationException(FAILED_TO_CREATE_BATCH_MSG + e.getMessage());
         }
+    }
+
+    private String sanitizeStatus(String status) {
+        if (status == null) {
+            return DEFAULT_SUCCESS_MSG;
+        }
+
+        String sanitized = status.replaceAll(HTML_TAG_REGEX, "").trim();
+        return sanitized.isEmpty() ? DEFAULT_SUCCESS_MSG : sanitized;
     }
 }

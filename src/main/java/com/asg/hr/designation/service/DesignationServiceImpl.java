@@ -106,7 +106,7 @@ public class DesignationServiceImpl implements DesignationService {
 
     @Override
     public void deleteDesignation(Long designationPoid, DeleteReasonDto deleteReasonDto) {
-        repository.findByDesignationPoidAndDeleted(designationPoid, "N")
+        repository.findById(designationPoid)
                 .orElseThrow(() -> new ResourceNotFoundException(DESIGNATION, DESIGNATIONPOID, designationPoid));
 
         documentDeleteService.deleteDocument(designationPoid, "HR_DESIGNATION_MASTER", DESIGNATION_POID, deleteReasonDto, null);

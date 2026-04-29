@@ -28,7 +28,7 @@ public class HrCompetencySchedule extends BaseEntity {
     @AuditIgnore
     private Long groupPoid;
     
-    @Column(name = "SCHEDULE_DESCRIPTION", length = 200)
+    @Column(name = "SCHEDULE_DESCRIPTION", length = 100)
     private String scheduleDescription;
     
     @Column(name = "PERIOD_FROM")

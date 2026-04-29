@@ -3,6 +3,7 @@ package com.asg.hr.competency.service;
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
+import com.asg.common.lib.dto.LovGetListDto;
 import com.asg.common.lib.dto.RawSearchResult;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.ResourceNotFoundException;
@@ -11,6 +12,7 @@ import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.common.lib.service.LovDataService;
 import com.asg.common.lib.utility.PaginationUtil;
 import com.asg.hr.competency.dto.CompetencyScheduleRequestDto;
 import com.asg.hr.competency.dto.CompetencyScheduleResponseDto;
@@ -41,12 +43,15 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
     private static final String COMP_SCHEDULE_POID = "COMP_SCHEDULE_POID";
     private static final String SCHEDULE_DESCRIPTION = "SCHEDULE_DESCRIPTION";
     private static final String HR_COMPETENCY_SCHEDULE_TABLE = "HR_COMPETENCY_SCHEDULE";
+    private static final String HR_COMPETENCY_SCHEDULES_LOV = "HR_COMPETENCY_SCHEDULES";
+    private static final String EVALUATION_DATE_REQUIRED_MESSAGE = "Please enter Evaluation Date ...";
 
     private final HrCompetencyScheduleRepository scheduleRepository;
     private final CompetencyScheduleProcRepository procRepository;
     private final LoggingService loggingService;
     private final DocumentDeleteService documentDeleteService;
     private final DocumentSearchService documentSearchService;
+    private final LovDataService lovDataService;
     
     @Override
     @Transactional
@@ -78,8 +83,7 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
     @Override
     @Transactional
     public Long updateSchedule(Long schedulePoid, CompetencyScheduleRequestDto requestDto) {
-        HrCompetencySchedule schedule = scheduleRepository.findBySchedulePoidAndDeleted(schedulePoid, DELETED_NO)
-                .orElseThrow(() -> new ResourceNotFoundException(SCHEDULE_FIELD, SCHEDULE_POID_FIELD, schedulePoid));
+        HrCompetencySchedule schedule = getAccessibleSchedule(schedulePoid);
         
         validatePeriod(requestDto, schedulePoid);
         validateEvaluationDate(requestDto);
@@ -108,8 +112,7 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
     
     @Override
     public CompetencyScheduleResponseDto getScheduleById(Long schedulePoid) {
-        HrCompetencySchedule schedule = scheduleRepository.findBySchedulePoidAndDeleted(schedulePoid, DELETED_NO)
-                .orElseThrow(() -> new ResourceNotFoundException(SCHEDULE_FIELD, SCHEDULE_POID_FIELD, schedulePoid));
+        HrCompetencySchedule schedule = getAccessibleSchedule(schedulePoid);
         
         return mapToResponseDto(schedule);
     }
@@ -130,8 +133,7 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
     @Override
     @Transactional
     public void deleteSchedule(Long schedulePoid, DeleteReasonDto deleteReasonDto) {
-        scheduleRepository.findBySchedulePoidAndDeleted(schedulePoid, DELETED_NO)
-                .orElseThrow(() -> new ResourceNotFoundException(SCHEDULE_FIELD, SCHEDULE_POID_FIELD, schedulePoid));
+        getAccessibleSchedule(schedulePoid);
         
         // Use DocumentDeleteService for deletion (handles logging internally)
         documentDeleteService.deleteDocument(
@@ -147,15 +149,19 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
     
     @Override
     @Transactional
-    public void createBatchEvaluation(Long schedulePoid, LocalDate evaluationDate, Boolean recreate) {
-        HrCompetencySchedule schedule = scheduleRepository.findBySchedulePoidAndDeleted(schedulePoid, DELETED_NO)
-                .orElseThrow(() -> new ResourceNotFoundException(SCHEDULE_FIELD, SCHEDULE_POID_FIELD, schedulePoid));
+    public String createBatchEvaluation(Long schedulePoid, LocalDate evaluationDate, Boolean recreate) {
+        HrCompetencySchedule schedule = getAccessibleSchedule(schedulePoid);
         
         LocalDate evalDate = evaluationDate != null ? evaluationDate : schedule.getEvaluationDate();
-        procRepository.createBatchEvaluation(schedulePoid, schedule.getGroupPoid(), recreate, evalDate);
+        if (evalDate == null) {
+            throw new ValidationException(EVALUATION_DATE_REQUIRED_MESSAGE);
+        }
+
+        String statusMessage = procRepository.createBatchEvaluation(schedulePoid, schedule.getGroupPoid(), recreate, evalDate);
         log.info("Batch evaluation created for schedule ID: {}", schedulePoid);
         
-        loggingService.createLogSummaryEntry(UserContext.getDocumentId(),  schedulePoid.toString(), "Batch evaluation created successfully");
+        loggingService.createLogSummaryEntry(UserContext.getDocumentId(), schedulePoid.toString(), statusMessage);
+        return statusMessage;
     }
     
     private void validatePeriod(CompetencyScheduleRequestDto requestDto, Long schedulePoid) {
@@ -184,6 +190,11 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
     }
     
     private CompetencyScheduleResponseDto mapToResponseDto(HrCompetencySchedule schedule) {
+        LovGetListDto scheduleDtl = lovDataService.getDetailsByPoidAndLovNameFast(
+                schedule.getSchedulePoid(),
+                HR_COMPETENCY_SCHEDULES_LOV
+        );
+
         return CompetencyScheduleResponseDto.builder()
                 .schedulePoid(schedule.getSchedulePoid())
                 .scheduleDescription(schedule.getScheduleDescription())
@@ -192,6 +203,12 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
                 .seqNo(schedule.getSeqNo())
                 .active(schedule.getActive())
                 .evaluationDate(schedule.getEvaluationDate())
+                .scheduleDtl(scheduleDtl)
                 .build();
+    }
+
+    private HrCompetencySchedule getAccessibleSchedule(Long schedulePoid) {
+        return scheduleRepository.findByIdAndGroupPoidAndNotDeleted(schedulePoid, UserContext.getGroupPoid())
+                .orElseThrow(() -> new ResourceNotFoundException(SCHEDULE_FIELD, SCHEDULE_POID_FIELD, schedulePoid));
     }
 }
