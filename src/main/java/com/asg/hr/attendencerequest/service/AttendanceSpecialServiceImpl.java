@@ -45,7 +45,7 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
     @Transactional
     public AttendanceResponseDto create(AttendanceRequestDto dto) {
 
-        callValidationSP(dto);
+        callValidationSP(dto, null);
 
         AttendanceEntity entity = AttendanceEntity.builder()
                 .employeePoid(dto.getEmployeePoid())
@@ -53,6 +53,8 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
                 .exceptionType(dto.getExceptionType())
                 .reason(dto.getReason())
                 .hodRemarks(dto.getHodRemarks())
+                .ot1Hours(dto.getOt1Hours())
+                .ot2Hours(dto.getOt2Hours())
                 .groupPoid(UserContext.getGroupPoid())
                 .status(dto.getStatus() != null ? dto.getStatus() : "IN_PROGRESS")
                 .deleted("N")
@@ -110,7 +112,7 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
     @Transactional
     public AttendanceResponseDto update(Long id, AttendanceRequestDto dto) {
 
-        callValidationSP(dto);
+        callValidationSP(dto, id);
 
         AttendanceEntity entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_NAME, "id", id));
@@ -123,6 +125,8 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
         entity.setExceptionType(dto.getExceptionType());
         entity.setReason(dto.getReason());
         entity.setHodRemarks(dto.getHodRemarks());
+        entity.setOt1Hours(dto.getOt1Hours());
+        entity.setOt2Hours(dto.getOt2Hours());
         entity.setStatus(dto.getStatus() != null ? dto.getStatus() : entity.getStatus());
 
         entity = repository.save(entity);
@@ -158,7 +162,7 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
     }
 
     // ================= VALIDATION =================
-    private void callValidationSP(AttendanceRequestDto dto) {
+    private void callValidationSP(AttendanceRequestDto dto, Long transactionPoid) {
 
         String result = jdbcTemplate.execute((Connection conn) -> {
             CallableStatement cs = conn.prepareCall(
@@ -166,8 +170,11 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
             );
 
             cs.setString(1, UserContext.getDocumentId());
-            cs.setNull(2, Types.NUMERIC);
-
+            if (transactionPoid != null) {
+                cs.setLong(2, transactionPoid);
+            } else {
+                cs.setNull(2, Types.NUMERIC);
+            }
             cs.setLong(3, dto.getEmployeePoid());
             cs.setDate(4, Date.valueOf(dto.getAttendanceDate()));
             cs.setString(5, dto.getExceptionType());
@@ -182,6 +189,4 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
             throw new ValidationException(result);
         }
     }
-
-
 }

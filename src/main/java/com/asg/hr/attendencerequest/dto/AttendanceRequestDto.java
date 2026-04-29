@@ -31,4 +31,10 @@ public class AttendanceRequestDto {
 
     @Size(max = 50, message = "Status must not exceed 50 characters")
     private String status;
+
+    @Size(max = 10, message = "OT1 hours must not exceed 10 characters")
+    private String ot1Hours;
+
+    @Size(max = 10, message = "OT2 hours must not exceed 10 characters")
+    private String ot2Hours;
 }

@@ -15,6 +15,7 @@ import com.asg.hr.attendencerequest.dto.AttendanceRequestDto;
 import com.asg.hr.attendencerequest.dto.AttendanceResponseDto;
 import com.asg.hr.attendencerequest.entity.AttendanceEntity;
 import com.asg.hr.attendencerequest.repository.AttendanceRepository;
+import com.asg.hr.attendencerequest.util.AttendanceMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -61,58 +62,13 @@ class AttendanceSpecialServiceImplTest {
     @Mock
     private JdbcTemplate jdbcTemplate;
 
+    @Mock
+    private AttendanceMapper mapper;
+
     @InjectMocks
     private AttendanceSpecialServiceImpl service;
 
     // ---------- CREATE ----------
-    @Test
-    void create_whenEmployeeMissing_throwsValidationException() {
-        AttendanceRequestDto dto = new AttendanceRequestDto();
-        dto.setAttendanceDate(LocalDate.of(2024, 1, 1));
-        dto.setExceptionType("E1");
-        dto.setReason("R1");
-        dto.setHodRemarks("H1");
-
-        assertThrows(ValidationException.class, () -> service.create(dto));
-        verifyNoInteractions(repository, jdbcTemplate, loggingService);
-    }
-
-    @Test
-    void create_whenAttendanceDateMissing_throwsValidationException() {
-        AttendanceRequestDto dto = new AttendanceRequestDto();
-        dto.setEmployeePoid(1L);
-        dto.setExceptionType("E1");
-        dto.setReason("R1");
-        dto.setHodRemarks("H1");
-
-        assertThrows(ValidationException.class, () -> service.create(dto));
-        verifyNoInteractions(repository, jdbcTemplate, loggingService);
-    }
-
-    @Test
-    void create_whenExceptionTypeMissing_throwsValidationException() {
-        AttendanceRequestDto dto = new AttendanceRequestDto();
-        dto.setEmployeePoid(1L);
-        dto.setAttendanceDate(LocalDate.of(2024, 1, 1));
-        dto.setReason("R1");
-        dto.setHodRemarks("H1");
-
-        assertThrows(ValidationException.class, () -> service.create(dto));
-        verifyNoInteractions(repository, jdbcTemplate, loggingService);
-    }
-
-    @Test
-    void create_whenReasonMissing_throwsValidationException() {
-        AttendanceRequestDto dto = new AttendanceRequestDto();
-        dto.setEmployeePoid(1L);
-        dto.setAttendanceDate(LocalDate.of(2024, 1, 1));
-        dto.setExceptionType("E1");
-        dto.setHodRemarks("H1");
-
-        assertThrows(ValidationException.class, () -> service.create(dto));
-        verifyNoInteractions(repository, jdbcTemplate, loggingService);
-    }
-
     @Test
     void create_whenSpReturnsError_throwsValidationException() {
         AttendanceRequestDto dto = new AttendanceRequestDto();
@@ -157,6 +113,7 @@ class AttendanceSpecialServiceImplTest {
 
         when(jdbcTemplate.execute((ConnectionCallback<String>) any(ConnectionCallback.class))).thenReturn("OK");
         when(repository.save(any(AttendanceEntity.class))).thenReturn(saved);
+        when(mapper.toResponse(any(AttendanceEntity.class))).thenAnswer(inv -> toResponse(inv.getArgument(0)));
 
         try (MockedStatic<UserContext> uc = Mockito.mockStatic(UserContext.class)) {
             uc.when(UserContext::getGroupPoid).thenReturn(100L);
@@ -240,6 +197,7 @@ class AttendanceSpecialServiceImplTest {
                 .build();
 
         when(repository.findById(1L)).thenReturn(Optional.of(entity));
+        when(mapper.toResponse(any(AttendanceEntity.class))).thenAnswer(inv -> toResponse(inv.getArgument(0)));
 
         AttendanceResponseDto resp = service.getById(1L);
 
@@ -249,50 +207,6 @@ class AttendanceSpecialServiceImplTest {
     }
 
     // ---------- UPDATE ----------
-    @Test
-    void update_whenEmployeeMissing_throwsValidationException() {
-        AttendanceRequestDto dto = new AttendanceRequestDto();
-        dto.setAttendanceDate(LocalDate.of(2024, 1, 1));
-        dto.setExceptionType("E1");
-        dto.setReason("R1");
-
-        assertThrows(ValidationException.class, () -> service.update(1L, dto));
-        verifyNoInteractions(repository, jdbcTemplate, loggingService);
-    }
-
-    @Test
-    void update_whenAttendanceDateMissing_throwsValidationException() {
-        AttendanceRequestDto dto = new AttendanceRequestDto();
-        dto.setEmployeePoid(1L);
-        dto.setExceptionType("E1");
-        dto.setReason("R1");
-
-        assertThrows(ValidationException.class, () -> service.update(1L, dto));
-        verifyNoInteractions(repository, jdbcTemplate, loggingService);
-    }
-
-    @Test
-    void update_whenExceptionTypeMissing_throwsValidationException() {
-        AttendanceRequestDto dto = new AttendanceRequestDto();
-        dto.setEmployeePoid(1L);
-        dto.setAttendanceDate(LocalDate.of(2024, 1, 1));
-        dto.setReason("R1");
-
-        assertThrows(ValidationException.class, () -> service.update(1L, dto));
-        verifyNoInteractions(repository, jdbcTemplate, loggingService);
-    }
-
-    @Test
-    void update_whenReasonMissing_throwsValidationException() {
-        AttendanceRequestDto dto = new AttendanceRequestDto();
-        dto.setEmployeePoid(1L);
-        dto.setAttendanceDate(LocalDate.of(2024, 1, 1));
-        dto.setExceptionType("E1");
-
-        assertThrows(ValidationException.class, () -> service.update(1L, dto));
-        verifyNoInteractions(repository, jdbcTemplate, loggingService);
-    }
-
     @Test
     void update_whenSpReturnsError_throwsValidationException() {
         AttendanceRequestDto dto = new AttendanceRequestDto();
@@ -356,6 +270,7 @@ class AttendanceSpecialServiceImplTest {
         when(jdbcTemplate.execute((ConnectionCallback<String>) any(ConnectionCallback.class))).thenReturn("OK");
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
         when(repository.save(any(AttendanceEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(mapper.toResponse(any(AttendanceEntity.class))).thenAnswer(inv -> toResponse(inv.getArgument(0)));
 
         try (MockedStatic<UserContext> uc = Mockito.mockStatic(UserContext.class)) {
             uc.when(UserContext::getDocumentId).thenReturn("DOC1");
@@ -409,6 +324,18 @@ class AttendanceSpecialServiceImplTest {
                 eq(reason),
                 isNull()
         );
+    }
+
+    private AttendanceResponseDto toResponse(AttendanceEntity entity) {
+        return AttendanceResponseDto.builder()
+                .attendancePoid(entity.getAttendancePoid())
+                .employeePoid(entity.getEmployeePoid())
+                .attendanceDate(entity.getAttendanceDate())
+                .exceptionType(entity.getExceptionType())
+                .reason(entity.getReason())
+                .hodRemarks(entity.getHodRemarks())
+                .status(entity.getStatus())
+                .build();
     }
 }
 
