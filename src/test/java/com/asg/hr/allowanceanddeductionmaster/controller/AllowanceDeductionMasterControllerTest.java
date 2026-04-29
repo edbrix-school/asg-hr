@@ -92,7 +92,7 @@ class AllowanceDeductionMasterControllerTest {
                 .build();
 
         responseDTO = AllowanceDeductionResponseDTO.builder()
-                .allowaceDeductionPoid(1L)
+                .allowanceDeductionPoid(1L)
                 .code("BASIC_PAY")
                 .description("Basic Salary")
                 .variableFixed("FIXED")

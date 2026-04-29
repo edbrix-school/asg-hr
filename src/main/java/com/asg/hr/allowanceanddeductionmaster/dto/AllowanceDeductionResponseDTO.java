@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Builder
 public class AllowanceDeductionResponseDTO {
 
-    private Long allowaceDeductionPoid;
+    private Long allowanceDeductionPoid;
     private Long groupPoid;
     private String code;
     private String description;
