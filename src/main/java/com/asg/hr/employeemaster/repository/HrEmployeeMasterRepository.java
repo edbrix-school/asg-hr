@@ -17,6 +17,8 @@ import java.util.Optional;
 public interface HrEmployeeMasterRepository extends JpaRepository<HrEmployeeMaster, Long> {
     Optional<HrEmployeeMaster> findByEmployeePoid(@Param("employeePoid") Long employeePoid);
 
+    Optional<HrEmployeeMaster> findByLoginUserPoid(@Param("loginUserPoid") Long loginUserPoid);
+
     boolean existsByEmployeePoid(@Param("employeePoid") Long employeePoid);
 
     boolean existsByMobile(@Param("mobile") String mobile);
