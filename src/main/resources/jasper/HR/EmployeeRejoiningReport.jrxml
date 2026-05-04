@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="EmployeeRejoiningReport" language="groovy" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="b8f6802f-b6b4-46af-bf7d-6294f2a73b3b">
+	<property name="ireport.zoom" value="1.2"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="LOGIN_COMP_POID" class="java.lang.String">
+		<defaultValueExpression><![CDATA["1"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DOC_ID" class="java.lang.String">
+		<defaultValueExpression><![CDATA["800-114"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DOC_KEY_POID" class="java.lang.String"/>
+	<parameter name="SUB_HEADER" class="net.sf.jasperreports.engine.JasperReport"/>
+	<queryString>
+		<![CDATA[SELECT LR.TRANSACTION_POID,
+       LR.DOC_REF,
+       LR.TRANSACTION_DATE,
+       LR.DATE_OF_REJOINING,
+       LR.REMARKS,
+       LR.PASSPORT_RECEIVED,
+       LR.RECEIVED_BY,
+       LR.REMARKS_BY_HR,
+       LR.EXTRA_LEAVE_DAYS,
+       LR.EXTRA_ABSENT_DAYS,
+       EMP.EMPLOYEE_CODE,
+       EMP.EMPLOYEE_NAME,
+       EMP.EMPLOYEE_NAME2,
+       DES.DESIGNATION_NAME,
+       DEP.DEPT_NAME,
+       HIST.LEAVE_START_DATE,
+       HIST.EXP_REJOIN_DATE
+  FROM HR_EMP_REJOIN_HDR LR
+  LEFT JOIN HR_EMPLOYEE_MASTER EMP
+    ON LR.EMPLOYEE_POID = EMP.EMPLOYEE_POID
+  LEFT JOIN HR_DESIGNATION_MASTER DES
+    ON EMP.DESIGNATION_POID = DES.DESIG_POID
+  LEFT JOIN HR_DEPARTMENT_MASTER DEP
+    ON EMP.DEPARTMENT_POID = DEP.DEPT_POID
+  LEFT JOIN (
+        SELECT H1.SOURCE_DOC_POID,
+               H1.EMPLOYEE_POID,
+               H1.LEAVE_START_DATE,
+               H1.EXP_REJOIN_DATE
+          FROM HR_EMPLOYEE_LEAVE_HISTORY H1
+         WHERE H1.LEAVE_HIST_POID = (
+                   SELECT MAX(H2.LEAVE_HIST_POID)
+                     FROM HR_EMPLOYEE_LEAVE_HISTORY H2
+                    WHERE H2.SOURCE_DOC_POID = H1.SOURCE_DOC_POID
+                      AND H2.EMPLOYEE_POID = H1.EMPLOYEE_POID
+               )
+    ) HIST
+    ON HIST.SOURCE_DOC_POID = LR.LEAVE_REQUEST_POID
+   AND HIST.EMPLOYEE_POID = LR.EMPLOYEE_POID
+ WHERE LR.TRANSACTION_POID = $P{DOC_KEY_POID}]]>
+	</queryString>
+	<field name="TRANSACTION_POID" class="java.math.BigDecimal"/>
+	<field name="DOC_REF" class="java.lang.String"/>
+	<field name="TRANSACTION_DATE" class="java.sql.Timestamp"/>
+	<field name="DATE_OF_REJOINING" class="java.sql.Timestamp"/>
+	<field name="REMARKS" class="java.lang.String"/>
+	<field name="PASSPORT_RECEIVED" class="java.lang.String"/>
+	<field name="RECEIVED_BY" class="java.lang.String"/>
+	<field name="REMARKS_BY_HR" class="java.lang.String"/>
+	<field name="EXTRA_LEAVE_DAYS" class="java.math.BigDecimal"/>
+	<field name="EXTRA_ABSENT_DAYS" class="java.math.BigDecimal"/>
+	<field name="EMPLOYEE_CODE" class="java.lang.String"/>
+	<field name="EMPLOYEE_NAME" class="java.lang.String"/>
+	<field name="EMPLOYEE_NAME2" class="java.lang.String"/>
+	<field name="DESIGNATION_NAME" class="java.lang.String"/>
+	<field name="DEPT_NAME" class="java.lang.String"/>
+	<field name="LEAVE_START_DATE" class="java.sql.Timestamp"/>
+	<field name="EXP_REJOIN_DATE" class="java.sql.Timestamp"/>
+	<title>
+		<band height="58" splitType="Stretch">
+			<subreport>
+				<reportElement x="0" y="0" width="555" height="34" uuid="f41da1df-a117-4475-ab1e-1e65bf8b32f3"/>
+				<subreportParameter name="LOGIN_COMP_POID">
+					<subreportParameterExpression><![CDATA[$P{LOGIN_COMP_POID}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[$P{SUB_HEADER}]]></subreportExpression>
+			</subreport>
+			<staticText>
+				<reportElement x="0" y="38" width="555" height="20" uuid="ca8d4f6b-0af4-4e0f-ad93-30ef81b86284"/>
+				<textElement textAlignment="Center">
+					<font size="14" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Employee Rejoining Form]]></text>
+			</staticText>
+		</band>
+	</title>
+	<detail>
+		<band height="252" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="120" height="18" uuid="9b3fae1e-8378-4a60-9127-83ef91abde3f"/>
+				<textElement><font isBold="true"/></textElement>
+				<text><![CDATA[Document Ref]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="140" y="0" width="200" height="18" uuid="ef8a42b8-44e9-4519-9576-611bc0f9734f"/>
+				<textFieldExpression><![CDATA[$F{DOC_REF}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="22" width="120" height="18" uuid="8f49d2eb-b3dd-4a59-a143-e0ec9c07c1d1"/>
+				<textElement><font isBold="true"/></textElement>
+				<text><![CDATA[Employee]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="140" y="22" width="350" height="18" uuid="0c592977-40ca-4260-91f9-a3a5b40d48ea"/>
+				<textFieldExpression><![CDATA[$F{EMPLOYEE_CODE} + " - " + $F{EMPLOYEE_NAME} + ($F{EMPLOYEE_NAME2} == null ? "" : " " + $F{EMPLOYEE_NAME2})]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="44" width="120" height="18" uuid="a66987da-b9db-4296-bc8e-f7386cd76c58"/>
+				<textElement><font isBold="true"/></textElement>
+				<text><![CDATA[Designation]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="140" y="44" width="350" height="18" uuid="3031d427-3759-4e46-8444-747a4ea95e68"/>
+				<textFieldExpression><![CDATA[$F{DESIGNATION_NAME}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="66" width="120" height="18" uuid="b2402268-0470-47cc-a970-2ec0f9f79744"/>
+				<textElement><font isBold="true"/></textElement>
+				<text><![CDATA[Department]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="140" y="66" width="350" height="18" uuid="ec4623a9-fb9b-4dd0-b6b9-fa528237d7a0"/>
+				<textFieldExpression><![CDATA[$F{DEPT_NAME}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="88" width="120" height="18" uuid="56f0519f-2e6a-40f0-b526-8d298ab50011"/>
+				<textElement><font isBold="true"/></textElement>
+				<text><![CDATA[Date Proceeded on Leave]]></text>
+			</staticText>
+			<textField pattern="dd-MMM-yyyy" isBlankWhenNull="true">
+				<reportElement x="140" y="88" width="200" height="18" uuid="31da7dae-29dc-47d2-b960-56aee679f4c9"/>
+				<textFieldExpression><![CDATA[$F{LEAVE_START_DATE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="110" width="120" height="18" uuid="d0fb4c5f-f50b-487c-b3eb-aa6f668a7f34"/>
+				<textElement><font isBold="true"/></textElement>
+				<text><![CDATA[Expected Rejoin Date]]></text>
+			</staticText>
+			<textField pattern="dd-MMM-yyyy" isBlankWhenNull="true">
+				<reportElement x="140" y="110" width="200" height="18" uuid="a2548ef1-84f2-4417-a9c7-812bd564f850"/>
+				<textFieldExpression><![CDATA[$F{EXP_REJOIN_DATE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="132" width="120" height="18" uuid="8562da60-c789-4206-9e56-b0db9f6beb4b"/>
+				<textElement><font isBold="true"/></textElement>
+				<text><![CDATA[Date of Rejoining]]></text>
+			</staticText>
+			<textField pattern="dd-MMM-yyyy" isBlankWhenNull="true">
+				<reportElement x="140" y="132" width="200" height="18" uuid="46033a39-e310-4d04-a1ea-6e32e344c193"/>
+				<textFieldExpression><![CDATA[$F{DATE_OF_REJOINING}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="154" width="120" height="18" uuid="d7ca3ab7-77f5-4f0b-95a0-ac4ad4e64b0a"/>
+				<textElement><font isBold="true"/></textElement>
+				<text><![CDATA[Passport Received]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="140" y="154" width="200" height="18" uuid="4ef9d574-6133-4adf-9c7d-e2becd9a5ec7"/>
+				<textFieldExpression><![CDATA[$F{PASSPORT_RECEIVED}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="176" width="120" height="18" uuid="26d7d2d4-3580-42ce-b8ce-f2d07d8a34a8"/>
+				<textElement><font isBold="true"/></textElement>
+				<text><![CDATA[Received By]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="140" y="176" width="350" height="18" uuid="42e61c8c-8264-4659-ae5b-ae1ed7cb9b78"/>
+				<textFieldExpression><![CDATA[$F{RECEIVED_BY}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="198" width="120" height="18" uuid="3b50f85a-470a-4d91-8471-d4f83f48b592"/>
+				<textElement><font isBold="true"/></textElement>
+				<text><![CDATA[Remarks]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="140" y="198" width="390" height="18" uuid="f6673219-d9dc-41ca-bbac-ce7bd80550f4"/>
+				<textFieldExpression><![CDATA[$F{REMARKS}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="0" y="220" width="120" height="18" uuid="20abdd76-cc5f-49bb-9e2a-60f75eb980e2"/>
+				<textElement><font isBold="true"/></textElement>
+				<text><![CDATA[Remarks by HR]]></text>
+			</staticText>
+			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
+				<reportElement x="140" y="220" width="390" height="18" uuid="78a3df69-84fb-44eb-b207-55ed3efed3b4"/>
+				<textFieldExpression><![CDATA[$F{REMARKS_BY_HR}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<summary>
+		<band height="40" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="120" height="18" uuid="ea0d3fa8-a9f8-4afe-ba18-a73ff78f1eae"/>
+				<textElement><font isBold="true"/></textElement>
+				<text><![CDATA[Extra Leave Days]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="140" y="0" width="120" height="18" uuid="df4a1f75-f0e8-4a83-af84-7de6100f7441"/>
+				<textFieldExpression><![CDATA[$F{EXTRA_LEAVE_DAYS}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="280" y="0" width="120" height="18" uuid="9bc7e446-13de-40e6-beb8-a849fcc4dd13"/>
+				<textElement><font isBold="true"/></textElement>
+				<text><![CDATA[Extra Absent Days]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="410" y="0" width="120" height="18" uuid="6c06e4e7-11f8-4f5d-ae24-2dab883f77ab"/>
+				<textFieldExpression><![CDATA[$F{EXTRA_ABSENT_DAYS}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
+</jasperReport>
