@@ -21,5 +21,5 @@ public interface CompetencyScheduleService {
     
     void deleteSchedule(Long schedulePoid, DeleteReasonDto deleteReasonDto);
     
-    void createBatchEvaluation(Long schedulePoid, LocalDate evaluationDate, Boolean recreate);
+    String createBatchEvaluation(Long schedulePoid, LocalDate evaluationDate, Boolean recreate);
 }

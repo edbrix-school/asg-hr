@@ -14,6 +14,7 @@ import lombok.*;
 public class GlobalLocationMaster extends BaseEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "LOCATION_POID")
     private Long locationPoid;
 
@@ -28,6 +29,12 @@ public class GlobalLocationMaster extends BaseEntity {
 
     @Column(name = "LOCATION_NAME2", length = 100)
     private String locationName2;
+
+    @Column(name = "ADDRESS", length = 500)
+    private String address;
+
+    @Column(name = "SITE_SUPERVISOR_USER_POID")
+    private Long siteSupervisorUserPoid;
 
     @Column(name = "ACTIVE", length = 1)
     private String active;
@@ -50,20 +57,13 @@ public class GlobalLocationMaster extends BaseEntity {
     @Column(name = "DISCOUNT_ENABLED", length = 1)
     private String discountEnabled;
 
-    @Column(name = "SITE_SUPERVISOR_USER_POID")
-    private Long siteSupervisorUserPoid;
-
     @Column(name = "OWN_LOCATION", length = 1)
     private String ownLocation;
 
     @Column(name = "INVENTORY_LOCATION", length = 1)
     private String inventoryLocation;
 
-    @Column(name = "ADDRESS", length = 500)
-    private String address;
-
     @Column(name = "IS_WAREHOUSE", length = 1)
     private String isWarehouse;
-
 
 }

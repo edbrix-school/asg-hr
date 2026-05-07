@@ -1,5 +1,6 @@
 package com.asg.hr.competency.dto;
 
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -18,6 +19,7 @@ import java.time.LocalDate;
 public class CompetencyScheduleRequestDto {
     
     @NotBlank(message = "Schedule description is required")
+    @Size(max = 100, message = "Schedule description must not exceed 100 characters")
     private String scheduleDescription;
     
     @NotNull(message = "Period from date is required")
@@ -26,6 +28,7 @@ public class CompetencyScheduleRequestDto {
     @NotNull(message = "Period to date is required")
     private LocalDate periodTo;
     
+    @Digits(integer = 5, fraction = 0, message = "Seq No must be a whole number with up to 5 digits")
     private Integer seqNo;
 
     @NotBlank(message = "Active cannot be blank")
