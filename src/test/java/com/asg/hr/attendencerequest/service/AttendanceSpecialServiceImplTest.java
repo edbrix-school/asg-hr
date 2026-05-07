@@ -112,21 +112,32 @@ class AttendanceSpecialServiceImplTest {
                 .build();
 
         when(jdbcTemplate.execute((ConnectionCallback<String>) any(ConnectionCallback.class))).thenReturn("OK");
-        when(repository.save(any(AttendanceEntity.class))).thenReturn(saved);
+        when(repository.findLastInsertedPoid(11L, LocalDate.of(2024, 2, 2))).thenReturn(99L);
+        when(repository.findById(99L)).thenReturn(Optional.of(saved));
         when(mapper.toResponse(any(AttendanceEntity.class))).thenAnswer(inv -> toResponse(inv.getArgument(0)));
 
         try (MockedStatic<UserContext> uc = Mockito.mockStatic(UserContext.class)) {
             uc.when(UserContext::getGroupPoid).thenReturn(100L);
             uc.when(UserContext::getDocumentId).thenReturn("DOC1");
+            uc.when(UserContext::getUserId).thenReturn("test-user");
 
             var resp = service.create(dto);
 
-            ArgumentCaptor<AttendanceEntity> captor = ArgumentCaptor.forClass(AttendanceEntity.class);
-            verify(repository).save(captor.capture());
-            AttendanceEntity toSave = captor.getValue();
-            assertThat(toSave.getStatus()).isEqualTo("IN_PROGRESS");
-            assertThat(toSave.getDeleted()).isEqualTo("N");
-            assertThat(toSave.getGroupPoid()).isEqualTo(100L);
+            verify(repository).insertAttendance(
+                    eq(100L),
+                    eq(11L),
+                    eq(LocalDate.of(2024, 2, 2)),
+                    eq("E2"),
+                    eq("R2"),
+                    eq("H2"),
+                    isNull(),
+                    isNull(),
+                    eq("IN_PROGRESS"),
+                    eq("N"),
+                    eq("test-user")
+            );
+            verify(repository).findLastInsertedPoid(11L, LocalDate.of(2024, 2, 2));
+            verify(repository).findById(99L);
 
             verify(loggingService).createLogSummaryEntry(LogDetailsEnum.CREATED, "DOC1", "99");
             assertThat(resp.getAttendancePoid()).isEqualTo(99L);
