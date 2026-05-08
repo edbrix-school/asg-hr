@@ -6,6 +6,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -40,11 +43,13 @@ class SubDeptValidatorTest {
         assertTrue(validator.isValid(null, context));
     }
 
-    @Test
-    @DisplayName("returns true when subdeptYN is not Y")
-    void returnsTrue_whenSubdeptYNIsNotY() {
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {"N"})
+    @DisplayName("returns true when subdeptYN is not Y, null, or empty")
+    void returnsTrue_whenSubdeptYNIsNotY(String subdeptYN) {
         HrDepartmentMasterRequest request = HrDepartmentMasterRequest.builder()
-                .subdeptYN("N")
+                .subdeptYN(subdeptYN)
                 .parentDeptPoid(null)
                 .build();
 
@@ -97,25 +102,5 @@ class SubDeptValidatorTest {
         assertFalse(validator.isValid(request, context));
     }
 
-    @Test
-    @DisplayName("returns true when subdeptYN is null")
-    void returnsTrue_whenSubdeptYNIsNull() {
-        HrDepartmentMasterRequest request = HrDepartmentMasterRequest.builder()
-                .subdeptYN(null)
-                .parentDeptPoid(null)
-                .build();
 
-        assertTrue(validator.isValid(request, context));
-    }
-
-    @Test
-    @DisplayName("returns true when subdeptYN is empty string")
-    void returnsTrue_whenSubdeptYNIsEmpty() {
-        HrDepartmentMasterRequest request = HrDepartmentMasterRequest.builder()
-                .subdeptYN("")
-                .parentDeptPoid(null)
-                .build();
-
-        assertTrue(validator.isValid(request, context));
-    }
 }

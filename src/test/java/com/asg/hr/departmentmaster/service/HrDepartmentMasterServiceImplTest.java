@@ -107,8 +107,7 @@ class HrDepartmentMasterServiceImplTest {
 
             Map<String, Object> result = service.getAllDepartmentsWithFilters(DOCUMENT_ID, filterRequest, pageable);
 
-            assertThat(result).isNotNull();
-            assertThat(result).containsKeys("content", "totalElements", "totalPages");
+            assertThat(result).isNotNull().containsKeys("content", "totalElements", "totalPages");
             verify(documentSearchService).search(eq(DOCUMENT_ID), anyList(), eq("AND"), eq(pageable), eq("N"), eq("DEPT_NAME"), eq("DEPT_POID"));
         }
 
@@ -583,8 +582,9 @@ class HrDepartmentMasterServiceImplTest {
         @DisplayName("throws ResourceNotFoundException when department not found")
         void throwsWhenNotFound() {
             when(repository.findById(DEPT_POID)).thenReturn(Optional.empty());
+            DeleteReasonDto dto = new DeleteReasonDto();
 
-            assertThatThrownBy(() -> service.deleteDepartment(DEPT_POID, GROUP_POID, USER_ID, new DeleteReasonDto()))
+            assertThatThrownBy(() -> service.deleteDepartment(DEPT_POID, GROUP_POID, USER_ID, dto))
                     .isInstanceOf(ResourceNotFoundException.class);
             verify(documentDeleteService, never()).deleteDocument(anyLong(), anyString(), anyString(), any(), any());
         }
