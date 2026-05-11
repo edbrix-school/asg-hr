@@ -276,12 +276,12 @@ public class HrLeaveRequestController {
 
     @AllowedAction(UserRolesRightsEnum.PRINT)
     @Operation(
-            summary = "Generate PDF for Purchase Journal",
-            description = "Generate PDF report for a specific Purchase Journal transaction",
+            summary = "Generate PDF for Leave Request",
+            description = "Generate PDF report for a specific Leave Request transaction",
             responses = {
                     @ApiResponse(responseCode = "200", description = "PDF generated successfully",
                             content = @Content(mediaType = "application/pdf")),
-                    @ApiResponse(responseCode = "404", description = "Purchase Journal not found"),
+                    @ApiResponse(responseCode = "404", description = "Leave Request not found"),
                     @ApiResponse(responseCode = "500", description = "Failed to generate PDF")
             }
     )
