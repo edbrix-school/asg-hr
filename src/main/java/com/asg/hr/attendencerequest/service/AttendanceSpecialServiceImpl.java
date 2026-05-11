@@ -47,25 +47,31 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
 
         callValidationSP(dto, null);
 
-        AttendanceEntity entity = AttendanceEntity.builder()
-                .employeePoid(dto.getEmployeePoid())
-                .attendanceDate(dto.getAttendanceDate())
-                .exceptionType(dto.getExceptionType())
-                .reason(dto.getReason())
-                .hodRemarks(dto.getHodRemarks())
-                .ot1Hours(dto.getOt1Hours())
-                .ot2Hours(dto.getOt2Hours())
-                .groupPoid(UserContext.getGroupPoid())
-                .status(dto.getStatus() != null ? dto.getStatus() : "IN_PROGRESS")
-                .deleted("N")
-                .build();
+        String status = dto.getStatus() != null ? dto.getStatus() : "IN_PROGRESS";
 
-        entity = repository.save(entity);
+        repository.insertAttendance(
+                UserContext.getGroupPoid(),
+                dto.getEmployeePoid(),
+                dto.getAttendanceDate(),
+                dto.getExceptionType(),
+                dto.getReason(),
+                dto.getHodRemarks(),
+                dto.getOt1Hours(),
+                dto.getOt2Hours(),
+                status,
+                "N",
+                UserContext.getUserId()
+        );
+
+        Long newPoid = repository.findLastInsertedPoid(dto.getEmployeePoid(), dto.getAttendanceDate());
+
+        AttendanceEntity entity = repository.findById(newPoid)
+                .orElseThrow(() -> new ResourceNotFoundException(RESOURCE_NAME, "id", newPoid));
 
         loggingService.createLogSummaryEntry(
                 LogDetailsEnum.CREATED,
                 UserContext.getDocumentId(),
-                entity.getAttendancePoid().toString()
+                newPoid.toString()
         );
 
         return mapper.toResponse(entity);
