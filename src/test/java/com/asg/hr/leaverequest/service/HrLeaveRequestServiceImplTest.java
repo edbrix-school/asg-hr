@@ -38,6 +38,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import jakarta.persistence.EntityManager;
 import javax.sql.DataSource;
 import java.math.BigDecimal;
 import java.lang.reflect.InvocationTargetException;
@@ -101,6 +102,9 @@ class HrLeaveRequestServiceImplTest {
 
     @Mock
     private LoggingService loggingService;
+
+    @Mock
+    private EntityManager entityManager;
 
     @InjectMocks
     private HrLeaveRequestServiceImpl service;

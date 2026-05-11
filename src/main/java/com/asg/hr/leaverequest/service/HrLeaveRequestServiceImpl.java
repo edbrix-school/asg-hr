@@ -28,6 +28,7 @@ import com.asg.hr.leaverequest.entity.HrLeaveRequestHdrEntity;
 import com.asg.hr.leaverequest.repository.HrLeaveProcedureRepository;
 import com.asg.hr.leaverequest.repository.HrLeaveRequestDtlRepository;
 import com.asg.hr.leaverequest.repository.HrLeaveRequestHdrRepository;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import net.sf.jasperreports.engine.JRException;
@@ -71,6 +72,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
     private static final String LEAVE_REQUEST_NOT_FOUND = "Leave request not found";
     private static final String LEAVE_TYPE= "Leavetype";
     private static final String ANNUAL_LEAVE_TYPE = "annualLeaveType";
+    private static final String TRANSACTION_POID = "TRANSACTION_POID";
 
     private final HrLeaveRequestHdrRepository hdrRepo;
     private final HrLeaveRequestDtlRepository dtlRepo;
@@ -82,6 +84,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
     private final DocumentSearchService documentService;
     private final LovDataService lovService;
     private final LoggingService loggingService;
+    private final EntityManager entityManager;
 
 
     public LeaveResponseDto create(LeaveCreateRequestDto req) {
@@ -120,9 +123,11 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         entity.setDeleted("N");
 
         entity = hdrRepo.save(entity);
+        entityManager.flush();
+        entityManager.refresh(entity);
 
         loggingService.createLogSummaryEntry(UserContext.getDocumentId(), entity.getTransactionPoid().toString(),
-                String.format("%s", LogDetailsEnum.CREATED));
+                String.format("%s %s", LogDetailsEnum.CREATED, entity.getDocRef()));
 
         saveDetails(entity.getTransactionPoid(), req.getDetails());
 
@@ -153,7 +158,8 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         long[] nextRowId = { maxRowId != null ? maxRowId : 0L };
 
         for (LeaveRequestDetailDto d : details) {
-            String action = d.getActionType() != null ? d.getActionType().toUpperCase() : "ISCREATED";
+            String action = d.getActionType() != null ? d.getActionType().toUpperCase() :
+                    (d.getDetRowId() != null ? "ISUPDATED" : "ISCREATED");
             switch (action) {
                 case "ISDELETED" -> deleteDetail(tranId, d);
                 case "ISUPDATED" -> updateDetail(tranId, d);
@@ -276,7 +282,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         loggingService.logChanges(oldEntity, entity,
                 HrLeaveRequestHdrEntity.class, UserContext.getDocumentId(),
                 entity.getTransactionPoid().toString(),
-                LogDetailsEnum.MODIFIED, "TRANSACTION_POID");
+                LogDetailsEnum.MODIFIED, TRANSACTION_POID);
 
         mergeDetails(entity.getTransactionPoid(), req.getDetails());
 
@@ -288,7 +294,23 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
             repository.unUpdateLeaveHistory(entity.getTransactionPoid());
         }
 
-        return getById(entity.getTransactionPoid());
+        LeaveResponseDto response = getById(entity.getTransactionPoid());
+
+        if (req.getDetails() != null && response.getDetails() != null) {
+            Map<Long, String> actionTypeMap = req.getDetails().stream()
+                    .filter(d -> d.getDetRowId() != null && d.getActionType() != null)
+                    .collect(java.util.stream.Collectors.toMap(
+                            LeaveRequestDetailDto::getDetRowId,
+                            LeaveRequestDetailDto::getActionType,
+                            (a, b) -> a));
+            response.getDetails().forEach(d -> {
+                if (d.getDetRowId() != null) {
+                    d.setActionType(actionTypeMap.get(d.getDetRowId()));
+                }
+            });
+        }
+
+        return response;
     }
 
     private LeaveCreateRequestDto convertToCreate(
@@ -745,7 +767,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
 
         RawSearchResult raw = documentService.search(documentId, filterList, operator, pageable, isDeleted,
                 "DOC_REF",   // label
-                "TRANSACTION_POID");    // value
+                TRANSACTION_POID);    // value
 
         Page<Map<String, Object>> page = new PageImpl<>(raw.records(), pageable, raw.totalRecords());
         return PaginationUtil.wrapPage(page, raw.displayFields());
@@ -764,7 +786,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         documentDeleteService.deleteDocument(
                 transactionPoid,
                 "HR_LEAVE_REQUEST_HDR",
-                "TRANSACTION_POID",
+                TRANSACTION_POID,
                 deleteReasonDto,
                 entity.getTransactionDate()
         );
