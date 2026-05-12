@@ -23,6 +23,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -274,6 +276,36 @@ public class EmployeeInductionController {
         } catch (Exception ex) {
             log.error("Failed to get induction categories", ex);
             return internalServerError("Failed to retrieve induction categories: " + ex.getMessage());
+        }
+    }
+
+    @Operation(
+            summary = "Generate PDF for Employee Induction",
+            description = "Generate PDF report for a specific Employee Induction transaction",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "PDF generated successfully",
+                            content = @Content(mediaType = "application/pdf")),
+                    @ApiResponse(responseCode = "404", description = "Employee Induction not found"),
+                    @ApiResponse(responseCode = "500", description = "Failed to generate PDF")
+            },
+            security = @SecurityRequirement(name = "bearerAuth")
+    )
+    @AllowedAction(UserRolesRightsEnum.PRINT)
+    @GetMapping("/print/{poid}")
+    public ResponseEntity<?> print(
+            @Parameter(description = "Employee Induction POID", example = "1")
+            @PathVariable Long poid) {
+        log.info("Generating PDF for employee induction with id: {}", poid);
+        try {
+            byte[] pdf = employeeInductionService.print(poid);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=employee-induction-" + poid + ".pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdf);
+        } catch (Exception e) {
+            log.error("Failed to generate PDF for employee induction with id: {}", poid, e);
+            return internalServerError("Failed to generate PDF: " + e.getMessage());
         }
     }
 }

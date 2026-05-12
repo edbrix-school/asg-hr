@@ -11,6 +11,7 @@ import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.common.lib.service.PrintService;
 import com.asg.common.lib.utility.ASGHelperUtils;
 import com.asg.common.lib.utility.PaginationUtil;
 import com.asg.hr.employeeinduction.dto.EmployeeInductionRequestDto;
@@ -25,6 +26,8 @@ import com.asg.hr.employeeinduction.repository.HrEmployeeInductionHdrRepository;
 import com.asg.hr.employeeinduction.util.EmployeeInductionConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperReport;
 import org.apache.catalina.User;
 import org.springframework.beans.BeanUtils;
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
@@ -34,6 +37,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.sql.DataSource;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -61,6 +65,8 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
     private final LoggingService loggingService;
     private final DocumentSearchService documentService;
     private final DocumentDeleteService documentDeleteService;
+    private final PrintService printService;
+    private final DataSource dataSource;
 
     @Override
     @Transactional
@@ -355,6 +361,31 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
         } catch (NumberFormatException e) {
             log.warn("Could not parse {} as Integer: {}", key, value);
             return null;
+        }
+    }
+
+    @Override
+    public byte[] print(Long transactionPoid) throws Exception {
+        log.info("Generating PDF for employee induction with id: {}", transactionPoid);
+        
+        try {
+            // Verify the record exists
+            hdrRepository.findByPoidAndNotDeleted(transactionPoid)
+                    .orElseThrow(() -> new ResourceNotFoundException(EMPLOYEE_INDUCTION, POID_FIELD, transactionPoid));
+            
+            Map<String, Object> params = printService.buildBaseParams(transactionPoid, UserContext.getDocumentId());
+            JasperReport mainReport = printService.load("HR/Employee_Induction_Rpt.jrxml");
+            
+            byte[] pdf = printService.fillReportToPdf(mainReport, params, dataSource);
+            log.info("Successfully generated PDF for employee induction with id: {}", transactionPoid);
+            return pdf;
+            
+        } catch (JRException e) {
+            log.error("JasperReports error generating PDF for employee induction {}: {}", transactionPoid, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Error generating PDF for employee induction {}: {}", transactionPoid, e.getMessage());
+            throw new JRException(e);
         }
     }
 }
