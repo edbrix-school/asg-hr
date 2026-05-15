@@ -110,10 +110,19 @@ class EmployeeInductionServiceImplTest {
     @Test
     void updateInduction_Success() {
         // Given
+        HrEmployeeInductionDtl existingDetail = HrEmployeeInductionDtl.builder()
+                .transactionPoid(1L)
+                .detRowId(1L)
+                .inductionCatgPoid(1L)
+                .status("N")
+                .remarks("Existing detail")
+                .build();
+
         when(hdrRepository.findByPoidAndNotDeleted(1L)).thenReturn(Optional.of(headerEntity));
         when(hdrRepository.save(any(HrEmployeeInductionHdr.class))).thenReturn(headerEntity);
         when(dtlRepository.findByHdrPoidAndNotDeleted(1L)).thenReturn(detailEntities);
-        when(dtlRepository.saveAll(anyList())).thenReturn(detailEntities);
+        when(dtlRepository.findById(any())).thenReturn(Optional.of(existingDetail));
+        when(dtlRepository.save(any(HrEmployeeInductionDtl.class))).thenReturn(existingDetail);
 
         // When
         EmployeeInductionResponseDto result = employeeInductionService.updateInduction(1L, requestDto);
@@ -122,7 +131,8 @@ class EmployeeInductionServiceImplTest {
         assertNotNull(result);
         assertEquals(1L, result.getPoid());
         verify(hdrRepository).save(any(HrEmployeeInductionHdr.class));
-        verify(loggingService).logChanges(any(), any(), any(), any(), any(), any(LogDetailsEnum.class), any());
+        verify(loggingService, times(2))
+                .logChanges(any(), any(), any(), any(), any(), any(LogDetailsEnum.class), any());
     }
 
     @Test

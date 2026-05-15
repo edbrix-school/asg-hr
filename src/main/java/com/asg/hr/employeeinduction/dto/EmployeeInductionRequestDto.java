@@ -31,5 +31,6 @@ public class EmployeeInductionRequestDto {
         private LocalDate completedDate;
         private String status;
         private String remarks;
+        private String actionType;
     }
 }
