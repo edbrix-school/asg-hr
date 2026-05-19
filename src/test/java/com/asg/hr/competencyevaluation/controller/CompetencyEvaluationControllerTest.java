@@ -32,6 +32,7 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
@@ -191,5 +192,94 @@ class CompetencyEvaluationControllerTest {
 
         mockMvc.perform(post("/v1/competency-evaluation/10/calculate-scores"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void create_unexpectedError_returns500() throws Exception {
+        when(competencyEvaluationService.create(any())).thenThrow(new RuntimeException("boom"));
+
+        mockMvc.perform(post("/v1/competency-evaluation")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    void update_notFound_returns404() throws Exception {
+        when(competencyEvaluationService.update(anyLong(), any()))
+                .thenThrow(new ResourceNotFoundException("x", "y", 10L));
+
+        mockMvc.perform(put("/v1/competency-evaluation/10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void update_unexpectedError_returns500() throws Exception {
+        when(competencyEvaluationService.update(anyLong(), any())).thenThrow(new RuntimeException("boom"));
+
+        mockMvc.perform(put("/v1/competency-evaluation/10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    void getById_unexpectedError_returns500() throws Exception {
+        when(competencyEvaluationService.getById(10L)).thenThrow(new RuntimeException("boom"));
+
+        mockMvc.perform(get("/v1/competency-evaluation/10"))
+                .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    void list_unexpectedError_returns500() throws Exception {
+        when(competencyEvaluationService.list(any(), any(Pageable.class)))
+                .thenThrow(new RuntimeException("boom"));
+
+        mockMvc.perform(post("/v1/competency-evaluation/list")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new FilterRequestDto("AND", "N", List.of()))))
+                .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    void delete_notFound_returns404() throws Exception {
+        doThrow(new ResourceNotFoundException("x", "y", 10L))
+                .when(competencyEvaluationService).delete(anyLong(), any());
+
+        mockMvc.perform(delete("/v1/competency-evaluation/10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new DeleteReasonDto())))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void delete_unexpectedError_returns500() throws Exception {
+        doThrow(new RuntimeException("boom"))
+                .when(competencyEvaluationService).delete(anyLong(), any());
+
+        mockMvc.perform(delete("/v1/competency-evaluation/10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new DeleteReasonDto())))
+                .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    void calculateScores_notFound_returns404() throws Exception {
+        when(competencyEvaluationService.calculateScores(10L))
+                .thenThrow(new ResourceNotFoundException("x", "y", 10L));
+
+        mockMvc.perform(post("/v1/competency-evaluation/10/calculate-scores"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void calculateScores_unexpectedError_returns500() throws Exception {
+        when(competencyEvaluationService.calculateScores(10L)).thenThrow(new RuntimeException("boom"));
+
+        mockMvc.perform(post("/v1/competency-evaluation/10/calculate-scores"))
+                .andExpect(status().isInternalServerError());
     }
 }

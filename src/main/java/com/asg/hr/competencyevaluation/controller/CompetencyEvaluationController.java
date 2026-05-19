@@ -59,7 +59,6 @@ public class CompetencyEvaluationController {
     @PostMapping
     public ResponseEntity<?> create(@Valid @RequestBody CompetencyEvaluationRequestDto request) {
         try {
-            System.out.println("request: " + request);
             CompetencyEvaluationResponseDto data = competencyEvaluationService.create(request);
             return success("Employee performance review created successfully", data);
         } catch (ValidationException ex) {

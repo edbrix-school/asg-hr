@@ -36,6 +36,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
@@ -108,7 +110,7 @@ class CompetencyEvaluationServiceImplTest {
                 .compSchedulePoid(5L)
                 .evaluationDate(today)
                 .status("PENDING")
-                .details(List.of(
+                .details(new ArrayList<>(List.of(
                         CompetencyEvaluationRequestDto.CompetencyEvaluationDetailRequestDto.builder()
                                 .actionType(CompetencyEvaluationConstants.ACTION_IS_CREATED)
                                 .competencyPoid(7L)
@@ -117,7 +119,7 @@ class CompetencyEvaluationServiceImplTest {
                                 .employeeAgreed("AGREE")
                                 .employeeComments("thanks")
                                 .build()
-                ))
+                )))
                 .build();
     }
 
@@ -463,6 +465,388 @@ class CompetencyEvaluationServiceImplTest {
 
         verify(documentDeleteService).deleteDocument(eq(1L), eq("HR_COMPETENCY_EVALUATION_HDR"),
                 eq("TRANSACTION_POID"), any(), any());
+    }
+
+    private void stubScheduleAndCompetency() {
+        when(scheduleRepository.findById(5L)).thenReturn(Optional.of(schedule));
+        when(competencyMasterRepository.findByIdAndGroupPoidAndNotDeleted(7L, 100L)).thenReturn(Optional.of(competency));
+    }
+
+    private void stubNativeLovQueries() {
+        jakarta.persistence.Query deptQuery = org.mockito.Mockito.mock(jakarta.persistence.Query.class);
+        jakarta.persistence.Query desigQuery = org.mockito.Mockito.mock(jakarta.persistence.Query.class);
+        jakarta.persistence.Query compQuery = org.mockito.Mockito.mock(jakarta.persistence.Query.class);
+        when(entityManager.createNativeQuery(org.mockito.ArgumentMatchers.contains("HR_DEPARTMENT_MASTER")))
+                .thenReturn(deptQuery);
+        when(entityManager.createNativeQuery(org.mockito.ArgumentMatchers.contains("HR_DESIGNATION_MASTER")))
+                .thenReturn(desigQuery);
+        when(entityManager.createNativeQuery(org.mockito.ArgumentMatchers.contains("HR_COMPETENCY_MASTER")))
+                .thenReturn(compQuery);
+        when(deptQuery.setParameter(org.mockito.ArgumentMatchers.eq("poids"), org.mockito.ArgumentMatchers.anyList()))
+                .thenReturn(deptQuery);
+        when(desigQuery.setParameter(org.mockito.ArgumentMatchers.eq("poids"), org.mockito.ArgumentMatchers.anyList()))
+                .thenReturn(desigQuery);
+        when(compQuery.setParameter(org.mockito.ArgumentMatchers.eq("poids"), org.mockito.ArgumentMatchers.anyList()))
+                .thenReturn(compQuery);
+        when(deptQuery.getResultList()).thenReturn(List.of());
+        when(desigQuery.getResultList()).thenReturn(List.of());
+        when(compQuery.getResultList()).thenReturn(List.of());
+    }
+
+    @Test
+    void create_throwsWhenScheduleIdMissing() {
+        try (var uc = mockStatic(UserContext.class)) {
+            uc.when(UserContext::getGroupPoid).thenReturn(100L);
+            CompetencyEvaluationRequestDto req = baseRequest();
+            req.setCompSchedulePoid(null);
+
+            ValidationException ex = assertThrows(ValidationException.class, () -> service.create(req));
+            assertTrue(ex.getMessage().contains("Schedule is required"));
+        }
+    }
+
+    @Test
+    void create_throwsWhenNoDetailLines() {
+        try (var uc = mockStatic(UserContext.class)) {
+            uc.when(UserContext::getGroupPoid).thenReturn(100L);
+            when(scheduleRepository.findById(5L)).thenReturn(Optional.of(schedule));
+
+            CompetencyEvaluationRequestDto req = baseRequest();
+            req.setDetails(List.of());
+
+            ValidationException ex = assertThrows(ValidationException.class, () -> service.create(req));
+            assertTrue(ex.getMessage().contains("At least one detail line"));
+        }
+    }
+
+    @Test
+    void create_throwsWhenCompetencyNotFound() {
+        try (var uc = mockStatic(UserContext.class)) {
+            uc.when(UserContext::getGroupPoid).thenReturn(100L);
+            when(scheduleRepository.findById(5L)).thenReturn(Optional.of(schedule));
+            when(competencyMasterRepository.findByIdAndGroupPoidAndNotDeleted(7L, 100L)).thenReturn(Optional.empty());
+
+            ValidationException ex = assertThrows(ValidationException.class, () -> service.create(baseRequest()));
+            assertTrue(ex.getMessage().contains("not available"));
+        }
+    }
+
+    @Test
+    void create_throwsWhenDuplicateDetRowIds() {
+        try (var uc = mockStatic(UserContext.class)) {
+            uc.when(UserContext::getGroupPoid).thenReturn(100L);
+            stubScheduleAndCompetency();
+
+            CompetencyEvaluationRequestDto req = baseRequest();
+            req.getDetails().get(0).setDetRowId(1L);
+            req.getDetails().add(
+                    CompetencyEvaluationRequestDto.CompetencyEvaluationDetailRequestDto.builder()
+                            .actionType(CompetencyEvaluationConstants.ACTION_IS_CREATED)
+                            .detRowId(1L)
+                            .competencyPoid(7L)
+                            .rating("GOOD")
+                            .build());
+
+            ValidationException ex = assertThrows(ValidationException.class, () -> service.create(req));
+            assertTrue(ex.getMessage().contains("Duplicate detail row ids"));
+        }
+    }
+
+    @Test
+    void create_throwsWhenSchedulePeriodUndefined() {
+        try (var uc = mockStatic(UserContext.class)) {
+            uc.when(UserContext::getGroupPoid).thenReturn(100L);
+            HrCompetencySchedule noPeriod = HrCompetencySchedule.builder()
+                    .schedulePoid(5L)
+                    .groupPoid(100L)
+                    .deleted("N")
+                    .build();
+            when(scheduleRepository.findById(5L)).thenReturn(Optional.of(noPeriod));
+
+            ValidationException ex = assertThrows(ValidationException.class, () -> service.create(baseRequest()));
+            assertTrue(ex.getMessage().contains("Schedule period is not defined"));
+        }
+    }
+
+    @Test
+    void create_allowsScheduleWithBlankDeletedFlag() {
+        try (var uc = mockStatic(UserContext.class);
+             var au = mockStatic(ASGHelperUtils.class)) {
+            uc.when(UserContext::getGroupPoid).thenReturn(100L);
+            uc.when(UserContext::getCompanyPoid).thenReturn(200L);
+            uc.when(UserContext::getDocumentId).thenReturn("DOC800");
+            au.when(ASGHelperUtils::getCurrentUser).thenReturn("tester");
+
+            HrCompetencySchedule blankDeleted = HrCompetencySchedule.builder()
+                    .schedulePoid(5L)
+                    .groupPoid(100L)
+                    .periodFrom(LocalDate.now().minusMonths(2))
+                    .periodTo(LocalDate.now().plusMonths(6))
+                    .deleted("  ")
+                    .build();
+            when(scheduleRepository.findById(5L)).thenReturn(Optional.of(blankDeleted));
+            when(competencyMasterRepository.findByIdAndGroupPoidAndNotDeleted(7L, 100L)).thenReturn(Optional.of(competency));
+
+            when(hdrRepository.save(any(HrCompetencyEvaluationHdr.class))).thenAnswer(inv -> {
+                HrCompetencyEvaluationHdr h = inv.getArgument(0);
+                h.setTransactionPoid(99L);
+                return h;
+            });
+            when(dtlRepository.save(any(HrCompetencyEvaluationDtl.class))).thenAnswer(inv -> inv.getArgument(0));
+            when(dtlRepository.findByTransactionPoidOrderByDetRowId(99L)).thenReturn(List.of(
+                    HrCompetencyEvaluationDtl.builder().transactionPoid(99L).detRowId(1L).rating("GOOD").build()));
+            when(hdrRepository.findActiveById(99L)).thenReturn(Optional.of(
+                    HrCompetencyEvaluationHdr.builder().transactionPoid(99L).deleted("N").build()));
+            doNothing().when(loggingService).createLogSummaryEntry(any(LogDetailsEnum.class), any(), any());
+
+            assertNotNull(service.create(baseRequest()));
+        }
+    }
+
+    @Test
+    void update_success_reconcilesCreatedUpdatedDeletedAndNoChange() {
+        Long txnId = 50L;
+        HrCompetencyEvaluationHdr hdr = HrCompetencyEvaluationHdr.builder()
+                .transactionPoid(txnId)
+                .status("PENDING")
+                .deleted("N")
+                .compSchedulePoid(5L)
+                .build();
+        HrCompetencyEvaluationDtl line1 = HrCompetencyEvaluationDtl.builder()
+                .transactionPoid(txnId)
+                .detRowId(1L)
+                .competencyPoid(7L)
+                .rating("GOOD")
+                .build();
+        HrCompetencyEvaluationDtl line2 = HrCompetencyEvaluationDtl.builder()
+                .transactionPoid(txnId)
+                .detRowId(2L)
+                .competencyPoid(7L)
+                .rating("FAIR")
+                .build();
+        HrCompetencyEvaluationDtl line3 = HrCompetencyEvaluationDtl.builder()
+                .transactionPoid(txnId)
+                .detRowId(3L)
+                .rating("GOOD")
+                .employeeAgreed("AGREE")
+                .build();
+
+        CompetencyEvaluationRequestDto req = baseRequest();
+        req.setDetails(List.of(
+                CompetencyEvaluationRequestDto.CompetencyEvaluationDetailRequestDto.builder()
+                        .actionType(CompetencyEvaluationConstants.ACTION_IS_UPDATED)
+                        .detRowId(1L)
+                        .competencyPoid(7L)
+                        .rating("EXCELLENT")
+                        .hodComments("updated")
+                        .employeeAgreed("AGREE")
+                        .build(),
+                CompetencyEvaluationRequestDto.CompetencyEvaluationDetailRequestDto.builder()
+                        .actionType(CompetencyEvaluationConstants.ACTION_IS_DELETED)
+                        .detRowId(2L)
+                        .build(),
+                CompetencyEvaluationRequestDto.CompetencyEvaluationDetailRequestDto.builder()
+                        .actionType(CompetencyEvaluationConstants.ACTION_IS_CREATED)
+                        .competencyPoid(7L)
+                        .rating("GOOD")
+                        .hodComments("new line")
+                        .build(),
+                CompetencyEvaluationRequestDto.CompetencyEvaluationDetailRequestDto.builder()
+                        .actionType(CompetencyEvaluationConstants.ACTION_NO_CHANGE)
+                        .detRowId(3L)
+                        .build()
+        ));
+
+        try (var uc = mockStatic(UserContext.class);
+             var au = mockStatic(ASGHelperUtils.class)) {
+            uc.when(UserContext::getGroupPoid).thenReturn(100L);
+            uc.when(UserContext::getDocumentId).thenReturn("DOC800");
+            au.when(ASGHelperUtils::getCurrentUser).thenReturn("tester");
+
+            when(hdrRepository.findActiveById(txnId)).thenReturn(Optional.of(hdr));
+            stubScheduleAndCompetency();
+            when(hdrRepository.save(any(HrCompetencyEvaluationHdr.class))).thenAnswer(inv -> inv.getArgument(0));
+            when(dtlRepository.save(any(HrCompetencyEvaluationDtl.class))).thenAnswer(inv -> inv.getArgument(0));
+            when(dtlRepository.findByTransactionPoidOrderByDetRowId(txnId))
+                    .thenReturn(List.of(line1, line2))
+                    .thenReturn(List.of(line1, line3));
+            doNothing().when(loggingService).logChanges(any(), any(), any(), any(), any(), any(), any());
+            stubNativeLovQueries();
+
+            CompetencyEvaluationResponseDto result = service.update(txnId, req);
+
+            assertNotNull(result);
+            verify(dtlRepository).delete(line2);
+            verify(dtlRepository, atLeastOnce()).save(any(HrCompetencyEvaluationDtl.class));
+            verify(loggingService).logChanges(any(), any(), eq(HrCompetencyEvaluationHdr.class),
+                    eq("DOC800"), eq(txnId.toString()), eq(LogDetailsEnum.MODIFIED), eq("TRANSACTION_POID"));
+        }
+    }
+
+    @Test
+    void update_throwsWhenInvalidActionType() {
+        HrCompetencyEvaluationHdr hdr = HrCompetencyEvaluationHdr.builder()
+                .transactionPoid(1L)
+                .status("PENDING")
+                .deleted("N")
+                .build();
+        when(hdrRepository.findActiveById(1L)).thenReturn(Optional.of(hdr));
+
+        CompetencyEvaluationRequestDto req = baseRequest();
+        req.getDetails().get(0).setActionType("invalidAction");
+        req.getDetails().get(0).setDetRowId(1L);
+
+        ValidationException ex = assertThrows(ValidationException.class, () -> service.update(1L, req));
+        assertTrue(ex.getMessage().contains("Invalid actionType"));
+    }
+
+    @Test
+    void update_throwsWhenDetRowIdMissingForUpdateAction() {
+        HrCompetencyEvaluationHdr hdr = HrCompetencyEvaluationHdr.builder()
+                .transactionPoid(1L)
+                .status("PENDING")
+                .deleted("N")
+                .build();
+        when(hdrRepository.findActiveById(1L)).thenReturn(Optional.of(hdr));
+
+        CompetencyEvaluationRequestDto req = baseRequest();
+        req.getDetails().get(0).setActionType(CompetencyEvaluationConstants.ACTION_IS_UPDATED);
+        req.getDetails().get(0).setDetRowId(null);
+
+        ValidationException ex = assertThrows(ValidationException.class, () -> service.update(1L, req));
+        assertTrue(ex.getMessage().contains("detRowId is required"));
+    }
+
+    @Test
+    void update_throwsWhenDetailRowNotFound() {
+        Long txnId = 50L;
+        HrCompetencyEvaluationHdr hdr = HrCompetencyEvaluationHdr.builder()
+                .transactionPoid(txnId)
+                .status("PENDING")
+                .deleted("N")
+                .build();
+        when(hdrRepository.findActiveById(txnId)).thenReturn(Optional.of(hdr));
+        when(dtlRepository.findByTransactionPoidOrderByDetRowId(txnId)).thenReturn(List.of());
+
+        CompetencyEvaluationRequestDto req = baseRequest();
+        req.getDetails().get(0).setActionType(CompetencyEvaluationConstants.ACTION_IS_UPDATED);
+        req.getDetails().get(0).setDetRowId(99L);
+
+        try (var uc = mockStatic(UserContext.class)) {
+            uc.when(UserContext::getGroupPoid).thenReturn(100L);
+            stubScheduleAndCompetency();
+
+            ValidationException ex = assertThrows(ValidationException.class, () -> service.update(txnId, req));
+            assertTrue(ex.getMessage().contains("Detail row not found"));
+        }
+    }
+
+    @Test
+    void update_notFound() {
+        when(hdrRepository.findActiveById(99L)).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class, () -> service.update(99L, baseRequest()));
+    }
+
+    @Test
+    void calculateScores_success() {
+        HrCompetencyEvaluationHdr hdr = HrCompetencyEvaluationHdr.builder()
+                .transactionPoid(1L)
+                .status("PENDING")
+                .deleted("N")
+                .docRef("CE-1")
+                .build();
+        when(hdrRepository.findActiveById(1L)).thenReturn(Optional.of(hdr));
+        when(dtlRepository.findByTransactionPoidOrderByDetRowId(1L)).thenReturn(List.of(
+                HrCompetencyEvaluationDtl.builder().detRowId(1L).rating("GOOD").employeeAgreed("AGREE").build()
+        ));
+        when(hdrRepository.save(any(HrCompetencyEvaluationHdr.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        try (var au = mockStatic(ASGHelperUtils.class)) {
+            au.when(ASGHelperUtils::getCurrentUser).thenReturn("tester");
+            CompetencyEvaluationResponseDto result = service.calculateScores(1L);
+            assertNotNull(result);
+            assertNotNull(result.getTotalRating());
+            verify(hdrRepository).save(hdr);
+        }
+    }
+
+    @Test
+    void calculateScores_notFound() {
+        when(hdrRepository.findActiveById(1L)).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class, () -> service.calculateScores(1L));
+    }
+
+    @Test
+    void calculateScores_throwsWhenCompleted() {
+        when(hdrRepository.findActiveById(1L)).thenReturn(Optional.of(
+                HrCompetencyEvaluationHdr.builder().transactionPoid(1L).status("COMPLETED").deleted("N").build()));
+
+        ValidationException ex = assertThrows(ValidationException.class, () -> service.calculateScores(1L));
+        assertTrue(ex.getMessage().contains("Completed"));
+    }
+
+    @Test
+    void delete_notFound() {
+        when(hdrRepository.findActiveById(1L)).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class, () -> service.delete(1L, new DeleteReasonDto()));
+    }
+
+    @Test
+    void getById_detailWithDifferentScheduleResolvesSeparateLov() {
+        HrCompetencyEvaluationHdr hdr = HrCompetencyEvaluationHdr.builder()
+                .transactionPoid(1L)
+                .compSchedulePoid(125L)
+                .deleted("N")
+                .build();
+        HrCompetencyEvaluationDtl line = HrCompetencyEvaluationDtl.builder()
+                .detRowId(1L)
+                .competencyPoid(24L)
+                .compSchedulePoid(999L)
+                .rating("GOOD")
+                .build();
+
+        when(hdrRepository.findActiveById(1L)).thenReturn(Optional.of(hdr));
+        when(dtlRepository.findByTransactionPoidOrderByDetRowId(1L)).thenReturn(List.of(line));
+        when(lovDataService.getDetailsByPoidAndLovNameFast(125L, CompetencyEvaluationConstants.COMP_SCHEDULE_LOV))
+                .thenReturn(new LovGetListDto(125L, "125", "Header Schedule", 125L, "Header Schedule", null, null));
+        when(lovDataService.getDetailsByPoidAndLovNameFast(999L, CompetencyEvaluationConstants.COMP_SCHEDULE_LOV))
+                .thenReturn(new LovGetListDto(999L, "999", "Other Schedule", 999L, "Other Schedule", null, null));
+
+        jakarta.persistence.Query compQuery = org.mockito.Mockito.mock(jakarta.persistence.Query.class);
+        when(entityManager.createNativeQuery(org.mockito.ArgumentMatchers.contains("HR_COMPETENCY_MASTER")))
+                .thenReturn(compQuery);
+        when(compQuery.setParameter(org.mockito.ArgumentMatchers.eq("poids"), org.mockito.ArgumentMatchers.anyList()))
+                .thenReturn(compQuery);
+        when(compQuery.getResultList()).thenReturn(List.<Object[]>of(new Object[]{24L, "C24", "Teamwork"}));
+
+        CompetencyEvaluationResponseDto result = service.getById(1L);
+
+        assertEquals(999L, result.getDetails().get(0).getCompSchedulePoid());
+        assertEquals("Other Schedule", result.getDetails().get(0).getCompScheduleDet().getDescription());
+    }
+
+    @Test
+    void getById_skipsInvalidNativeQueryRows() {
+        HrCompetencyEvaluationHdr hdr = HrCompetencyEvaluationHdr.builder()
+                .transactionPoid(1L)
+                .departmentPoid(2L)
+                .deleted("N")
+                .build();
+        when(hdrRepository.findActiveById(1L)).thenReturn(Optional.of(hdr));
+        when(dtlRepository.findByTransactionPoidOrderByDetRowId(1L)).thenReturn(List.of());
+
+        jakarta.persistence.Query deptQuery = org.mockito.Mockito.mock(jakarta.persistence.Query.class);
+        when(entityManager.createNativeQuery(org.mockito.ArgumentMatchers.contains("HR_DEPARTMENT_MASTER")))
+                .thenReturn(deptQuery);
+        when(deptQuery.setParameter(org.mockito.ArgumentMatchers.eq("poids"), org.mockito.ArgumentMatchers.anyList()))
+                .thenReturn(deptQuery);
+        when(deptQuery.getResultList()).thenReturn(List.<Object[]>of(
+                new Object[]{null, "X", "Bad"},
+                new Object[]{2L, "D02", "Finance"}
+        ));
+
+        CompetencyEvaluationResponseDto result = service.getById(1L);
+        assertEquals("Finance", result.getDepartmentDet().getDescription());
     }
 
     @Test

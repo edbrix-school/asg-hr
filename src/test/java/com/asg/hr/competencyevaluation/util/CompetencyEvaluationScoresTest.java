@@ -47,6 +47,19 @@ class CompetencyEvaluationScoresTest {
     }
 
     @Test
+    void calculate_nullEmployeeAgreedList_usesZeroAgreement() {
+        CompetencyEvaluationScores.ScoreResult r = CompetencyEvaluationScores.calculate(
+                List.of("GOOD"), null);
+        assertEquals(0, new BigDecimal("3.00").compareTo(r.totalRating()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(r.employeeAgreedPercent()));
+    }
+
+    @Test
+    void ratingPoints_nullRating_returnsZero() {
+        assertEquals(0, BigDecimal.ZERO.compareTo(CompetencyEvaluationScores.ratingPoints(null)));
+    }
+
+    @Test
     void agreementPoints_disagreeAndBlank() {
         assertEquals(0, BigDecimal.ZERO.compareTo(CompetencyEvaluationScores.agreementPoints("DISAGREE")));
         assertEquals(0, BigDecimal.ZERO.compareTo(CompetencyEvaluationScores.agreementPoints("")));
