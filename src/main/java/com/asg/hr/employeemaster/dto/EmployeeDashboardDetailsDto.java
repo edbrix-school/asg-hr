@@ -14,9 +14,9 @@ public class EmployeeDashboardDetailsDto {
     private Long employeePoid;
     private String employeeName;
     private String employeeName2;
-    private Long designationPoid;
-    private Long locationPoid;
-    private Long departmentPoid;
+    private String designationName;
+    private String locationName;
+    private String deptName;
     private LocalDate joinDate;
     private String mobile;
     private byte[] photo;
