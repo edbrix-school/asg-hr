@@ -13,7 +13,6 @@ import java.util.List;
 public class EmployeeInductionRequestDto {
 
     private Long poid;
-    private String docId;
     private Long employeePoid;
     private String remarks;
     private List<EmployeeInductionDetailRequestDto> details;

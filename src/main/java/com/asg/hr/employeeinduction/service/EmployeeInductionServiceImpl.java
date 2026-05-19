@@ -26,6 +26,7 @@ import com.asg.hr.employeeinduction.repository.EmployeeInductionProcRepository;
 import com.asg.hr.employeeinduction.repository.HrEmployeeInductionDtlRepository;
 import com.asg.hr.employeeinduction.repository.HrEmployeeInductionHdrRepository;
 import com.asg.hr.employeeinduction.util.EmployeeInductionConstants;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jasperreports.engine.JRException;
@@ -68,6 +69,7 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
     private final DocumentDeleteService documentDeleteService;
     private final PrintService printService;
     private final DataSource dataSource;
+    private final EntityManager entityManager;
 
     @Override
     @Transactional
@@ -76,7 +78,6 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
         validateRequest(requestDto);
         
         HrEmployeeInductionHdr header = HrEmployeeInductionHdr.builder()
-                .docRef(requestDto.getDocId())
                 .employeePoid(requestDto.getEmployeePoid())
                 .remarks(requestDto.getRemarks())
                 .companyPoid(UserContext.getCompanyPoid()) // Default company, should be from context
@@ -89,6 +90,8 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
 
         // Save header first to get the generated poid
         header = hdrRepository.save(header);
+        entityManager.flush();
+        entityManager.refresh(header);
         
         // Now create details with the saved header's poid
         if (requestDto.getDetails() != null && !requestDto.getDetails().isEmpty()) {
@@ -116,7 +119,6 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
         HrEmployeeInductionHdr oldEntity = new HrEmployeeInductionHdr();
         BeanUtils.copyProperties(header, oldEntity);
 
-        header.setDocRef(requestDto.getDocId());
         header.setEmployeePoid(requestDto.getEmployeePoid());
         header.setRemarks(requestDto.getRemarks());
         header.setLastModifiedBy(ASGHelperUtils.getCurrentUser());

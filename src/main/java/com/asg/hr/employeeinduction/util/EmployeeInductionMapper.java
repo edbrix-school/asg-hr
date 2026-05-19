@@ -16,7 +16,6 @@ public class EmployeeInductionMapper {
 
     public HrEmployeeInductionHdr toEntity(EmployeeInductionRequestDto dto) {
         return HrEmployeeInductionHdr.builder()
-                .docRef(dto.getDocId())
                 .employeePoid(dto.getEmployeePoid())
                 .remarks(dto.getRemarks())
                 .companyPoid(UserContext.getCompanyPoid()) // Default company
