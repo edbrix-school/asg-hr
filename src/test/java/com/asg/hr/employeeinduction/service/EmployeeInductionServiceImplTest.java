@@ -14,6 +14,7 @@ import com.asg.hr.employeeinduction.entity.HrEmployeeInductionDtl;
 import com.asg.hr.employeeinduction.entity.HrEmployeeInductionHdr;
 import com.asg.hr.employeeinduction.repository.HrEmployeeInductionDtlRepository;
 import com.asg.hr.employeeinduction.repository.HrEmployeeInductionHdrRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,6 +52,9 @@ class EmployeeInductionServiceImplTest {
     @Mock
     private DocumentDeleteService documentDeleteService;
 
+    @Mock
+    private EntityManager entityManager;
+
     @InjectMocks
     private EmployeeInductionServiceImpl employeeInductionService;
 
@@ -62,7 +66,6 @@ class EmployeeInductionServiceImplTest {
     void setUp() {
         // Setup test data
         requestDto = EmployeeInductionRequestDto.builder()
-                .docId("IND-001")
                 .employeePoid(1L)
                 .remarks("Test induction")
                 .details(createTestDetails())

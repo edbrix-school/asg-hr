@@ -60,7 +60,6 @@ class EmployeeInductionControllerTest {
         objectMapper.findAndRegisterModules(); // ✅ fixes LocalDate serialization
 
         requestDto = EmployeeInductionRequestDto.builder()
-                .docId("IND-001")
                 .employeePoid(1L)
                 .remarks("Test induction")
                 .details(createTestDetails())
