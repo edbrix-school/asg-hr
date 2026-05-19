@@ -13,9 +13,9 @@ import java.time.LocalDate;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class EmployeeDashboardListRequestDto {
 
-    private Long designationPoid;
-    private Long locationPoid;
-    private Long departmentPoid;
+    private String designationName;
+    private String locationName;
+    private String deptName;
     private LocalDate joinDateFrom;
     private LocalDate joinDateTo;
     private String status;

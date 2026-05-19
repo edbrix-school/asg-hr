@@ -744,9 +744,9 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     @Override
     @Transactional(readOnly = true)
     public Map<String, Object> listEmployeeDashboardDetails(EmployeeDashboardListRequestDto request, Pageable pageable) {
-        Long designationPoid = request != null ? request.getDesignationPoid() : null;
-        Long locationPoid = request != null ? request.getLocationPoid() : null;
-        Long departmentPoid = request != null ? request.getDepartmentPoid() : null;
+        String designationName = request != null ? request.getDesignationName() : null;
+        String locationName = request != null ? request.getLocationName() : null;
+        String deptName = request != null ? request.getDeptName() : null;
         LocalDate joinDateFrom = request != null ? request.getJoinDateFrom() : null;
         LocalDate joinDateTo = request != null ? request.getJoinDateTo() : null;
         if (joinDateFrom != null && joinDateTo != null && joinDateFrom.isAfter(joinDateTo)) {
@@ -766,9 +766,9 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
 
         Pageable safePageable = toSafeEmployeeDashboardPageable(pageable);
         Page<EmployeeDashboardDetailsDto> page = masterRepository.searchEmployeeDashboardDetails(
-                designationPoid,
-                locationPoid,
-                departmentPoid,
+                designationName,
+                locationName,
+                deptName,
                 joinDateFrom,
                 joinDateTo,
                 status,
@@ -790,9 +790,9 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         sortableFieldMap.put(HR_EMPLOYEE_MASTER_POID_FIELD, EMPLOYEE_POID);
         sortableFieldMap.put("EMPLOYEE_NAME", "employeeName");
         sortableFieldMap.put("EMPLOYEE_NAME2", "employeeName2");
-        sortableFieldMap.put("DESIGNATION_POID", "designationPoid");
-        sortableFieldMap.put("LOCATION_POID", "locationPoid");
-        sortableFieldMap.put("DEPARTMENT_POID", "departmentPoid");
+        sortableFieldMap.put("DESIGNATION_NAME", "designationName");
+        sortableFieldMap.put("LOCATION_NAME", "locationName");
+        sortableFieldMap.put("DEPT_NAME", "deptName");
         sortableFieldMap.put("JOIN_DATE", "joinDate");
         sortableFieldMap.put("MOBILE", "mobile");
         sortableFieldMap.put("ACTIVE", "active");

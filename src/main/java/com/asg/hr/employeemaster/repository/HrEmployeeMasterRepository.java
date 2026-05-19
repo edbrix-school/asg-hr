@@ -57,9 +57,9 @@ public interface HrEmployeeMasterRepository extends JpaRepository<HrEmployeeMast
                     e.employeePoid,
                     e.employeeName,
                     e.employeeName2,
-                    e.designationPoid,
-                    e.locationPoid,
-                    e.departmentPoid,
+                    des.designationName,
+                    loc.locationName,
+                    d.deptName,
                     e.joinDate,
                     e.mobile,
                     e.photo,
@@ -70,9 +70,9 @@ public interface HrEmployeeMasterRepository extends JpaRepository<HrEmployeeMast
                 LEFT JOIN HrDesignationMaster des ON des.designationPoid = e.designationPoid
                 LEFT JOIN GlobalLocationMaster loc ON loc.locationPoid = e.locationPoid
                 WHERE COALESCE(e.deleted, 'N') = 'N'
-                  AND (:designationPoid IS NULL OR e.designationPoid = :designationPoid)
-                  AND (:locationPoid IS NULL OR e.locationPoid = :locationPoid)
-                  AND (:departmentPoid IS NULL OR e.departmentPoid = :departmentPoid)
+                  AND (:designationName IS NULL OR LOWER(des.designationName) = LOWER(:designationName))
+                  AND (:locationName IS NULL OR LOWER(loc.locationName) = LOWER(:locationName))
+                  AND (:deptName IS NULL OR LOWER(d.deptName) = LOWER(:deptName))
                   AND (:joinDateFrom IS NULL OR e.joinDate >= :joinDateFrom)
                   AND (:joinDateTo IS NULL OR e.joinDate <= :joinDateTo)
                   AND (:status IS NULL OR UPPER(TRIM(COALESCE(e.active, ''))) = UPPER(TRIM(:status)))
@@ -80,9 +80,9 @@ public interface HrEmployeeMasterRepository extends JpaRepository<HrEmployeeMast
                         LOWER(e.employeeName) LIKE LOWER(CONCAT('%', :filter, '%'))
                         OR (e.employeeName2 IS NOT NULL AND LOWER(e.employeeName2) LIKE LOWER(CONCAT('%', :filter, '%')))
                         OR (e.mobile IS NOT NULL AND LOWER(e.mobile) LIKE LOWER(CONCAT('%', :filter, '%')))
-                        OR (d.deptPoid IS NOT NULL AND LOWER(d.deptName) LIKE LOWER(CONCAT('%', :filter, '%')))
-                        OR (des.designationPoid IS NOT NULL AND LOWER(des.designationName) LIKE LOWER(CONCAT('%', :filter, '%')))
-                        OR (loc.locationPoid IS NOT NULL AND (
+                        OR (d.deptName IS NOT NULL AND LOWER(d.deptName) LIKE LOWER(CONCAT('%', :filter, '%')))
+                        OR (des.designationName IS NOT NULL AND LOWER(des.designationName) LIKE LOWER(CONCAT('%', :filter, '%')))
+                        OR (loc.locationName IS NOT NULL AND (
                               LOWER(loc.locationName) LIKE LOWER(CONCAT('%', :filter, '%'))
                               OR (loc.locationName2 IS NOT NULL AND LOWER(loc.locationName2) LIKE LOWER(CONCAT('%', :filter, '%')))
                         ))
@@ -99,9 +99,9 @@ public interface HrEmployeeMasterRepository extends JpaRepository<HrEmployeeMast
                         END) LIKE LOWER(CONCAT('%', :filter, '%'))
                   ))
             """)
-    Page<EmployeeDashboardDetailsDto> searchEmployeeDashboardDetails(@Param("designationPoid") Long designationPoid,
-                                                                     @Param("locationPoid") Long locationPoid,
-                                                                     @Param("departmentPoid") Long departmentPoid,
+    Page<EmployeeDashboardDetailsDto> searchEmployeeDashboardDetails(@Param("designationName") String designationName,
+                                                                     @Param("locationName") String locationName,
+                                                                     @Param("deptName") String deptName,
                                                                      @Param("joinDateFrom") LocalDate joinDateFrom,
                                                                      @Param("joinDateTo") LocalDate joinDateTo,
                                                                      @Param("status") String status,
