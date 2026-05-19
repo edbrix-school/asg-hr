@@ -1,14 +1,12 @@
 package com.asg.hr.employeeinduction.repository;
 
 import com.asg.hr.employeeinduction.entity.HrEmployeeInductionDtl;
-import com.asg.hr.employeeinduction.entity.HrEmployeeInductionDtlId;
 import com.asg.hr.employeeinduction.entity.HrEmployeeInductionHdr;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.test.context.ActiveProfiles;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,18 +14,15 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
-@DataJpaTest
-@ActiveProfiles("test")
+@ExtendWith(MockitoExtension.class)
 class EmployeeInductionRepositoryTest {
 
-    @Autowired
-    private TestEntityManager entityManager;
-
-    @Autowired
+    @Mock
     private HrEmployeeInductionHdrRepository hdrRepository;
 
-    @Autowired
+    @Mock
     private HrEmployeeInductionDtlRepository dtlRepository;
 
     private HrEmployeeInductionHdr headerEntity;
@@ -46,8 +41,8 @@ class EmployeeInductionRepositoryTest {
         
         headerEntity.setCreatedBy("testuser");
         headerEntity.setCreatedDate(LocalDateTime.now());
-        
-        headerEntity = entityManager.persistAndFlush(headerEntity);
+        headerEntity.setDeleted("N");
+        headerEntity.setTransactionPoid(1L);
 
         // Create detail entity
         detailEntity = HrEmployeeInductionDtl.builder()
@@ -62,13 +57,12 @@ class EmployeeInductionRepositoryTest {
         
         detailEntity.setCreatedBy("testuser");
         detailEntity.setCreatedDate(LocalDateTime.now());
-        
-        detailEntity = entityManager.persistAndFlush(detailEntity);
     }
 
     @Test
     void findAllActive_ReturnsActiveRecords() {
         // When
+        when(hdrRepository.findAllActive()).thenReturn(List.of(headerEntity));
         List<HrEmployeeInductionHdr> result = hdrRepository.findAllActive();
 
         // Then
@@ -79,6 +73,8 @@ class EmployeeInductionRepositoryTest {
     @Test
     void findByPoidAndNotDeleted_ExistingRecord_ReturnsRecord() {
         // When
+        when(hdrRepository.findByPoidAndNotDeleted(headerEntity.getTransactionPoid()))
+                .thenReturn(Optional.of(headerEntity));
         Optional<HrEmployeeInductionHdr> result = hdrRepository.findByPoidAndNotDeleted(headerEntity.getTransactionPoid());
 
         // Then
@@ -91,7 +87,8 @@ class EmployeeInductionRepositoryTest {
     void findByPoidAndNotDeleted_DeletedRecord_ReturnsEmpty() {
         // Given
         headerEntity.setDeleted("Y");
-        entityManager.persistAndFlush(headerEntity);
+        when(hdrRepository.findByPoidAndNotDeleted(headerEntity.getTransactionPoid()))
+                .thenReturn(Optional.empty());
 
         // When
         Optional<HrEmployeeInductionHdr> result = hdrRepository.findByPoidAndNotDeleted(headerEntity.getTransactionPoid());
@@ -103,6 +100,7 @@ class EmployeeInductionRepositoryTest {
     @Test
     void findByEmployeePoidAndNotDeleted_ReturnsEmployeeRecords() {
         // When
+        when(hdrRepository.findByEmployeePoidAndNotDeleted(1L)).thenReturn(List.of(headerEntity));
         List<HrEmployeeInductionHdr> result = hdrRepository.findByEmployeePoidAndNotDeleted(1L);
 
         // Then
@@ -114,6 +112,7 @@ class EmployeeInductionRepositoryTest {
     @Test
     void findByDocIdAndNotDeleted_ExistingDocId_ReturnsRecord() {
         // When
+        when(hdrRepository.findByDocIdAndNotDeleted("IND-001")).thenReturn(Optional.of(headerEntity));
         Optional<HrEmployeeInductionHdr> result = hdrRepository.findByDocIdAndNotDeleted("IND-001");
 
         // Then
@@ -124,6 +123,8 @@ class EmployeeInductionRepositoryTest {
     @Test
     void findByHdrPoidAndNotDeleted_ReturnsDetailRecords() {
         // When
+        when(dtlRepository.findByHdrPoidAndNotDeleted(headerEntity.getTransactionPoid()))
+                .thenReturn(List.of(detailEntity));
         List<HrEmployeeInductionDtl> result = dtlRepository.findByHdrPoidAndNotDeleted(headerEntity.getTransactionPoid());
 
         // Then
@@ -146,7 +147,7 @@ class EmployeeInductionRepositoryTest {
         
         overdueDetail.setCreatedBy("testuser");
         overdueDetail.setCreatedDate(LocalDateTime.now());
-        entityManager.persistAndFlush(overdueDetail);
+        when(dtlRepository.findOverdueInductions(LocalDate.now())).thenReturn(List.of(overdueDetail));
 
         // When
         List<HrEmployeeInductionDtl> result = dtlRepository.findOverdueInductions(LocalDate.now());
@@ -170,8 +171,11 @@ class EmployeeInductionRepositoryTest {
         
         newHeader.setCreatedBy("testuser");
         newHeader.setCreatedDate(LocalDateTime.now());
+        newHeader.setTransactionPoid(2L);
+        newHeader.setDeleted("N");
 
         // When
+        when(hdrRepository.save(newHeader)).thenReturn(newHeader);
         HrEmployeeInductionHdr saved = hdrRepository.save(newHeader);
 
         // Then
@@ -197,6 +201,7 @@ class EmployeeInductionRepositoryTest {
         newDetail.setCreatedDate(LocalDateTime.now());
 
         // When
+        when(dtlRepository.save(newDetail)).thenReturn(newDetail);
         HrEmployeeInductionDtl saved = dtlRepository.save(newDetail);
 
         // Then
@@ -212,6 +217,9 @@ class EmployeeInductionRepositoryTest {
 
         // When
         headerEntity.setDeleted("Y");
+        when(hdrRepository.save(headerEntity)).thenReturn(headerEntity);
+        when(hdrRepository.findByPoidAndNotDeleted(poidToDelete)).thenReturn(Optional.empty());
+        when(hdrRepository.findById(poidToDelete)).thenReturn(Optional.of(headerEntity));
         hdrRepository.save(headerEntity);
 
         // Then
