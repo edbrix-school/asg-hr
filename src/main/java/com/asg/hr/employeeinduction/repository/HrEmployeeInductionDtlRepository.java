@@ -16,6 +16,9 @@ public interface HrEmployeeInductionDtlRepository extends JpaRepository<HrEmploy
     @Query("SELECT d FROM HrEmployeeInductionDtl d WHERE d.transactionPoid = :hdrPoid")
     List<HrEmployeeInductionDtl> findByHdrPoidAndNotDeleted(@Param("hdrPoid") Long hdrPoid);
 
+    @Query("SELECT MAX(d.detRowId) FROM HrEmployeeInductionDtl d WHERE d.transactionPoid = :hdrPoid")
+    Long findMaxDetRowIdByHdrPoid(@Param("hdrPoid") Long hdrPoid);
+
     @Query("SELECT d FROM HrEmployeeInductionDtl d WHERE d.sheduledDate < :currentDate AND d.status = 'N'")
     List<HrEmployeeInductionDtl> findOverdueInductions(@Param("currentDate") LocalDate currentDate);
 }

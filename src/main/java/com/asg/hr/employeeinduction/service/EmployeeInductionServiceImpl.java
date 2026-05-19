@@ -3,6 +3,7 @@ package com.asg.hr.employeeinduction.service;
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
+import com.asg.common.lib.dto.LovGetListDto;
 import com.asg.common.lib.dto.RawSearchResult;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.CustomException;
@@ -11,6 +12,8 @@ import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.common.lib.service.LovDataService;
+import com.asg.common.lib.service.PrintService;
 import com.asg.common.lib.utility.ASGHelperUtils;
 import com.asg.common.lib.utility.PaginationUtil;
 import com.asg.hr.employeeinduction.dto.EmployeeInductionRequestDto;
@@ -25,15 +28,16 @@ import com.asg.hr.employeeinduction.repository.HrEmployeeInductionHdrRepository;
 import com.asg.hr.employeeinduction.util.EmployeeInductionConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.User;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperReport;
 import org.springframework.beans.BeanUtils;
-import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.sql.DataSource;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -59,8 +63,11 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
     private final HrEmployeeInductionDtlRepository dtlRepository;
     private final EmployeeInductionProcRepository procRepository;
     private final LoggingService loggingService;
+    private final LovDataService lovDataService;
     private final DocumentSearchService documentService;
     private final DocumentDeleteService documentDeleteService;
+    private final PrintService printService;
+    private final DataSource dataSource;
 
     @Override
     @Transactional
@@ -120,11 +127,8 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
         existingDetails.forEach(detail -> detail.setDeleted(EmployeeInductionConstants.DELETED_YES));
         dtlRepository.saveAll(existingDetails);
 
-        // Create new details
-        if (requestDto.getDetails() != null) {
-            List<HrEmployeeInductionDtl> newDetails = createDetails(header, requestDto.getDetails());
-            header.setDetails(newDetails);
-        }
+        mergeDetails(header, requestDto.getDetails());
+        header.setDetails(dtlRepository.findByHdrPoidAndNotDeleted(header.getTransactionPoid()));
 
         header = hdrRepository.save(header);
         loggingService.logChanges(oldEntity, header, HrEmployeeInductionHdr.class,
@@ -195,7 +199,10 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
     @Transactional(readOnly = true)
     public Map<String, Object> loadInductionByEmployee(Long employeePoid) {
         log.info("Loading employee induction for employee: {}", employeePoid);
-        return getInductionsByEmployee(employeePoid);
+        Map<String, Object> result = new HashMap<>(getInductionsByEmployee(employeePoid));
+        result.put("inductionCategories", getInductionCategories());
+        log.info("Successfully loaded employee induction data for employee: {}", employeePoid);
+        return result;
     }
 
     @Override
@@ -259,45 +266,165 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
     private List<HrEmployeeInductionDtl> createDetails(HrEmployeeInductionHdr header, 
                                                       List<EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto> detailDtos) {
         return detailDtos.stream().map(detailDto -> {
-            HrEmployeeInductionDtl detail = HrEmployeeInductionDtl.builder()
-                    .transactionPoid(header.getTransactionPoid())
-                    .detRowId(detailDto.getSn().longValue())
-                    .header(header)
-                    .inductionCatgPoid(detailDto.getInductionCategory() != null ? Long.parseLong(detailDto.getInductionCategory()) : 1L)
-                    .sheduledDate(detailDto.getScheduledDate())
-                    .compleatedDate(detailDto.getCompletedDate())
-                    .status(detailDto.getStatus())
-                    .remarks(detailDto.getRemarks())
-                    .build();
-            
-            detail.setCreatedBy(ASGHelperUtils.getCurrentUser());
-            detail.setCreatedDate(LocalDateTime.now());
-            
+            HrEmployeeInductionDtl detail = buildDetailEntity(header, detailDto,
+                    detailDto.getSn() != null ? detailDto.getSn().longValue() : null);
             return dtlRepository.save(detail);
         }).collect(Collectors.toList());
     }
 
+    private void mergeDetails(HrEmployeeInductionHdr header,
+                              List<EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto> detailDtos) {
+        if (detailDtos == null) {
+            return;
+        }
+
+        Long maxRowId = dtlRepository.findMaxDetRowIdByHdrPoid(header.getTransactionPoid());
+        long[] nextRowId = {maxRowId != null ? maxRowId : 0L};
+
+        for (EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto detailDto : detailDtos) {
+            String action = detailDto.getActionType() != null
+                    ? detailDto.getActionType().trim().toUpperCase()
+                    : (detailDto.getSn() != null ? "ISUPDATED" : "ISCREATED");
+
+            switch (action) {
+                case "ISDELETED" -> deleteDetail(header, detailDto);
+                case "ISUPDATED" -> updateDetail(header, detailDto);
+                case "NOCHANGE" -> {
+                }
+                default -> createDetail(header, detailDto, nextRowId);
+            }
+        }
+    }
+
+    private void deleteDetail(HrEmployeeInductionHdr header,
+                              EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto detailDto) {
+        if (detailDto.getSn() == null) {
+            return;
+        }
+        HrEmployeeInductionDtlId id = new HrEmployeeInductionDtlId(header.getTransactionPoid(), detailDto.getSn().longValue());
+        dtlRepository.findById(id).ifPresent(existing -> {
+            dtlRepository.delete(existing);
+            loggingService.logDelete(existing, UserContext.getDocumentId(), header.getTransactionPoid().toString());
+        });
+    }
+
+    private void updateDetail(HrEmployeeInductionHdr header,
+                              EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto detailDto) {
+        if (detailDto.getSn() == null) {
+            createDetail(header, detailDto, new long[]{dtlRepository.findMaxDetRowIdByHdrPoid(header.getTransactionPoid()) != null
+                    ? dtlRepository.findMaxDetRowIdByHdrPoid(header.getTransactionPoid()) : 0L});
+            return;
+        }
+
+        HrEmployeeInductionDtlId id = new HrEmployeeInductionDtlId(header.getTransactionPoid(), detailDto.getSn().longValue());
+        HrEmployeeInductionDtl existing = dtlRepository.findById(id)
+                .orElseGet(() -> buildDetailEntity(header, detailDto, detailDto.getSn().longValue()));
+
+        HrEmployeeInductionDtl oldEntity = new HrEmployeeInductionDtl();
+        BeanUtils.copyProperties(existing, oldEntity);
+
+        applyDetailFields(existing, detailDto);
+        existing.setLastModifiedBy(ASGHelperUtils.getCurrentUser());
+        existing.setLastModifiedDate(LocalDateTime.now());
+        dtlRepository.save(existing);
+
+        loggingService.logChanges(oldEntity, existing, HrEmployeeInductionDtl.class,
+                               UserContext.getDocumentId(), header.getTransactionPoid().toString(),
+                                LogDetailsEnum.MODIFIED, "DET_ROW_ID");
+    }
+
+    private void createDetail(HrEmployeeInductionHdr header,
+                              EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto detailDto,
+                              long[] nextRowId) {
+        Long detRowId = detailDto.getSn() != null ? detailDto.getSn().longValue() : ++nextRowId[0];
+        HrEmployeeInductionDtl detail = buildDetailEntity(header, detailDto, detRowId);
+        dtlRepository.save(detail);
+        loggingService.createLogSummaryEntry(UserContext.getDocumentId(), header.getTransactionPoid().toString(),
+                String.format("Row Created on Employee Induction Detail with DetRowId: %s", detRowId));
+    }
+
+    private HrEmployeeInductionDtl buildDetailEntity(HrEmployeeInductionHdr header,
+                                                     EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto detailDto,
+                                                     Long detRowId) {
+        HrEmployeeInductionDtl detail = HrEmployeeInductionDtl.builder()
+                .transactionPoid(header.getTransactionPoid())
+                .detRowId(detRowId)
+                .header(header)
+                .build();
+        applyDetailFields(detail, detailDto);
+        detail.setCreatedBy(ASGHelperUtils.getCurrentUser());
+        detail.setCreatedDate(LocalDateTime.now());
+        return detail;
+    }
+
+    private void applyDetailFields(HrEmployeeInductionDtl detail,
+                                   EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto detailDto) {
+        detail.setInductionCatgPoid(detailDto.getInductionCategory() != null ? Long.parseLong(detailDto.getInductionCategory()) : 1L);
+        detail.setSheduledDate(detailDto.getScheduledDate());
+        detail.setCompleatedDate(detailDto.getCompletedDate());
+        detail.setStatus(detailDto.getStatus());
+        detail.setRemarks(detailDto.getRemarks());
+    }
+
     private EmployeeInductionResponseDto mapToResponseDto(HrEmployeeInductionHdr header) {
+        LovGetListDto employeeDet = resolveLovByPoid(header.getEmployeePoid(), EmployeeInductionConstants.LOV_EMPLOYEE_NAME);
         List<EmployeeInductionResponseDto.EmployeeInductionDetailResponseDto> detailDtos = 
                 dtlRepository.findByHdrPoidAndNotDeleted(header.getTransactionPoid()).stream()
-                        .map(detail -> EmployeeInductionResponseDto.EmployeeInductionDetailResponseDto.builder()
-                                .sn(detail.getDetRowId() != null ? detail.getDetRowId().intValue() : null)
-                                .inductionCategory(detail.getInductionCatgPoid() != null ? detail.getInductionCatgPoid().toString() : null)
-                                .assigneePoid(null) // Column doesn't exist
-                                .scheduledDate(detail.getSheduledDate())
-                                .completedDate(detail.getCompleatedDate())
-                                .status(detail.getStatus())
-                                .remarks(detail.getRemarks())
-                                .build())
+                        .map(detail -> {
+                            Long assigneePoid = detail.getAssigneePoid();
+                            return EmployeeInductionResponseDto.EmployeeInductionDetailResponseDto.builder()
+                                    .sn(detail.getDetRowId() != null ? detail.getDetRowId().intValue() : null)
+                                    .inductionCategory(detail.getInductionCatgPoid() != null ? detail.getInductionCatgPoid().toString() : null)
+                                    .inductionCategoryDet(resolveLovByPoid(detail.getInductionCatgPoid(), EmployeeInductionConstants.LOV_INDUCTION_CATEGORY))
+                                    .assigneePoid(assigneePoid)
+                                    .assigneeName(null)
+                                    .assigneeDet(resolveLovByPoid(assigneePoid, EmployeeInductionConstants.LOV_EMPLOYEE_NAME))
+                                    .scheduledDate(detail.getSheduledDate())
+                                    .completedDate(detail.getCompleatedDate())
+                                    .status(detail.getStatus())
+                                    .statusDet(resolveLovByCode(detail.getStatus(), EmployeeInductionConstants.LOV_YES_NO))
+                                    .remarks(detail.getRemarks())
+                                    .build();
+                        })
                         .collect(Collectors.toList());
 
         return EmployeeInductionResponseDto.builder()
                 .poid(header.getPoid())
                 .docId(header.getDocId())
                 .employeePoid(header.getEmployeePoid())
+                .employeeName(employeeDet.getDescription())
+                .employeeDet(employeeDet)
+                .createdBy(header.getCreatedBy())
+                .createdDate(header.getCreatedDate())
                 .remarks(header.getRemarks())
                 .details(detailDtos)
                 .build();
+    }
+
+    private LovGetListDto resolveLovByPoid(Long poid, String lovName) {
+        if (poid == null) {
+            return new LovGetListDto();
+        }
+        try {
+            LovGetListDto lov = lovDataService.getDetailsByPoidAndLovNameFast(poid, lovName);
+            return lov != null ? lov : new LovGetListDto();
+        } catch (Exception e) {
+            log.warn("Failed to resolve LOV {} for poid {}", lovName, poid, e);
+            return new LovGetListDto();
+        }
+    }
+
+    private LovGetListDto resolveLovByCode(String code, String lovName) {
+        if (code == null || code.isBlank()) {
+            return new LovGetListDto();
+        }
+        try {
+            LovGetListDto lov = lovDataService.getLovItemByCodeFast(code.trim(), lovName);
+            return lov != null ? lov : new LovGetListDto();
+        } catch (Exception e) {
+            log.warn("Failed to resolve LOV {} for code {}", lovName, code, e);
+            return new LovGetListDto();
+        }
     }
 
     private void validateRequest(EmployeeInductionRequestDto requestDto) {
@@ -355,6 +482,31 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
         } catch (NumberFormatException e) {
             log.warn("Could not parse {} as Integer: {}", key, value);
             return null;
+        }
+    }
+
+    @Override
+    public byte[] print(Long transactionPoid) throws Exception {
+        log.info("Generating PDF for employee induction with id: {}", transactionPoid);
+        
+        try {
+            // Verify the record exists
+            hdrRepository.findByPoidAndNotDeleted(transactionPoid)
+                    .orElseThrow(() -> new ResourceNotFoundException(EMPLOYEE_INDUCTION, POID_FIELD, transactionPoid));
+            
+            Map<String, Object> params = printService.buildBaseParams(transactionPoid, UserContext.getDocumentId());
+            JasperReport mainReport = printService.load("HR/Employee_Induction_Rpt.jrxml");
+            
+            byte[] pdf = printService.fillReportToPdf(mainReport, params, dataSource);
+            log.info("Successfully generated PDF for employee induction with id: {}", transactionPoid);
+            return pdf;
+            
+        } catch (JRException e) {
+            log.error("JasperReports error generating PDF for employee induction {}: {}", transactionPoid, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Error generating PDF for employee induction {}: {}", transactionPoid, e.getMessage());
+            throw new JRException(e);
         }
     }
 }

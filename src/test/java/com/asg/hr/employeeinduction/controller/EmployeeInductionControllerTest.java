@@ -287,4 +287,38 @@ class EmployeeInductionControllerTest {
                         .build()
         );
     }
+
+    @Test
+    void print_Success() throws Exception {
+        // Given
+        byte[] mockPdf = "mock pdf content".getBytes();
+        when(employeeInductionService.print(1L)).thenReturn(mockPdf);
+
+        // When & Then
+        mockMvc.perform(get("/v1/employee-induction/print/1")
+                        .header("X-Document-id", "800-107")
+                        .header("X-Action-Requested", "Print"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", "attachment; filename=employee-induction-1.pdf"))
+                .andExpect(content().contentType(MediaType.APPLICATION_PDF))
+                .andExpect(content().bytes(mockPdf));
+
+        verify(employeeInductionService).print(1L);
+    }
+
+    @Test
+    void print_ServiceException_ReturnsInternalServerError() throws Exception {
+        // Given
+        when(employeeInductionService.print(1L))
+                .thenThrow(new RuntimeException("PDF generation failed"));
+
+        // When & Then
+        mockMvc.perform(get("/v1/employee-induction/print/1")
+                        .header("X-Document-id", "800-107")
+                        .header("X-Action-Requested", "Print"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.success").value(false));
+
+        verify(employeeInductionService).print(1L);
+    }
 }

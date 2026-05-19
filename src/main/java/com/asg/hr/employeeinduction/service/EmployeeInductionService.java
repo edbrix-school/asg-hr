@@ -30,4 +30,6 @@ public interface EmployeeInductionService {
     void sendOverdueNotifications();
 
     List<InductionCategoryDto> getInductionCategories();
+
+    byte[] print(Long transactionPoid) throws Exception;
 }

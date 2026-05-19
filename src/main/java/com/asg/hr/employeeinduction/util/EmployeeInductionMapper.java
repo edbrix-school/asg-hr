@@ -36,6 +36,8 @@ public class EmployeeInductionMapper {
                 .poid(entity.getPoid())
                 .docId(entity.getDocId())
                 .employeePoid(entity.getEmployeePoid())
+                .createdBy(entity.getCreatedBy())
+                .createdDate(entity.getCreatedDate())
                 .remarks(entity.getRemarks())
                 .details(detailDtos)
                 .build();
