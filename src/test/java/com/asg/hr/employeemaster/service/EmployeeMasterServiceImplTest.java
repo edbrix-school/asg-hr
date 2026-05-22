@@ -1987,7 +1987,7 @@ class EmployeeMasterServiceImplTest {
             try (MockedConstruction<SimpleJdbcCall> ignored = mockConstruction(SimpleJdbcCall.class, (mock, ctx) -> {
                 when(mock.withProcedureName(anyString())).thenReturn(mock);
                 when(mock.declareParameters(any(SqlParameter[].class))).thenReturn(mock);
-                when(mock.execute(any(SqlParameterSource.class))).thenReturn(Map.of("P_RESULT", "ERROR:bad"));
+                when(mock.execute(any(SqlParameterSource.class))).thenReturn(Map.of("P_STATUS", "ERROR:bad"));
             })) {
                 EmployeeMasterRequestDto req1 = baseValidRequest("REMOTE", 1L);
                 assertThatThrownBy(() -> service.updateEmployee(100L, req1))

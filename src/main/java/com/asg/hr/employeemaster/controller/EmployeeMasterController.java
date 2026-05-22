@@ -162,6 +162,13 @@ public class EmployeeMasterController {
     }
 
     @AllowedAction(UserRolesRightsEnum.CREATE)
+    @PostMapping("/{employeePoid}/create-gl")
+    public ResponseEntity<?> createEmployeeGlIfMissing(@PathVariable @NotNull Long employeePoid) {
+        String result = employeeMasterService.createEmployeeGlIfMissing(employeePoid);
+        return success(result);
+    }
+
+    @AllowedAction(UserRolesRightsEnum.CREATE)
     @PostMapping(value = "/upload-excel", consumes = "multipart/form-data")
     public ResponseEntity<?> uploadExcel(
             @io.swagger.v3.oas.annotations.Parameter(

@@ -78,6 +78,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     private static final String P_LOGIN_COMPANY_POID = "P_LOGIN_COMPANY_POID";
     private static final String P_EMPLOYEE_POID = "P_EMPLOYEE_POID";
     private static final String P_RESULT = "P_RESULT";
+    private static final String P_STATUS = "P_STATUS";
     private static final String ERROR = "ERROR";
     private static final String UPDATE_LOG_STRING = "KeyId = EMPLOYEE_POID %s: DET_ROW_ID %s";
     private static final String P_REJOIN_DATE = "P_REJOIN_DATE";
@@ -435,11 +436,11 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         }
     }
 
-    private void createEmployeeGlIfMissing(Long employeePoid) {
+    public String createEmployeeGlIfMissing(Long employeePoid) {
         HrEmployeeMaster current = masterRepository.findByEmployeePoid(employeePoid).orElseThrow(() -> new ResourceNotFoundException(EMPLOYEE, HR_EMPLOYEE_MASTER_POID_FIELD, employeePoid));
 
         if (current.getEmpGlPoid() != null) {
-            return;
+            return "GL already created";
         }
 
         String empCode = current.getEmployeeCode();
@@ -460,7 +461,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                             new SqlParameter("P_CODE", Types.VARCHAR),
                             new SqlParameter("P_NAME", Types.VARCHAR),
                             new SqlParameter("P_GLTYPE", Types.VARCHAR),
-                            new SqlOutParameter(P_RESULT, Types.VARCHAR)
+                            new SqlOutParameter(P_STATUS, Types.VARCHAR)
                     );
 
             Map<String, Object> result = jdbcCall.execute(new MapSqlParameterSource()
@@ -474,10 +475,11 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                     .addValue("P_GLTYPE", GL_TYPE_EMPLOYEE)
             );
 
-            String status = (String) result.get(P_RESULT);
+            String status = (String) result.get(P_STATUS);
             if (status != null && status.toUpperCase().contains(ERROR)) {
                 throw new ValidationException(status);
             }
+            return status;
         } catch (DataAccessException ex) {
             throw new ValidationException("PROC_GL_MASTER_CREATION failed: " + ex.getMostSpecificCause().getMessage());
         }

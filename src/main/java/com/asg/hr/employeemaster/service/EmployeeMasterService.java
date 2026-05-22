@@ -37,5 +37,7 @@ public interface EmployeeMasterService {
     String updateLeaveRejoin(Long employeePoid, LeaveRejoinUpdateRequestDto request);
 
     String removeLeaveRejoin(Long employeePoid, LeaveRejoinRemoveRequestDto request);
+
+    String createEmployeeGlIfMissing(Long employeePoid);
 }
 
