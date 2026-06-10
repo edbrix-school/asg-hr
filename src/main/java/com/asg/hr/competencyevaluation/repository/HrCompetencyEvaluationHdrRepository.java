@@ -11,6 +11,10 @@ import java.util.Optional;
 @Repository
 public interface HrCompetencyEvaluationHdrRepository extends JpaRepository<HrCompetencyEvaluationHdr, Long> {
 
-    @Query("SELECT h FROM HrCompetencyEvaluationHdr h WHERE h.transactionPoid = :id AND h.deleted = 'N'")
+    @Query("""
+            SELECT h FROM HrCompetencyEvaluationHdr h
+            WHERE h.transactionPoid = :id
+              AND (h.deleted IS NULL OR h.deleted = '' OR h.deleted = 'N')
+            """)
     Optional<HrCompetencyEvaluationHdr> findActiveById(@Param("id") Long id);
 }
