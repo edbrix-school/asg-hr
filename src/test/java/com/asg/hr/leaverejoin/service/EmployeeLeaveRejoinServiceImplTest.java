@@ -305,7 +305,7 @@ class EmployeeLeaveRejoinServiceImplTest {
             mockedUserContext.when(UserContext::getUserRole).thenReturn("EMPLOYEE");
             mockedUserContext.when(UserContext::getUserPoid).thenReturn(500L);
 
-            when(repository.findByTransactionPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.of(entity));
+            when(repository.findByTransactionPoid(1L)).thenReturn(Optional.of(entity));
             when(employeeRepository.findByLoginUserPoid(500L)).thenReturn(Optional.of(employee));
             when(employeeRepository.findByEmployeePoid(10L)).thenReturn(Optional.of(employee));
             when(procRepository.getEmployeeDetails(10L)).thenReturn(EmployeeLeaveRejoinEmployeeDetailsResponse.builder()
