@@ -110,7 +110,13 @@ public class EmployeeLeaveRejoinServiceImpl implements EmployeeLeaveRejoinServic
     @Override
     @Transactional(readOnly = true)
     public EmployeeLeaveRejoinResponse getById(Long transactionPoid) {
-        HrEmployeeRejoinHdr entity = getAccessibleEntity(transactionPoid);
+        HrEmployeeRejoinHdr entity = repository.findByTransactionPoid(transactionPoid)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        EmployeeLeaveRejoinConstants.RESOURCE_NAME,
+                        EmployeeLeaveRejoinConstants.KEY_FIELD,
+                        transactionPoid
+                ));
+        assertEmployeeAccess(entity.getEmployeePoid());
         EmployeeLeaveRejoinResponse response = mapper.toResponse(entity);
         enrichResponse(response);
         return response;
