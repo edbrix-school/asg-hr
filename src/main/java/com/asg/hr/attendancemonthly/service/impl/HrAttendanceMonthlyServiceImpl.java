@@ -1,5 +1,6 @@
 package com.asg.hr.attendancemonthly.service.impl;
 
+import com.asg.common.lib.dto.LovGetListDto;
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
@@ -14,6 +15,7 @@ import com.asg.common.lib.utility.PaginationUtil;
 import com.asg.hr.attendancemonthly.dto.*;
 import com.asg.hr.attendancemonthly.entity.HrAttendanceMonthlyDtl;
 import com.asg.hr.attendancemonthly.entity.HrAttendanceMonthlyHdr;
+import com.asg.hr.attendancemonthly.entity.key.HrAttendanceMonthlyDtlKey;
 import com.asg.hr.attendancemonthly.mapper.HrAttendanceMonthlyMapper;
 import com.asg.hr.attendancemonthly.repository.HrAttendanceMonthlyDtlRepository;
 import com.asg.hr.attendancemonthly.repository.HrAttendanceMonthlyHdrRepository;
@@ -23,6 +25,7 @@ import com.asg.hr.exceptions.ResourceAlreadyExistsException;
 import com.asg.hr.exceptions.ResourceNotFoundException;
 import com.asg.hr.exceptions.ValidationException;
 import com.asg.common.lib.service.GlobalParameterService;
+import com.asg.common.lib.service.LovDataService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +66,9 @@ public class HrAttendanceMonthlyServiceImpl implements HrAttendanceMonthlyServic
     private final LoggingService loggingService;
     private final GlobalParameterService globalParameterService;
     private final JdbcTemplate jdbcTemplate;
+    private final LovDataService lovDataService;
+
+    private static final String LOV_EMPLOYEE_NAME = "EMPLOYEE_NAME";
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -96,8 +102,34 @@ public class HrAttendanceMonthlyServiceImpl implements HrAttendanceMonthlyServic
         mapper.updateEntity(hdr, request);
         final HrAttendanceMonthlyHdr savedHdr = hdrRepository.saveAndFlush(hdr);
 
+        if (request.getDetails() != null) {
+            for (HrAttendanceMonthlyDtlUpdateRequest dtlReq : request.getDetails()) {
+                if ("ISDELETED".equalsIgnoreCase(dtlReq.getActionType())) {
+                    dtlRepository.deleteById(new HrAttendanceMonthlyDtlKey(dtlReq.getDetRowId(), transactionPoid));
+                } else if ("ISCREATED".equalsIgnoreCase(dtlReq.getActionType())) {
+                    HrAttendanceMonthlyDtl dtl = mapper.toDtlEntity(dtlReq);
+                    dtl.setTransactionPoid(transactionPoid);
+                    long nextDetRowId = dtlRepository.findMaxDetRowIdByTransactionPoid(transactionPoid) + 1;
+                    dtl.setDetRowId(nextDetRowId);
+                    dtlRepository.save(dtl);
+                } else if ("ISUPDATED".equalsIgnoreCase(dtlReq.getActionType())) {
+                    dtlRepository.findById(new HrAttendanceMonthlyDtlKey(dtlReq.getDetRowId(), transactionPoid))
+                            .ifPresent(dtl -> {
+                                mapper.updateDtlEntity(dtl, dtlReq);
+                                dtlRepository.save(dtl);
+                            });
+                }
+            }
+        }
+
         loggingService.createLogSummaryEntry(LogDetailsEnum.MODIFIED, docId, transactionPoid.toString());
-        return mapper.toResponse(savedHdr);
+
+        List<HrAttendanceMonthlyDtl> updatedDetails = getHrAttendanceMonthlyDtls(transactionPoid);
+        HrAttendanceMonthlyResponse response = mapper.toResponse(savedHdr);
+        List<HrAttendanceMonthlyDtlResponse> dtlResponses = mapper.toDtlResponseList(updatedDetails);
+        enrichEmployeeNames(dtlResponses);
+        response.setDetails(dtlResponses);
+        return response;
     }
 
     @Override
@@ -157,12 +189,11 @@ public class HrAttendanceMonthlyServiceImpl implements HrAttendanceMonthlyServic
     @Transactional(readOnly = true)
     public HrAttendanceMonthlyResponse getAttendanceSummary(Long transactionPoid) {
         HrAttendanceMonthlyHdr hdr = getHrAttendanceMonthlyHdr(transactionPoid);
-
         List<HrAttendanceMonthlyDtl> details = getHrAttendanceMonthlyDtls(transactionPoid);
-
         HrAttendanceMonthlyResponse response = mapper.toResponse(hdr);
-        response.setDetails(mapper.toDtlResponseList(details));
-
+        List<HrAttendanceMonthlyDtlResponse> dtlResponses = mapper.toDtlResponseList(details);
+        enrichEmployeeNames(dtlResponses);
+        response.setDetails(dtlResponses);
         return response;
     }
 
@@ -200,6 +231,23 @@ public class HrAttendanceMonthlyServiceImpl implements HrAttendanceMonthlyServic
         );
 
         loggingService.createLogSummaryEntry(LogDetailsEnum.DELETED, UserContext.getDocumentId(), transactionPoid.toString());
+    }
+
+    private void enrichEmployeeNames(List<HrAttendanceMonthlyDtlResponse> dtlResponses) {
+        if (dtlResponses == null || dtlResponses.isEmpty()) return;
+        List<Long> poids = dtlResponses.stream()
+                .map(HrAttendanceMonthlyDtlResponse::getEmployeePoid)
+                .filter(p -> p != null)
+                .distinct()
+                .toList();
+        if (poids.isEmpty()) return;
+        Map<Long, LovGetListDto> empMap = lovDataService.getDetailsByPoidsAndLovName(poids, LOV_EMPLOYEE_NAME);
+        dtlResponses.forEach(dtl -> {
+            if (dtl.getEmployeePoid() != null) {
+                LovGetListDto lov = empMap.get(dtl.getEmployeePoid());
+                if (lov != null) dtl.setEmployeeName(lov.getDescription());
+            }
+        });
     }
 
     private HrAttendanceMonthlyHdr getHrAttendanceMonthlyHdr(Long transactionPoid) {
