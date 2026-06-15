@@ -1,5 +1,6 @@
 package com.asg.hr.competency.dto;
 
+import com.asg.common.lib.dto.LovGetListDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,4 +21,5 @@ public class CompetencyScheduleResponseDto {
     private Integer seqNo;
     private String active;
     private LocalDate evaluationDate;
+    private LovGetListDto scheduleDtl;
 }

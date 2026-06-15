@@ -1,0 +1,1147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="EmployeeDetailsReport" language="groovy" pageWidth="595" pageHeight="842" columnWidth="558" leftMargin="22" rightMargin="15" topMargin="20" bottomMargin="20" uuid="a036d173-17e7-453d-87d1-d739d7cdf321">
+	<property name="ireport.zoom" value="1.2100000000000009"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="1076"/>
+	<style name="table">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_TH" mode="Opaque" backcolor="#F0F8FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_CH" mode="Opaque" backcolor="#BFE1FF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="table_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<subDataset name="Salary History" uuid="b9802b32-21ba-401d-b180-568dfda1ffb5">
+		<parameter name="DOC_KEY_POID" class="java.lang.String">
+			<defaultValueExpression><![CDATA[961]]></defaultValueExpression>
+		</parameter>
+		<queryString>
+			<![CDATA[SELECT LAST_INCREMENT_DATE, BASIC_SALARY, FA_ALW, TA_ALW, HRA_ALW, FIXOT_ALW, GROSS_PAY, DESIGNATION_POID, TICKET_PERIOD, NO_OF_TICKETS, 'HISTORY' as REMARKS
+FROM PRODUCTION_PAYROLL.HR_EMPLOYEE_SALARY_HIST
+WHERE SALARY_POID = $P{DOC_KEY_POID}]]>
+		</queryString>
+		<field name="LAST_INCREMENT_DATE" class="java.sql.Timestamp"/>
+		<field name="BASIC_SALARY" class="java.math.BigDecimal"/>
+		<field name="FA_ALW" class="java.math.BigDecimal"/>
+		<field name="TA_ALW" class="java.math.BigDecimal"/>
+		<field name="HRA_ALW" class="java.math.BigDecimal"/>
+		<field name="FIXOT_ALW" class="java.math.BigDecimal"/>
+		<field name="GROSS_PAY" class="java.math.BigDecimal"/>
+		<field name="DESIGNATION_POID" class="java.math.BigDecimal"/>
+		<field name="TICKET_PERIOD" class="java.math.BigDecimal"/>
+		<field name="NO_OF_TICKETS" class="java.math.BigDecimal"/>
+		<field name="REMARKS" class="java.lang.String"/>
+	</subDataset>
+	<parameter name="DOC_ID" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DOC_KEY_POID" class="java.lang.String">
+		<defaultValueExpression><![CDATA[961]]></defaultValueExpression>
+	</parameter>
+	<parameter name="LOGIN_COMP_POID" class="java.lang.String">
+		<defaultValueExpression><![CDATA[1]]></defaultValueExpression>
+	</parameter>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["\\\\10.100.100.3\\erp_reports\\Reports\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="SUB_HEADER" class="net.sf.jasperreports.engine.JasperReport"/>
+	<parameter name="PRINTED_FROM_MASTER" class="java.lang.String"/>
+	<queryString>
+		<![CDATA[SELECT EM.EMPLOYEE_POID, EMPLOYEE_CODE, EMPLOYEE_NAME, EMPLOYEE_NAME2, EMPLOYEE_NAME || ' ' || EMPLOYEE_NAME2 as EMPLOYEE_NAME_FULL,
+      PHOTO, JOIN_DATE, GENDER, MARITAL_STATUS, DATE_OF_BIRTH,
+	PRESENT_ADDRESS, PERMANENT_ADDRESS, MOBILE, PERSONAL_EMAIL, BUSINESS_EMAIL, AIR_SECTOR_POID, TICKET_PERIOD, NO_OF_TICKETS,
+	DISCONTINUED, DISCONTINUED_DATE, CR_NUMBER, PASSPORT_NO, EXPIRY_DATE, PASSPORT_REMARKS, PLACE_OF_HIRE,
+	CPR_NO, CPR_EXPIRY_DATE, CPR_OCCUPATION, MEDICAL_INSURANCE, EM.LIFE_INSURANCE,
+	EM.EMERGENCY_CONTACT_NO, EM.EMERGENCY_CONTACT_PERSON, EM.JOB_DESCRIPTION,
+	RP_NO, RP_EXPIRY_DATE, DESIGNATION_NAME, DEPT_NAME, D.DESIGNATION_NAME, DA.DEPT_NAME, DA.DEPT_CODE, NATIONALITY_DESCRIPTION as NATIONALITY, SM.*,
+      -1*PRODUCTION.FUNC_GL_LEDGER_BALANCE(1,EMP_GL_POID,SYSDATE) as LOAN_BALANCE, EXPERIENCE
+  FROM HR_EMPLOYEE_MASTER EM
+  LEFT OUTER JOIN HR_DESIGNATION_MASTER D ON EM.DESIGNATION_POID = D.DESIG_POID
+  LEFT OUTER JOIN HR_DEPARTMENT_MASTER DA ON EM.DEPARTMENT_POID = DA.DEPT_POID
+  LEFT OUTER JOIN HR_NATIONALITY_MASTER NM ON EM.NATIONALITY_POID = NM.NATION_POID
+  LEFT JOIN ADMIN_CR_MASTER CR ON CR.CR_POID = EM.CR_POID
+  LEFT JOIN (
+      SELECT EMPLOYEE_POID,
+      LISTAGG(DESIGNATION || ', ' || EMPLOYER || ', ' || COUNTRY_LOCATION || ', From ' ||FROM_DATE || ' to ' || TO_DATE
+      ,' ; ') WITHIN GROUP (ORDER BY DET_ROW_ID) EXPERIENCE
+      FROM HR_EMPLOYEE_EXPERIENCE_DTL
+      GROUP BY EMPLOYEE_POID
+  )EXP ON EXP.EMPLOYEE_POID = EM.EMPLOYEE_POID
+  LEFT OUTER JOIN
+	(SELECT SM.EMPLOYEE_POID, SM.BASIC_SALARY, SM.REGISTERED_SALARY,
+		SM.LAST_INCREMENT_DATE , SM.GROSS_SALARY, SM.PAYMENT_METHOD, BANK.BANK_CODE, SM.IBAN_ACCOUNT_NO, SM.BANK_GUARANTEE, SM.BANK_GUARANTEE_DETAILS,
+		SUM(NVL(FXALW.AMOUNT, 0))AS FIXED_ALLOWANCE,
+		SUM(NVL(HRAALW.AMOUNT, 0))AS HRA_ALLOWANCE, SUM(NVL(TRNSP.AMOUNT, 0))AS TRANSPORT_ALLOWANCE, SUM(NVL(FXOT.AMOUNT, 0))AS FIXED_OT,
+		SUM(NVL(TELALW.AMOUNT, 0))AS TEL_ALLOWANCE
+
+	  FROM TEST_PAYROLL.HR_EMPLOYEE_SALARY_MASTER SM
+	  LEFT JOIN TEST_PAYROLL.HR_EMPLOYEE_SALARY_ALW_DTL FXALW ON FXALW.SALARY_POID = SM.SALARY_POID AND FXALW.ALLOWANCE_DEDUCTION_POID IN(
+		SELECT ALLOWACE_DEDUCTION_POID
+		  FROM TEST_PAYROLL.HR_ALLOWANCE_DEDUCTION_MASTER
+		 WHERE CODE = 'FXALW'
+	)
+	  LEFT JOIN TEST_PAYROLL.HR_EMPLOYEE_SALARY_ALW_DTL FXOT ON FXOT.SALARY_POID = SM.SALARY_POID AND FXOT.ALLOWANCE_DEDUCTION_POID IN(
+		SELECT ALLOWACE_DEDUCTION_POID
+		  FROM TEST_PAYROLL.HR_ALLOWANCE_DEDUCTION_MASTER
+		 WHERE CODE = 'FXOT'
+	)
+	  LEFT JOIN TEST_PAYROLL.HR_EMPLOYEE_SALARY_ALW_DTL HRAALW ON HRAALW.SALARY_POID = SM.SALARY_POID AND HRAALW.ALLOWANCE_DEDUCTION_POID IN(
+		SELECT ALLOWACE_DEDUCTION_POID
+		  FROM TEST_PAYROLL.HR_ALLOWANCE_DEDUCTION_MASTER
+		 WHERE CODE = 'HRAALW'
+	)
+	  LEFT JOIN TEST_PAYROLL.HR_EMPLOYEE_SALARY_ALW_DTL TRNSP ON TRNSP.SALARY_POID = SM.SALARY_POID AND TRNSP.ALLOWANCE_DEDUCTION_POID IN(
+		SELECT ALLOWACE_DEDUCTION_POID
+		  FROM TEST_PAYROLL.HR_ALLOWANCE_DEDUCTION_MASTER
+		 WHERE CODE = 'TRNSP'
+	)
+	  LEFT JOIN TEST_PAYROLL.HR_EMPLOYEE_SALARY_ALW_DTL TELALW ON TRNSP.SALARY_POID = SM.SALARY_POID AND TELALW.ALLOWANCE_DEDUCTION_POID IN(
+		SELECT ALLOWACE_DEDUCTION_POID
+		  FROM TEST_PAYROLL.HR_ALLOWANCE_DEDUCTION_MASTER
+		 WHERE CODE = 'TELALW'
+	)
+	LEFT JOIN GLOBAL_CUSTOMER_BANK_MASTER BANK ON BANK.BANK_POID = SM.BANK_POID
+	 GROUP BY  SM.EMPLOYEE_POID, SM.BASIC_SALARY, SM.REGISTERED_SALARY,
+		SM.LAST_INCREMENT_DATE , SM.GROSS_SALARY, SM.PAYMENT_METHOD, BANK.BANK_CODE, SM.IBAN_ACCOUNT_NO, SM.BANK_GUARANTEE, SM.BANK_GUARANTEE_DETAILS
+	) SM   ON EM.EMPLOYEE_POID = SM.EMPLOYEE_POID
+ WHERE EM.EMPLOYEE_POID = $P{DOC_KEY_POID}]]>
+	</queryString>
+	<field name="EMPLOYEE_POID" class="java.math.BigDecimal"/>
+	<field name="EMPLOYEE_CODE" class="java.lang.String"/>
+	<field name="EMPLOYEE_NAME" class="java.lang.String"/>
+	<field name="EMPLOYEE_NAME2" class="java.lang.String"/>
+	<field name="EMPLOYEE_NAME_FULL" class="java.lang.String"/>
+	<field name="PHOTO" class="oracle.jdbc.OracleBlob"/>
+	<field name="JOIN_DATE" class="java.sql.Timestamp"/>
+	<field name="GENDER" class="java.lang.String"/>
+	<field name="MARITAL_STATUS" class="java.lang.String"/>
+	<field name="DATE_OF_BIRTH" class="java.sql.Timestamp"/>
+	<field name="PRESENT_ADDRESS" class="java.lang.String"/>
+	<field name="PERMANENT_ADDRESS" class="java.lang.String"/>
+	<field name="MOBILE" class="java.lang.String"/>
+	<field name="PERSONAL_EMAIL" class="java.lang.String"/>
+	<field name="BUSINESS_EMAIL" class="java.lang.String"/>
+	<field name="AIR_SECTOR_POID" class="java.math.BigDecimal"/>
+	<field name="TICKET_PERIOD" class="java.lang.String"/>
+	<field name="NO_OF_TICKETS" class="java.lang.String"/>
+	<field name="DISCONTINUED" class="java.lang.String"/>
+	<field name="DISCONTINUED_DATE" class="java.sql.Timestamp"/>
+	<field name="CR_NUMBER" class="java.lang.String"/>
+	<field name="PASSPORT_NO" class="java.lang.String"/>
+	<field name="EXPIRY_DATE" class="java.sql.Timestamp"/>
+	<field name="PASSPORT_REMARKS" class="java.lang.String"/>
+	<field name="PLACE_OF_HIRE" class="java.lang.String"/>
+	<field name="CPR_NO" class="java.lang.String"/>
+	<field name="CPR_EXPIRY_DATE" class="java.sql.Timestamp"/>
+	<field name="CPR_OCCUPATION" class="java.lang.String"/>
+	<field name="MEDICAL_INSURANCE" class="java.lang.String"/>
+	<field name="LIFE_INSURANCE" class="java.lang.String"/>
+	<field name="EMERGENCY_CONTACT_NO" class="java.lang.String"/>
+	<field name="EMERGENCY_CONTACT_PERSON" class="java.lang.String"/>
+	<field name="JOB_DESCRIPTION" class="java.lang.String"/>
+	<field name="RP_NO" class="java.lang.String"/>
+	<field name="RP_EXPIRY_DATE" class="java.sql.Timestamp"/>
+	<field name="DESIGNATION_NAME" class="java.lang.String"/>
+	<field name="DEPT_NAME" class="java.lang.String"/>
+	<field name="DEPT_CODE" class="java.lang.String"/>
+	<field name="NATIONALITY" class="java.lang.String"/>
+	<field name="BASIC_SALARY" class="java.math.BigDecimal"/>
+	<field name="REGISTERED_SALARY" class="java.math.BigDecimal"/>
+	<field name="LAST_INCREMENT_DATE" class="java.sql.Timestamp"/>
+	<field name="GROSS_SALARY" class="java.math.BigDecimal"/>
+	<field name="PAYMENT_METHOD" class="java.lang.String"/>
+	<field name="BANK_CODE" class="java.lang.String"/>
+	<field name="IBAN_ACCOUNT_NO" class="java.lang.String"/>
+	<field name="BANK_GUARANTEE" class="java.lang.String"/>
+	<field name="BANK_GUARANTEE_DETAILS" class="java.lang.String"/>
+	<field name="FIXED_ALLOWANCE" class="java.math.BigDecimal"/>
+	<field name="HRA_ALLOWANCE" class="java.math.BigDecimal"/>
+	<field name="TRANSPORT_ALLOWANCE" class="java.math.BigDecimal"/>
+	<field name="FIXED_OT" class="java.math.BigDecimal"/>
+	<field name="TEL_ALLOWANCE" class="java.math.BigDecimal"/>
+	<field name="LOAN_BALANCE" class="java.math.BigDecimal"/>
+	<field name="EXPERIENCE" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="34" splitType="Stretch">
+			<subreport>
+				<reportElement x="10" y="0" width="531" height="34" uuid="212cf899-8caa-4ea3-8557-87eb713274cd"/>
+				<subreportParameter name="LOGIN_COMP_POID">
+					<subreportParameterExpression><![CDATA[$P{LOGIN_COMP_POID}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[$P{SUB_HEADER}]]></subreportExpression>
+			</subreport>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="24" splitType="Stretch">
+			<staticText>
+				<reportElement x="11" y="0" width="530" height="20" uuid="09735313-3d4b-456b-b56f-bb45382ed5e6"/>
+				<textElement textAlignment="Center">
+					<font size="14" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Employee Profile (With Salary)]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="381" splitType="Stretch">
+			<rectangle>
+				<reportElement x="408" y="34" width="130" height="137" uuid="99fb610e-2c0f-49ef-9e24-bf2c5d311829"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="6" y="34" width="391" height="85" uuid="4632efc3-179c-416f-823c-6c1227406c93"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="6" y="265" width="535" height="116" uuid="f7e75736-cafa-47c9-898d-41db9f9e55c7"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="6" y="146" width="391" height="95" uuid="2eedba75-f13a-4d8c-8768-4587d3920402"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="9" y="41" width="106" height="16" uuid="ea5d3844-f22d-426e-9fc5-ccf5b848b90c"/>
+				<text><![CDATA[Employee Id]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="6" y="11" width="342" height="20" uuid="503f9a51-e5ec-4d4a-b8e4-0ba565ead613"/>
+				<textElement>
+					<font size="14" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Employee Details ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="153" width="106" height="16" uuid="5dd2bd01-bda3-45a0-ad9c-3bcd8f7df73b"/>
+				<text><![CDATA[Residential Address]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="171" width="106" height="16" uuid="a5ddacc5-b9cb-4f7f-8d30-08915d8a5980"/>
+				<text><![CDATA[Permanent Address]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="80" width="106" height="16" uuid="d592f440-ccb5-4720-bce5-81c3d7c0bbb2"/>
+				<text><![CDATA[Nationality]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="191" width="106" height="16" uuid="2e19ee31-fa55-4f8a-a6f3-232c3f184401"/>
+				<text><![CDATA[Contact Phone Number]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="41" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="ae945975-af9a-4311-987b-3f0ca6b576a5"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="153" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="7a881b48-0856-4627-aaf1-83b4dd6abe47"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="171" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="a986e5e4-0af0-4fc4-8abe-19ba368eaef4"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="80" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="39f18a04-7e99-40a8-b8db-d0970871f8c1"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="191" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="4dd62113-51ef-4c07-9988-87387d626a0c"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="61" width="106" height="16" uuid="28397c54-739f-47d8-b5f3-d17f6b9e776d"/>
+				<text><![CDATA[Employee Name]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="61" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="1fec59e5-9fe3-44d4-8023-4dd4e8831a64"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="6" y="126" width="342" height="20" uuid="7d8cc1c6-7917-4a14-b08c-80917953fdd9"/>
+				<textElement>
+					<font size="14" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Contact Details ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="291" width="106" height="16" uuid="8b8f496f-1cac-4ad6-b158-8be901a7da67"/>
+				<text><![CDATA[Department]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="272" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="0c6a7657-d147-4595-aa08-6eca7fa6988f"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="291" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="444cebd8-b2d3-4635-968c-0ab1e9bf5138"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="6" y="246" width="535" height="18" uuid="3ad7d466-f010-4e19-89d3-36d565c8103a"/>
+				<textElement>
+					<font size="14" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Work Details]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="310" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="28d0b480-21db-4b96-b242-50ce8f54d0ca"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="310" width="106" height="16" uuid="025f79f1-0195-418f-9c1d-933273e4c682"/>
+				<text><![CDATA[Date Of Joining]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="41" width="218" height="16" uuid="d99d12c4-14a4-4281-be5e-d3c69102c84b"/>
+				<textFieldExpression><![CDATA[$F{EMPLOYEE_CODE}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="61" width="269" height="16" uuid="5969777e-ba66-4cbb-9a23-a3b4faf9c30c"/>
+				<textFieldExpression><![CDATA[$F{EMPLOYEE_NAME_FULL}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="81" width="218" height="16" uuid="7caf245f-50aa-4e44-838e-e0cdd2f2a385"/>
+				<textFieldExpression><![CDATA[$F{NATIONALITY}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="153" width="269" height="16" uuid="54e7e317-5061-4c61-8f80-9fd9e7d6e4d9"/>
+				<textFieldExpression><![CDATA[$F{PRESENT_ADDRESS}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="171" width="269" height="16" uuid="45dbf261-921f-4d91-8f13-128d4750652c"/>
+				<textFieldExpression><![CDATA[$F{PERMANENT_ADDRESS}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="191" width="218" height="16" uuid="0d0cf5f2-0770-40f9-9881-e8ffb480a780"/>
+				<textFieldExpression><![CDATA[$F{MOBILE}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="272" width="218" height="16" uuid="4e283b62-e797-4e60-96ba-0fe200a274ad"/>
+				<textFieldExpression><![CDATA[$F{DESIGNATION_NAME}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="291" width="218" height="16" uuid="42ff476b-bf38-42f0-82f0-a8f60c98e551"/>
+				<textFieldExpression><![CDATA[$F{DEPT_NAME}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd-MMM-yyyy" isBlankWhenNull="true">
+				<reportElement x="128" y="310" width="218" height="16" uuid="f9083774-7cee-4e72-ac42-6e837a4604f7"/>
+				<textFieldExpression><![CDATA[$F{JOIN_DATE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="9" y="272" width="106" height="16" uuid="801dec1e-15a0-4f01-bc6e-48456e355bbf"/>
+				<text><![CDATA[Designation]]></text>
+			</staticText>
+			<line>
+				<reportElement x="9" y="1" width="529" height="1" uuid="76137ca2-e36a-4cb9-8458-aaed88947b5b"/>
+			</line>
+			<image>
+				<reportElement x="429" y="43" width="91" height="119" uuid="ec8f15bb-2d0a-4e18-aea1-9077e364f204"/>
+				<imageExpression><![CDATA[$F{PHOTO}.getBinaryStream()]]></imageExpression>
+			</image>
+			<staticText>
+				<reportElement x="9" y="227" width="100" height="16" uuid="099ddedf-5e72-49f6-b741-cbcca8c2c148"/>
+				<text><![CDATA[Business Email]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="227" width="210" height="16" uuid="7de1f6ec-4306-49f1-9a29-2c3ef9997afd"/>
+				<textFieldExpression><![CDATA[$F{BUSINESS_EMAIL}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="9" y="209" width="100" height="16" uuid="8a1ea0c7-b5f1-42cc-9fd4-cc547c997474"/>
+				<text><![CDATA[Personal Email]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="209" width="210" height="16" uuid="98eb3231-9ed9-44cf-9af0-3f2fa720fb9f"/>
+				<textFieldExpression><![CDATA[$F{PERSONAL_EMAIL}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="209" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="ef9cd92b-2eca-4218-8dd0-8845819caad5"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="227" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="592298dd-7d64-453c-9ac6-28e66fbc643d"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="97" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="dc89edbf-1e92-4c3f-84a4-650a61f0b4c3"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="129" y="98" width="218" height="16" uuid="d159091d-1b80-4741-aa0a-6d22c5475499"/>
+				<textFieldExpression><![CDATA[$F{MARITAL_STATUS}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="9" y="97" width="106" height="16" uuid="66ac1d72-e9d9-4bdb-8769-cc21dca13cee"/>
+				<text><![CDATA[Marital Status]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="408" y="187" width="130" height="16" forecolor="#FF3333" uuid="e550701f-b292-4e58-af98-db04fe715a6c">
+					<printWhenExpression><![CDATA[$F{DISCONTINUED} == "Y"]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[DISCONTINUED ON]]></text>
+			</staticText>
+			<textField pattern="dd-MMM-yyyy">
+				<reportElement x="420" y="209" width="100" height="20" uuid="229870a8-a80e-47a7-9bd0-6bb136cdf7b6">
+					<printWhenExpression><![CDATA[$F{DISCONTINUED} == "Y"]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA[$F{DISCONTINUED_DATE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="328" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="783afd59-6ddf-4172-b17e-e2d5bc549d97"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="354" width="106" height="16" uuid="ac53d553-8ca8-4917-ac5b-ca3168ae8903"/>
+				<text><![CDATA[Remarks]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="328" width="106" height="16" uuid="77febc9b-e693-4ae0-a1ee-6ea0cfdbcaf9"/>
+				<text><![CDATA[Experience]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="354" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="aca0f4a9-06fb-45f7-9431-6e2dc805531b"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField>
+				<reportElement x="128" y="354" width="390" height="16" uuid="f0e7b241-887f-4f31-8c95-3f2d755f8821"/>
+				<textFieldExpression><![CDATA[$F{JOB_DESCRIPTION}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="128" y="328" width="390" height="16" uuid="43fc1e58-58f4-4c83-807c-f84b218e4d98"/>
+				<textFieldExpression><![CDATA[$F{EXPERIENCE}]]></textFieldExpression>
+			</textField>
+		</band>
+		<band height="160">
+			<rectangle>
+				<reportElement x="7" y="24" width="535" height="126" uuid="05bdbb00-846c-425b-b9ea-cc328fa4bc91"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="7" y="4" width="338" height="20" uuid="1e4efa69-c0a5-4652-9f17-511124c6b88b"/>
+				<textElement>
+					<font size="14" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Document Details]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="32" width="106" height="16" uuid="8563a0d7-a19d-4e78-a67e-a23d51ae86ec"/>
+				<text><![CDATA[CPR No]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="32" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="880336e4-1444-43ad-bfe4-7285263e8a7d"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="66" width="106" height="16" uuid="b5d3c916-a1ba-452a-be92-6f1a5b192e2b"/>
+				<text><![CDATA[Passport Number]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="66" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="975e9c79-a1b6-4db8-801d-e8cd3296ea16"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="118" width="106" height="16" uuid="c6ea55c1-c3a8-4a27-8d21-8588dfa7667d"/>
+				<text><![CDATA[Rp Expiry]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="119" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="e4b9e94c-7ee1-491b-8c08-e405d6998a1b"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField pattern="dd-MMM-yyyy" isBlankWhenNull="true">
+				<reportElement x="128" y="118" width="124" height="16" uuid="5a268675-a966-4495-aafd-cbddd7159bdf"/>
+				<textFieldExpression><![CDATA[$F{RP_EXPIRY_DATE}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="66" width="124" height="16" uuid="2a191e30-342b-4a39-95c7-6f09fefebc6f"/>
+				<textFieldExpression><![CDATA[$F{PASSPORT_NO}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd-MMM-yyyy" isBlankWhenNull="true">
+				<reportElement x="340" y="66" width="117" height="16" uuid="debeecbd-dd5d-4921-9fa0-30eda262ee0c"/>
+				<textFieldExpression><![CDATA[$F{EXPIRY_DATE}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="32" width="124" height="16" uuid="3a625c9b-3b9e-4e3b-b326-fbc953640b22"/>
+				<textFieldExpression><![CDATA[$F{CPR_NO}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="291" y="32" width="42" height="16" uuid="447c8c21-ba6e-422b-9438-e460d492e2a8"/>
+				<text><![CDATA[Expiry  :]]></text>
+			</staticText>
+			<textField pattern="dd-MMM-yyyy" isBlankWhenNull="true">
+				<reportElement x="340" y="32" width="124" height="16" uuid="c35731af-a1ef-4e78-9231-13384f94ee2d"/>
+				<textFieldExpression><![CDATA[$F{CPR_EXPIRY_DATE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="291" y="66" width="42" height="16" uuid="b48c030c-eeb6-4f03-a30c-1868bdd941e5"/>
+				<text><![CDATA[Expiry  :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="291" y="119" width="42" height="16" uuid="082af38b-bcf6-4765-8570-88c6c608ff88"/>
+				<text><![CDATA[RP CR  :]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="338" y="119" width="100" height="16" uuid="6c9af37c-0d65-4795-8a82-9495a84b0830"/>
+				<textFieldExpression><![CDATA[$F{CR_NUMBER}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="9" y="100" width="65" height="16" uuid="f06990ee-21de-465f-a54c-eb8858941d29"/>
+				<text><![CDATA[Place of Hire ]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="100" width="163" height="16" uuid="c81574f9-68e8-4b4e-9266-4968083f131a"/>
+				<textFieldExpression><![CDATA[$F{PLACE_OF_HIRE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="9" y="48" width="106" height="16" uuid="31b1007f-d3c9-41ea-bb08-c82109466226"/>
+				<text><![CDATA[CPR Occupation]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="50" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="de855a51-cbcf-4926-b5b6-045363f70dc4"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="50" width="161" height="16" uuid="c18e0d9b-1571-4a1c-98f7-d6bcad0a5e2d"/>
+				<textFieldExpression><![CDATA[$F{CPR_OCCUPATION}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="83" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="3bff1860-c7de-4dc1-a82f-d152e91a8cb3"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="83" width="106" height="16" uuid="0c5b91d6-a7ff-4d99-82e2-7246fb79eb4e"/>
+				<text><![CDATA[Passport Remarks]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="84" width="327" height="16" uuid="d46d621b-1a1b-426f-9dd1-042ff1b57eb7"/>
+				<textFieldExpression><![CDATA[$F{PASSPORT_REMARKS}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="100" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="4d02b93c-eb5e-431f-9c89-6fdeeb210203"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band/>
+		<band height="167">
+			<rectangle>
+				<reportElement x="7" y="111" width="535" height="49" uuid="5d39f124-c459-4aaf-aef4-ec4d06471604"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="7" y="36" width="535" height="41" uuid="601d23f8-6fd3-4f03-9b0b-1f62dbd4c11a"/>
+			</rectangle>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="61" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="504929bf-22cf-4fd7-bdf5-afade2bf7a63"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="42" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="e8023375-85c6-47ce-991d-e883e911153f"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="61" width="106" height="16" uuid="68c86ed6-733d-4ab8-9022-5396114eac59"/>
+				<text><![CDATA[Insurance]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="61" width="218" height="16" uuid="cb0fbe13-74e2-4c9c-847c-5dfd0874c00c"/>
+				<textFieldExpression><![CDATA[$F{LIFE_INSURANCE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="7" y="10" width="349" height="20" uuid="a931290c-07eb-4a6d-ad82-50739d74ec63"/>
+				<textElement>
+					<font size="14" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Other Benefits]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="42" width="106" height="16" uuid="17bc31ca-362d-4215-9e49-2de3ee8a17fd"/>
+				<text><![CDATA[Medical ]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="42" width="218" height="16" uuid="644f7aea-22ba-4b5b-bd1e-144fb1ad32dd"/>
+				<textFieldExpression><![CDATA[$F{MEDICAL_INSURANCE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="7" y="82" width="371" height="20" uuid="5a4343c9-1467-4fbc-b3d7-794b5008b1a6"/>
+				<textElement>
+					<font size="14" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Emergency Contacts]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="118" width="106" height="16" uuid="5e1e05d2-61b4-4363-9f65-f57ed8c3472b"/>
+				<text><![CDATA[Contact No]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="139" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="4432a5d1-b92e-4f38-9b53-f3b503b22996"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="139" width="218" height="16" uuid="e514fba4-13aa-496b-aec3-1ee2b31a7267"/>
+				<textFieldExpression><![CDATA[$F{EMERGENCY_CONTACT_NO}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="128" y="118" width="218" height="16" uuid="f2d560f8-e71b-4170-8ed2-5c0d97f347e1"/>
+				<textFieldExpression><![CDATA[$F{EMERGENCY_CONTACT_PERSON}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="116" y="118" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="3f9b0aa4-6f3b-4e7f-88d6-0aeddb8b2143"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="139" width="106" height="16" uuid="3450e0cd-ec99-4983-9534-ea6166111146"/>
+				<text><![CDATA[Contact Name]]></text>
+			</staticText>
+		</band>
+		<band height="153">
+			<printWhenExpression><![CDATA[$P{PRINTED_FROM_MASTER}=="FALSE"]]></printWhenExpression>
+			<rectangle>
+				<reportElement x="8" y="40" width="535" height="113" uuid="7a0ec776-eb2d-4f6c-a805-579bf82afd47"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="11" y="47" width="106" height="16" uuid="a3ac8278-378e-46ba-bb18-188ea131cc51"/>
+				<text><![CDATA[Bank ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="11" y="67" width="106" height="16" uuid="b805cdc3-80b4-4df0-83f4-a1f29f8fa281"/>
+				<text><![CDATA[Bank IBAN No]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="11" y="87" width="106" height="16" uuid="387d3c8f-6615-44c3-accb-3dcbafc47f99"/>
+				<text><![CDATA[Bank Loan/Guarantee]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="118" y="47" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="daeea965-98fe-4fff-812f-063d0f6e4906"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="118" y="67" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="b57fb3cc-f818-43f4-a5fb-74462c7b1e63"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="118" y="87" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="139ee4df-17fa-4500-ac69-80b169a7b032"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="10" y="13" width="337" height="20" uuid="3f59c4d4-e720-4fda-834b-b80c523dbb22"/>
+				<textElement>
+					<font size="14" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Bank  Details]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="130" y="68" width="218" height="16" uuid="5081f659-3af1-454a-b7c3-446bc184afcb"/>
+				<textFieldExpression><![CDATA[$F{IBAN_ACCOUNT_NO}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="130" y="48" width="100" height="20" uuid="35bac752-7ba9-40c5-a99e-9395a81f61aa"/>
+				<textFieldExpression><![CDATA[$F{BANK_CODE}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="130" y="87" width="308" height="31" uuid="34908bf1-8c58-4a2c-bfaf-46f3275dbb1e"/>
+				<textFieldExpression><![CDATA[$F{BANK_GUARANTEE_DETAILS}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="11" y="121" width="100" height="15" uuid="1e4613e7-2dbc-4dae-8fa7-d0ee4af44bae"/>
+				<text><![CDATA[Company Loan Bal ]]></text>
+			</staticText>
+			<textField pattern=" #,##0.000" isBlankWhenNull="true">
+				<reportElement mode="Transparent" x="130" y="121" width="100" height="15" forecolor="#000000" backcolor="#FFFFFF" uuid="8e8b1e53-c7f4-4b81-bbe3-cb616771878c"/>
+				<textElement textAlignment="Right" verticalAlignment="Top" rotation="None" markup="none">
+					<font fontName="SansSerif" size="10" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{LOAN_BALANCE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="118" y="121" width="10" height="15" forecolor="#000000" backcolor="#FFFFFF" uuid="648e528c-283c-4645-aeb4-e0ad0d0599ec"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="240" y="121" width="30" height="15" uuid="d4b963e7-d362-498c-bf77-c08a04f62728"/>
+				<text><![CDATA[BHD]]></text>
+			</staticText>
+			<break>
+				<reportElement x="0" y="8" width="100" height="1" uuid="6766d6f6-cd1d-4283-9765-f596334b7aa9"/>
+			</break>
+		</band>
+		<band height="196">
+			<printWhenExpression><![CDATA[$P{PRINTED_FROM_MASTER}=="FALSE"]]></printWhenExpression>
+			<rectangle>
+				<reportElement x="9" y="34" width="535" height="154" uuid="f2a6b67f-2506-4b20-ae5a-678c9fa4a7e5"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="13" y="113" width="105" height="16" uuid="5c58b97c-ff7f-4e2b-b72b-d0492ec69ceb"/>
+				<text><![CDATA[House Rent Allowance]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="118" y="39" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="af505f3e-c252-4955-be1c-2b051fee8490"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="118" y="144" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="e0fe0539-cc4c-4f62-9ad3-75c920bff64b"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="13" y="129" width="105" height="16" uuid="f2cd9509-b7ab-4b9e-b8ce-1bb2f779de11"/>
+				<text><![CDATA[Fixed OT]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="118" y="129" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="3a4b52f6-fe70-4c8f-9d47-38888255c95e"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="118" y="113" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="3bb191db-d623-4fdc-8ba9-ea3ccf5fe5cd"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="9" y="6" width="337" height="20" uuid="08e8d521-d550-4944-9dcf-8d4034402b66"/>
+				<textElement>
+					<font size="14" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Salary And Allowance]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="13" y="145" width="105" height="16" uuid="0c549a40-c950-4498-8694-a4ababb1cf63"/>
+				<text><![CDATA[Tel. Allownace]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="11" y="39" width="106" height="16" uuid="e0ee0d55-36c1-46c8-8bc2-69f4c41f741a"/>
+				<text><![CDATA[Last Revision Date]]></text>
+			</staticText>
+			<textField pattern="dd-MMM-yyyy">
+				<reportElement x="130" y="39" width="237" height="16" uuid="7083698c-f4c4-4e7c-a373-bb254a4e0475"/>
+				<textFieldExpression><![CDATA[$F{LAST_INCREMENT_DATE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="13" y="65" width="105" height="16" uuid="d6fd1607-1b93-42ba-8d21-4cdb137f4cba"/>
+				<text><![CDATA[Basic Salary]]></text>
+			</staticText>
+			<textField pattern=" #,##0.000" isBlankWhenNull="true">
+				<reportElement x="130" y="65" width="60" height="16" uuid="2f948b27-fd24-4fd4-8473-259c1c9c66ee"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$F{BASIC_SALARY}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="118" y="81" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="7e711381-3e87-4b60-a24d-ceaef2ac89a8"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="13" y="81" width="105" height="16" uuid="e1339c19-a7fa-44cb-9252-9a40a87abc95"/>
+				<text><![CDATA[Fixed Allowance]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="118" y="97" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="4e8c8533-4000-4ddc-a045-af36fe704965"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="13" y="97" width="105" height="16" uuid="df9e04cc-34b9-41bb-ab06-f89fa92608f2"/>
+				<text><![CDATA[Transport Allownace]]></text>
+			</staticText>
+			<textField pattern=" #,##0.000" isBlankWhenNull="true">
+				<reportElement x="130" y="97" width="60" height="16" uuid="31952654-6aa8-4ca3-b841-87f115727043"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$F{TRANSPORT_ALLOWANCE}]]></textFieldExpression>
+			</textField>
+			<textField pattern=" #,##0.000" isBlankWhenNull="true">
+				<reportElement x="130" y="113" width="60" height="16" uuid="7fca44ca-fb1a-492d-a192-15baa1b5ed3c"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$F{HRA_ALLOWANCE}]]></textFieldExpression>
+			</textField>
+			<textField pattern=" #,##0.000" isBlankWhenNull="true">
+				<reportElement x="130" y="129" width="60" height="16" uuid="86fdf75e-b4e1-4e9d-b1b7-cd9d9f8e4281"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$F{FIXED_OT}]]></textFieldExpression>
+			</textField>
+			<textField pattern=" #,##0.000" isBlankWhenNull="true">
+				<reportElement x="130" y="145" width="60" height="16" uuid="85a871f8-7337-43a6-a47b-f5853e66619d"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$F{TEL_ALLOWANCE}]]></textFieldExpression>
+			</textField>
+			<textField pattern=" #,##0.000" isBlankWhenNull="true">
+				<reportElement x="130" y="81" width="60" height="16" uuid="bcccd0ef-88df-4b49-977d-0f32c4606b0c"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$F{FIXED_ALLOWANCE}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="118" y="65" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="2490e0a3-405e-456d-b705-d4de3ec99779"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="301" y="65" width="100" height="16" uuid="473f4c55-a1c1-4141-b6d0-5b22460df61f"/>
+				<text><![CDATA[GOSI Salary]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="407" y="65" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="94eac107-ca97-44ab-ae45-a6b98d5c56c9"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+			<textField pattern=" #,##0.000" isBlankWhenNull="true">
+				<reportElement x="420" y="65" width="100" height="16" uuid="8e7541fd-d9f3-4180-9ffb-ec70e5efa6d9"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$F{REGISTERED_SALARY}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="13" y="161" width="100" height="16" uuid="6bdc7d1e-7d8d-4245-89cc-2f08ef1a076f"/>
+				<text><![CDATA[GROSS SALARY]]></text>
+			</staticText>
+			<textField pattern=" #,##0.000" isBlankWhenNull="true">
+				<reportElement x="130" y="161" width="60" height="16" uuid="a59fbd95-2e25-4ea4-8e5a-da5f7bf1a25e"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$F{GROSS_SALARY}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Transparent" x="118" y="161" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="83e288ef-a8ff-49b8-b216-b7e9f920c940"/>
+				<textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+					<font fontName="Arial" size="10" isBold="true" pdfFontName="Helvetica-Bold" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+					<paragraph lineSpacing="Single"/>
+				</textElement>
+				<text><![CDATA[:]]></text>
+			</staticText>
+		</band>
+		<band height="92" splitType="Prevent">
+			<printWhenExpression><![CDATA[$P{PRINTED_FROM_MASTER}=="FALSE"]]></printWhenExpression>
+			<componentElement>
+				<reportElement key="table" style="table" x="9" y="19" width="535" height="50" uuid="0c0cd338-e979-431b-bb69-7febe6e106eb"/>
+				<jr:table xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd">
+					<datasetRun subDataset="Salary History" uuid="bb7a3df9-42ff-490e-9164-b864e192fbbe">
+						<datasetParameter name="DOC_KEY_POID">
+							<datasetParameterExpression><![CDATA[$P{DOC_KEY_POID}]]></datasetParameterExpression>
+						</datasetParameter>
+						<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+					</datasetRun>
+					<jr:column width="84" uuid="68e8ed75-33ef-481e-808a-59bc67dcffdb">
+						<jr:columnHeader style="table_CH" height="15" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="84" height="15" uuid="992f4719-7d89-4dda-a7e1-bffa7bc5ed96"/>
+								<textElement>
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<text><![CDATA[IncrementDate]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table_TD" height="20" rowSpan="1">
+							<textField pattern="dd-MMM-yy">
+								<reportElement x="0" y="0" width="84" height="20" uuid="ba5aa001-c477-402a-bde2-729f42e310e7"/>
+								<textElement>
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{LAST_INCREMENT_DATE}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="70" uuid="c83469b9-d880-4860-92b7-eeaeeec24d6c">
+						<jr:columnHeader style="table_CH" height="15" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="70" height="15" uuid="7372be16-d9fa-4271-848c-aab6d3592f7d"/>
+								<textElement>
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<text><![CDATA[Basic]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table_TD" height="20" rowSpan="1">
+							<textField pattern=" #,##0.000">
+								<reportElement x="0" y="0" width="70" height="20" uuid="ce725610-6bff-4999-ab30-3ff466ba4080"/>
+								<textElement textAlignment="Right">
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{BASIC_SALARY}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="60" uuid="10ad3032-4f84-4b9a-aaaf-8db75d90d2cd">
+						<jr:columnHeader style="table_CH" height="15" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="60" height="15" uuid="0827eef2-b707-4ee0-90a8-ed4f9a6e8d17"/>
+								<textElement>
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<text><![CDATA[Fixed]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table_TD" height="20" rowSpan="1">
+							<textField pattern=" #,##0.000">
+								<reportElement x="0" y="0" width="60" height="20" uuid="e2eb3327-c709-4e98-83d7-db6cddd62027"/>
+								<textElement textAlignment="Right">
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{FA_ALW}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="60" uuid="cf4b614c-1ee4-434a-a9ba-3fa957487fef">
+						<jr:columnHeader style="table_CH" height="15" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="60" height="15" uuid="600eb44b-ab52-49bf-8539-573a2834ce7a"/>
+								<textElement>
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<text><![CDATA[Transport]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table_TD" height="20" rowSpan="1">
+							<textField pattern=" #,##0.000">
+								<reportElement x="0" y="0" width="60" height="20" uuid="f3aece81-d271-4b5e-97fd-a9cbe078d0f1"/>
+								<textElement textAlignment="Right">
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{TA_ALW}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="60" uuid="4021420d-21f3-4f1a-a072-c144066173cc">
+						<jr:columnHeader style="table_CH" height="15" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="60" height="15" uuid="a5a4c64c-fa69-4b15-9207-80c33f11d6fe"/>
+								<textElement>
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<text><![CDATA[HRA]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table_TD" height="20" rowSpan="1">
+							<textField pattern=" #,##0.000">
+								<reportElement x="0" y="0" width="60" height="20" uuid="a299dcb3-6ac1-443a-8a7f-bdb631cfabe0"/>
+								<textElement textAlignment="Right">
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{HRA_ALW}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="60" uuid="b55579e9-13b9-4cb0-a282-85f63b62dc34">
+						<jr:columnHeader style="table_CH" height="15" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="60" height="15" uuid="01ca5432-8923-4c0d-91ce-fcabdde5a0b2"/>
+								<textElement>
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<text><![CDATA[Others]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table_TD" height="20" rowSpan="1">
+							<textField pattern=" #,##0.000">
+								<reportElement x="0" y="0" width="60" height="20" uuid="44cfff32-6b71-493d-997a-b58cb9c6f2d1"/>
+								<textElement textAlignment="Right">
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{FIXOT_ALW}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="70" uuid="f136a170-0ae2-4352-a3eb-6ad7c8541ac3">
+						<jr:columnHeader style="table_CH" height="15" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="70" height="15" uuid="1413de6e-244f-4013-a9c0-342ce21a3ba3"/>
+								<textElement>
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<text><![CDATA[Gross]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table_TD" height="20" rowSpan="1">
+							<textField pattern=" #,##0.000">
+								<reportElement x="0" y="0" width="70" height="20" uuid="5ea72f09-353b-4f49-be21-c131e50ea9e0"/>
+								<textElement textAlignment="Right">
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{GROSS_PAY}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+					<jr:column width="90" uuid="13a03419-4644-4d4a-89a4-077cf1680f94">
+						<jr:columnHeader style="table_CH" height="15" rowSpan="1">
+							<staticText>
+								<reportElement x="0" y="0" width="90" height="15" uuid="5ffa6e75-87d3-4d06-8552-e87afe3ae8f1"/>
+								<textElement>
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<text><![CDATA[Remarks]]></text>
+							</staticText>
+						</jr:columnHeader>
+						<jr:detailCell style="table_TD" height="20" rowSpan="1">
+							<textField>
+								<reportElement x="0" y="0" width="90" height="20" uuid="4f146aea-cc14-41c6-8699-f37a2fdd0c26"/>
+								<textElement>
+									<paragraph leftIndent="2"/>
+								</textElement>
+								<textFieldExpression><![CDATA[$F{REMARKS}]]></textFieldExpression>
+							</textField>
+						</jr:detailCell>
+					</jr:column>
+				</jr:table>
+			</componentElement>
+			<staticText>
+				<reportElement x="10" y="0" width="337" height="20" uuid="358428e7-a855-4ee4-91f0-f3787f75a7ef"/>
+				<textElement>
+					<font size="14" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Salary Revision History]]></text>
+			</staticText>
+		</band>
+	</detail>
+	<pageFooter>
+		<band height="24">
+			<textField pattern="dd-MMM-yyyy" isBlankWhenNull="true">
+				<reportElement x="412" y="1" width="129" height="16" uuid="6caf04bc-0b77-402e-9fca-9cf14f070ea5"/>
+			</textField>
+		</band>
+	</pageFooter>
+</jasperReport>

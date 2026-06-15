@@ -10,4 +10,6 @@ public interface HrAirsectorRepository extends JpaRepository<HrAirsectorMaster, 
     boolean existsByAirsectorDescription(String airsectorDescription);
 
     boolean existsByAirsectorDescriptionAndAirsecPoidNot(String airsectorDescription, Long airsecPoid);
+
+    boolean existsByAirsecPoid(Long airsecPoid);
 }

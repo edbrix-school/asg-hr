@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Emp_leave_Request_subreport1" language="groovy" pageWidth="595" pageHeight="842" columnWidth="595" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="c10a37d5-da72-4376-9ed1-2409c702f5bc">
+	<property name="ireport.zoom" value="2.357947691000002"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="0"/>
+	<parameter name="P_TRN_NO" class="java.lang.String">
+		<defaultValueExpression><![CDATA[]]></defaultValueExpression>
+	</parameter>
+	<queryString>
+		<![CDATA[SELECT 1 as DET_ROW_ID , HDR.TRANSACTION_POID,  TO_CHAR(EM.EMPLOYEE_NAME || ' ' || EM.EMPLOYEE_NAME2) as PERSONS_NAME , '12_YRS_AND_ABOVE' TICKET_AGE_GROUP, NULL as RELATION, NULL as DATE_FROM,  NULL as DATE_TO,  NULL as  REMARKS
+FROM  HR_LEAVE_REQUEST_HDR HDR
+INNER JOIN HR_EMPLOYEE_MASTER EM ON HDR.EMPLOYEE_POID = EM.EMPLOYEE_POID
+WHERE HDR.TRANSACTION_POID = $P{P_TRN_NO}
+UNION ALL
+SELECT DTL.DET_ROW_ID + 1 DET_ROW_ID , DTL.TRANSACTION_POID, DTL.NAME as PERSONS_NAME , DTL.TICKET_AGE_GROUP, DTL.RELATION, DTL.DATE_FROM, DTL.DATE_TO, DTL.REMARKS
+FROM  HR_LEAVE_REQUEST_DTL DTL
+INNER JOIN HR_LEAVE_REQUEST_HDR HDR ON DTL.TRANSACTION_POID = HDR.TRANSACTION_POID
+WHERE HDR.TRANSACTION_POID = $P{P_TRN_NO}]]>
+	</queryString>
+	<field name="DET_ROW_ID" class="java.math.BigDecimal"/>
+	<field name="TRANSACTION_POID" class="java.math.BigDecimal"/>
+	<field name="PERSONS_NAME" class="java.lang.String"/>
+	<field name="TICKET_AGE_GROUP" class="java.lang.String"/>
+	<field name="RELATION" class="java.lang.String"/>
+	<field name="DATE_FROM" class="java.sql.Timestamp"/>
+	<field name="DATE_TO" class="java.sql.Timestamp"/>
+	<field name="REMARKS" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band splitType="Stretch"/>
+	</title>
+	<pageHeader>
+		<band height="6" splitType="Stretch"/>
+	</pageHeader>
+	<columnHeader>
+		<band height="20" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="0" width="138" height="20" uuid="17b849fc-f21d-4164-bf23-673b85a126ce"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<paragraph leftIndent="2" rightIndent="2" spacingBefore="2" spacingAfter="2"/>
+				</textElement>
+				<text><![CDATA[Name]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="238" y="0" width="100" height="20" uuid="b94642aa-b6ae-45f4-8125-0328a13ba6c7"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<paragraph spacingBefore="2" spacingAfter="2"/>
+				</textElement>
+				<text><![CDATA[Relation]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="338" y="0" width="100" height="20" uuid="4bc3371d-531b-4db0-9c01-ab2d6bd41028"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<paragraph spacingBefore="2" spacingAfter="2"/>
+				</textElement>
+				<text><![CDATA[ From]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="438" y="0" width="100" height="20" uuid="d8af5f08-0f1a-4002-b738-9776f9c7a100"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<paragraph spacingBefore="2" spacingAfter="2"/>
+				</textElement>
+				<text><![CDATA[To]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="138" y="0" width="100" height="20" uuid="b800a89e-4d4a-4984-bebf-5121c19f8195"/>
+				<box topPadding="1" leftPadding="1" bottomPadding="1" rightPadding="1">
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<paragraph spacingBefore="2" spacingAfter="2"/>
+				</textElement>
+				<text><![CDATA[Age Group]]></text>
+			</staticText>
+		</band>
+	</columnHeader>
+	<detail>
+		<band height="20" splitType="Stretch">
+			<textField>
+				<reportElement x="0" y="0" width="138" height="20" uuid="c9ec8842-c8c2-45b5-aea5-82e8dadbc397"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement verticalAlignment="Middle">
+					<paragraph leftIndent="2" rightIndent="2" spacingBefore="2" spacingAfter="2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{PERSONS_NAME}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="238" y="0" width="100" height="20" uuid="07278b78-c209-4d16-9c93-b0fc37f70525"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<paragraph spacingBefore="2" spacingAfter="2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{RELATION}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd-MMM-yyyy" isBlankWhenNull="true">
+				<reportElement x="338" y="0" width="100" height="20" uuid="fff6a427-9f32-427b-ba85-b1b58e033ba8"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<paragraph spacingBefore="2" spacingAfter="2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{DATE_FROM}]]></textFieldExpression>
+			</textField>
+			<textField pattern="dd-MMM-yyyy" isBlankWhenNull="true">
+				<reportElement x="438" y="0" width="100" height="20" uuid="42235446-b848-4b51-a11b-3bbf18b43e59"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<paragraph spacingBefore="2" spacingAfter="2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{DATE_TO}]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement x="138" y="0" width="100" height="20" uuid="5bc3d204-f94f-42a4-b330-f41692ffd179"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<textElement textAlignment="Center" verticalAlignment="Middle">
+					<paragraph spacingBefore="2" spacingAfter="2"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{TICKET_AGE_GROUP}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band height="3" splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band splitType="Stretch"/>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

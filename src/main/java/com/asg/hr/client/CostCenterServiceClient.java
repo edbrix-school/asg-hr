@@ -25,6 +25,7 @@ public class CostCenterServiceClient {
         String url = financeServiceUrl + "v1/cost-center/" + costCenterPoid;
         HttpHeaders headers = new HttpHeaders();
         headers.add("X-Action-Requested", "VIEW");
+        headers.add("X-Log-Enabled", "false");
         try {
             ApiResponseWrapper<CostCenterResponseDto> response = restClient.get(url, new ParameterizedTypeReference<ApiResponseWrapper<CostCenterResponseDto>>() {
             }, headers);

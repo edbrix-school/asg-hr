@@ -1,0 +1,553 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Employee_Induction_Rpt" language="groovy" pageWidth="595" pageHeight="842" columnWidth="567" leftMargin="14" rightMargin="14" topMargin="20" bottomMargin="20" uuid="51f26c1c-332c-43f0-beb9-5722768520c7">
+	<property name="ireport.zoom" value="1.3310000000000004"/>
+	<property name="ireport.x" value="0"/>
+	<property name="ireport.y" value="1059"/>
+	<style name="Title" fontName="Times New Roman" fontSize="50" isBold="true" pdfFontName="Times-Bold"/>
+	<style name="SubTitle" forecolor="#736343" fontName="Arial" fontSize="18"/>
+	<style name="Column header" forecolor="#666666" fontName="Arial" fontSize="12" isBold="true" pdfFontName="Helvetica-Bold"/>
+	<style name="Detail" fontName="Arial" fontSize="12"/>
+	<style name="Row" mode="Transparent">
+		<conditionalStyle>
+			<conditionExpression><![CDATA[$V{REPORT_COUNT}%2 == 0]]></conditionExpression>
+			<style backcolor="#E6DAC3"/>
+		</conditionalStyle>
+	</style>
+	<parameter name="LOGIN_GROUP_POID" class="java.lang.String">
+		<defaultValueExpression><![CDATA[1]]></defaultValueExpression>
+	</parameter>
+	<parameter name="LOGIN_COMP_POID" class="java.lang.String">
+		<defaultValueExpression><![CDATA[1]]></defaultValueExpression>
+	</parameter>
+	<parameter name="LOGIN_USER_POID" class="java.lang.String"/>
+	<parameter name="DOC_ID" class="java.lang.String">
+		<defaultValueExpression><![CDATA["000-000"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="DOC_KEY_POID" class="java.lang.String"/>
+	<parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+		<defaultValueExpression><![CDATA["\\\\ASGERPFS01.SHIPPINGBAHRAIN.COM\\ERP_REPORTS\\Reports\\"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="SUB_HEADER" class="net.sf.jasperreports.engine.JasperReport"/>
+	<parameter name="SUB_FOOTER" class="net.sf.jasperreports.engine.JasperReport"/>
+	<queryString>
+		<![CDATA[select INDH.EMPLOYEE_POID,INDH.DOC_REF,INDH.TRANSACTION_POID,
+EMP.EMPLOYEE_CODE,EMP.EMPLOYEE_NAME,DEP.DEPT_NAME,EMP.JOB_DESCRIPTION,
+DES.DESIGNATION_NAME,EMP2.DISPLAY_NAME HEAD_OF_DEPT,EMP.DISPLAY_NAME
+from HR_EMPLOYEE_TRAINING_HDR INDH
+INNER JOIN HR_EMPLOYEE_MASTER EMP ON INDH.EMPLOYEE_POID=EMP.EMPLOYEE_POID
+LEFT JOIN HR_DEPARTMENT_MASTER DEP ON EMP.DEPARTMENT_POID=DEP.DEPT_POID
+LEFT JOIN HR_EMPLOYEE_MASTER EMP2 ON EMP.DIRECT_SUPERVISOR_POID=EMP2.EMPLOYEE_POID
+LEFT JOIN HR_DESIGNATION_MASTER DES ON EMP.DESIGNATION_POID=DES.DESIG_POID
+WHERE INDH.TRANSACTION_POID=$P{DOC_KEY_POID}]]>
+	</queryString>
+	<field name="EMPLOYEE_POID" class="java.lang.String"/>
+	<field name="DOC_REF" class="java.lang.String"/>
+	<field name="TRANSACTION_POID" class="java.math.BigDecimal"/>
+	<field name="EMPLOYEE_CODE" class="java.lang.String"/>
+	<field name="EMPLOYEE_NAME" class="java.lang.String"/>
+	<field name="DEPT_NAME" class="java.lang.String"/>
+	<field name="JOB_DESCRIPTION" class="java.lang.String"/>
+	<field name="DESIGNATION_NAME" class="java.lang.String"/>
+	<field name="HEAD_OF_DEPT" class="java.lang.String"/>
+	<field name="DISPLAY_NAME" class="java.lang.String"/>
+	<background>
+		<band splitType="Stretch"/>
+	</background>
+	<title>
+		<band height="69" splitType="Stretch">
+			<subreport>
+				<reportElement x="0" y="0" width="555" height="66" uuid="11dd97b8-4c92-45fe-85bb-3b9358474446"/>
+				<subreportParameter name="LOGIN_COMP_POID">
+					<subreportParameterExpression><![CDATA[$P{LOGIN_COMP_POID}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[$P{SUB_HEADER}]]></subreportExpression>
+			</subreport>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="120" splitType="Stretch">
+			<staticText>
+				<reportElement x="0" y="5" width="374" height="18" uuid="e1139382-948d-4ec0-8169-0f913c7f1913"/>
+				<textElement>
+					<font size="12" isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[New Employee Orientation/Induction Training Record]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="24" width="567" height="14" backcolor="#CCCCCC" uuid="45bd06b4-c0c9-4ca7-b189-3527b01ee65c"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[EMPLOYEE INFORMATION]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2" y="40" width="87" height="20" uuid="8ccf1eaf-17d9-4fe8-971a-82906a8d78df"/>
+				<text><![CDATA[Name :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="2" y="60" width="87" height="20" uuid="179cfb33-6ca3-4669-a5b2-240f9e0bb753"/>
+				<text><![CDATA[Position :]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="89" y="62" width="238" height="16" uuid="de01697f-d2db-4a50-8789-7f939a473ad3"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{DESIGNATION_NAME}]]></textFieldExpression>
+			</textField>
+			<textField isBlankWhenNull="true">
+				<reportElement x="89" y="82" width="238" height="16" uuid="de424c7c-a31a-4909-b99d-ca47ec7b0066"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{HEAD_OF_DEPT}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="2" y="80" width="87" height="20" uuid="5872e0c3-41b6-4691-a722-495f6f3c492e"/>
+				<text><![CDATA[Head of Dept.: ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="340" y="40" width="71" height="20" uuid="0612b74d-ebdf-4d57-bb8b-72f68ebf94c9"/>
+				<text><![CDATA[Head of Dept.: ]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="411" y="42" width="156" height="16" uuid="98fb8099-54ae-4ea9-b725-eb59f96017dd"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{HEAD_OF_DEPT}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="340" y="60" width="71" height="20" uuid="4454f924-ef83-4814-82f9-3a739d7f0f42"/>
+				<text><![CDATA[Department : ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="340" y="80" width="71" height="33" uuid="6bc8752e-d600-4589-8d6f-5ff3d5225f27"/>
+				<textElement verticalAlignment="Top"/>
+				<text><![CDATA[Account/Line Handling:]]></text>
+			</staticText>
+			<textField isBlankWhenNull="true">
+				<reportElement x="411" y="63" width="156" height="16" uuid="f1e06aed-59ee-4ac4-8b8c-afc3e9a8b43b"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{DEPT_NAME}]]></textFieldExpression>
+			</textField>
+			<line>
+				<reportElement x="411" y="102" width="156" height="1" uuid="482e1494-f453-4692-929d-e9adb6c85cb3"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<textField>
+				<reportElement x="89" y="40" width="238" height="16" uuid="ae9d94f1-a7c4-460f-b864-0c9d55990826"/>
+				<box>
+					<bottomPen lineWidth="0.5"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{EMPLOYEE_NAME}]]></textFieldExpression>
+			</textField>
+		</band>
+	</pageHeader>
+	<columnHeader>
+		<band splitType="Stretch"/>
+	</columnHeader>
+	<detail>
+		<band height="571" splitType="Stretch">
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="0" width="567" height="14" backcolor="#CCCCCC" uuid="20ad2ffd-2b5f-4cd8-b292-1cd7e64bb3bc"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[FIRST DAY ]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="5" y="19" width="12" height="11" uuid="fe114950-6b82-4e25-b8f7-5f1f9f4d6122"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="5" y="43" width="12" height="11" uuid="8b84f567-8367-4b29-b6ad-0c785cdd7717"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="22" y="17" width="414" height="16" uuid="b7643946-2b0d-4cc7-904f-9ba00605eb58"/>
+				<text><![CDATA[Provide employee with New Employee Workbook/Company Profile Manual.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="22" y="41" width="414" height="16" uuid="323fb503-70dc-43d5-94f3-73560d1c66d2"/>
+				<text><![CDATA[Assign dept/team member to answer general questions.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="58" width="567" height="14" backcolor="#CCCCCC" uuid="c9e5f85d-315b-4fc1-9267-578640d3015f"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[COMPANY POLICIES]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="5" y="75" width="12" height="11" uuid="8e562869-2617-4d5d-8b5e-18f70ca0e85c"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="21" y="73" width="148" height="16" uuid="3c5c9462-db52-4b9e-8ea2-d3e606e62193"/>
+				<text><![CDATA[Introduced to Company Policies:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="72" width="182" height="64" uuid="186a579f-469c-4a5c-a8b9-2acf98006f36"/>
+				<text><![CDATA[Work Attendance/Punching System
+Work Schedule and Hours
+Overtime
+Time and leave reporting
+Vacation and sick leave
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="362" y="72" width="205" height="64" uuid="a5568a61-c4b1-4fdc-a503-dc35e670a273"/>
+				<text><![CDATA[E-mail and Internet use
+Insurance
+Employee Personal Information/Nominee Form
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="140" width="567" height="14" backcolor="#CCCCCC" uuid="7926720a-731b-4450-9d86-c11927df720b"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[PROCEDURES INTRODUCTION]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="22" y="156" width="148" height="16" uuid="9aff6c7d-43c5-4693-9df5-2e6ddb269fcc"/>
+				<text><![CDATA[Reviewed procedures for;]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="5" y="157" width="12" height="11" uuid="1faf03da-86fd-44b3-b827-f3a214ac797a"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="180" y="156" width="182" height="60" uuid="3af10774-6e83-41e3-8a09-154206f87028"/>
+				<text><![CDATA[Office/desk/work station
+Keys
+Mail & Couriers (incoming and outgoing)
+Purchase requests
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="362" y="157" width="205" height="59" uuid="abf4b8e0-ee08-4ae4-93a6-e93700e97eb9"/>
+				<text><![CDATA[Telephones
+Building access
+Conference rooms
+Office supplies
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="218" width="567" height="14" backcolor="#CCCCCC" uuid="37696cbf-2696-4ba5-88c3-a12c37856e39"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[FACILITY TOURS & INTRODUCTIONS]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="5" y="235" width="12" height="11" uuid="e5b85f5b-dd27-462d-bfa4-349438a27e1c"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="22" y="234" width="273" height="16" uuid="f95bfdb0-39f1-484d-91f3-c405f792080f"/>
+				<text><![CDATA[General introductions to department staff and key personnel]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="5" y="251" width="12" height="11" uuid="bf37392a-5dec-4ea1-bce7-444fb1921305"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="5" y="272" width="12" height="11" uuid="2d6206cc-cac6-4d66-a713-f1b7c6bb44c4"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="22" y="251" width="273" height="16" uuid="97cbe8c4-0752-4c96-aca6-276234b5914c"/>
+				<text><![CDATA[Introduction to Concerned Managers]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="22" y="272" width="147" height="16" uuid="8accb53f-2462-4b46-a60e-41283368dd84"/>
+				<text><![CDATA[Tour of facility, including: ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="180" y="279" width="109" height="53" uuid="33ff83b8-4d29-486f-b64b-1ec38e33eb00"/>
+				<text><![CDATA[Restrooms
+Mail rooms
+Copy centers
+Fax machines
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="289" y="278" width="100" height="53" uuid="7ee35f46-0399-445f-bbe3-1f3457d7b5e2"/>
+				<text><![CDATA[Printers
+Office supplies
+Other Departments
+Transportation
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="389" y="278" width="147" height="53" uuid="f1fe4ffd-bd21-4c2e-b0e2-3c1480aea9bd"/>
+				<text><![CDATA[Kitchen
+Cafeteria
+Emergency exits and supplies
+Building Security
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="339" width="567" height="14" backcolor="#CCCCCC" uuid="88b81597-3b2d-4cb9-a0e9-f3c8767f1225"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[CONTRACT LETTER & EMPLOYMENT ]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="5" y="357" width="12" height="11" uuid="bf97de8f-7464-4d8e-8ec6-40b6f1e82aae"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="23" y="356" width="273" height="16" uuid="93fefb3d-16ba-405c-9030-309bbf780368"/>
+				<text><![CDATA[Contract of employment/Letter of Appointment issued & signed.]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="5" y="373" width="12" height="11" uuid="36e1c973-3659-4a0b-b8c8-b60798d99dd7"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="23" y="373" width="273" height="16" uuid="d480a445-9f3c-47f2-b98e-ccf44caf2d7d"/>
+				<text><![CDATA[Bank account details provided.]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="5" y="389" width="12" height="11" uuid="f498c1a1-00d7-4d6a-9e20-d0d143146df9"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="22" y="389" width="147" height="16" uuid="a8d4621f-30fd-4cac-9fba-0f0e6d6de116"/>
+				<text><![CDATA[Leave entitlement & Holiday Pay]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="21" y="405" width="147" height="16" uuid="fac9f99a-0951-4402-a430-963dede267c6"/>
+				<text><![CDATA[Leave & Joining reports requirements]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="5" y="405" width="12" height="11" uuid="4d3d2273-8219-4bad-9142-df9b848d5287"/>
+			</rectangle>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="432" width="567" height="14" backcolor="#CCCCCC" uuid="d3bbb6a4-2ada-40b2-b8a9-dd8f9ba71e65"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[COMPUTERS]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="22" y="448" width="132" height="32" uuid="bc2c0b86-7ef7-403c-907c-e3045f600c2f"/>
+				<text><![CDATA[Hardware/software reviews and access including: ]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="5" y="450" width="12" height="11" uuid="a08d708a-6ba3-419d-a413-8b320650dbce"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="180" y="450" width="100" height="29" uuid="4866a281-5a43-4c3b-80c1-3af59b110077"/>
+				<text><![CDATA[Email
+AG Inhouse System
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="289" y="450" width="100" height="31" uuid="65b9e7a7-ebc1-4a66-b22e-ccd1acf380cb"/>
+				<text><![CDATA[Work Computer
+Data on shared drives
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="411" y="451" width="100" height="29" uuid="6a3ebe30-6395-410b-8521-547c7392d6b0"/>
+				<text><![CDATA[Databases
+Internet
+]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="493" width="567" height="14" backcolor="#CCCCCC" uuid="5a4ee49b-ee51-4b72-b293-2f6283ba475c"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[JOB SPECIFIC TRAINING]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="23" y="527" width="273" height="16" uuid="c191989f-04f9-46a1-b048-764c33127cbd"/>
+				<text><![CDATA[Introduction to relevant principals done.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="22" y="543" width="194" height="16" uuid="30037eb2-90c2-4b78-b8dd-e7879a0e587e"/>
+				<text><![CDATA[Please fill in the job description below:]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="5" y="511" width="12" height="11" uuid="5d758d04-e8dd-4f7e-b5c3-136ec24b73ee"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="5" y="543" width="12" height="11" uuid="5c61261c-c480-469e-876a-71ce371c52cd"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="5" y="527" width="12" height="11" uuid="5920fdc5-0ab7-456f-bd62-3c1bdb43f50b"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="23" y="510" width="145" height="16" uuid="c6b7e397-739d-4507-81c5-3fc25f577060"/>
+				<text><![CDATA[Job Specific Training provided.]]></text>
+			</staticText>
+		</band>
+		<band height="559">
+			<staticText>
+				<reportElement x="5" y="14" width="291" height="20" uuid="f1d212cd-09c9-4717-bcbe-caebaabf04e9"/>
+				<textElement>
+					<font size="12" isBold="true" isUnderline="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[Employee Job Description:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="5" y="34" width="550" height="29" uuid="1aaabe3f-4b22-46fb-b07b-1e3114c81042"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<text><![CDATA[The Job activity should clearly mention the various functions that you are presently engaged in, including the areas to which responsibilities extend. ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="5" y="63" width="550" height="146" uuid="5e0c2bb0-1512-41a9-a5e6-bb518dcfa719"/>
+				<box>
+					<pen lineWidth="0.5"/>
+					<topPen lineWidth="0.5"/>
+					<leftPen lineWidth="0.5"/>
+					<bottomPen lineWidth="0.5"/>
+					<rightPen lineWidth="0.5"/>
+				</box>
+				<text><![CDATA[Roles and Responsibilities:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="214" width="567" height="14" backcolor="#CCCCCC" uuid="28ecb122-dae2-43b4-8c74-74d6f26eeba7"/>
+				<textElement verticalAlignment="Middle">
+					<font isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[FOLLOW UP RECORD (FOR OFFICE USE ONLY)]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="23" y="251" width="273" height="16" uuid="ede3cef5-4de1-49ea-9058-e545e045ef72"/>
+				<text><![CDATA[Review with Employee Supervisor/HOD/Trainer:]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="5" y="235" width="12" height="11" uuid="3be9180b-4795-4b97-84eb-264caa58cc03"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="22" y="267" width="258" height="16" uuid="6656e7a6-84db-42bf-ac5c-9914daa0b0ed"/>
+				<text><![CDATA[Training needs identified/record created:]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="5" y="267" width="12" height="11" uuid="ea6d708a-e895-4617-a447-1c5418c65fab"/>
+			</rectangle>
+			<rectangle>
+				<reportElement x="5" y="251" width="12" height="11" uuid="f9ee5c44-49a2-42f0-887f-012c03679ccd"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="21" y="283" width="147" height="16" uuid="ab16a888-dfcf-4038-a8ad-5ce5add80026"/>
+				<text><![CDATA[End of Months Review:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="23" y="234" width="273" height="16" uuid="c17ce249-8c8f-48b5-8f0c-160b4283a97b"/>
+				<text><![CDATA[Review with HOD/Manager :]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="5" y="283" width="12" height="11" uuid="b6ed59f8-14ff-481b-8cad-f882cdec01c0"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="21" y="299" width="147" height="16" uuid="165df569-7515-499f-b84d-c8a6a40cb5fe"/>
+				<text><![CDATA[End of Probation Review:]]></text>
+			</staticText>
+			<rectangle>
+				<reportElement x="5" y="299" width="12" height="11" uuid="0125779a-36ce-4131-bb85-5cd80f70a82d"/>
+			</rectangle>
+			<staticText>
+				<reportElement x="30" y="366" width="506" height="20" uuid="5c3f1fb7-7d74-45a9-8281-f962f0560fc0"/>
+				<textElement>
+					<font isBold="true" pdfFontName="Helvetica-Bold"/>
+				</textElement>
+				<text><![CDATA[I have reviewed this record and I certify that induction training has been completed satisfactorily.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="29" y="400" width="100" height="20" uuid="a3c4574f-82d1-404a-911b-226af411f9d2"/>
+				<text><![CDATA[Employee Signature :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="435" width="100" height="20" uuid="9aa16e28-2981-4aea-90bd-a32c6b48bc40"/>
+				<text><![CDATA[Name :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="376" y="400" width="35" height="20" uuid="8d21f417-5d1b-4ae3-add0-b526a41918af"/>
+				<text><![CDATA[Date: ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="474" width="124" height="27" uuid="65ea5336-cd48-4fb8-b223-74cadb29f03d"/>
+				<text><![CDATA[Manager/
+Head of Dept. Signature:]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="521" width="100" height="20" uuid="a2aad745-897c-4ab0-8222-761328c0660a"/>
+				<text><![CDATA[Name :]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="376" y="474" width="35" height="20" uuid="ef222484-2558-4d18-8df7-f6babd15f7d4"/>
+				<text><![CDATA[Date: ]]></text>
+			</staticText>
+			<line>
+				<reportElement x="161" y="417" width="191" height="1" uuid="80cff426-f095-441b-8f5c-596d7c344f7f"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="161" y="454" width="191" height="1" uuid="3ef220ac-c79f-4669-abd6-3627e8a0f766"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="161" y="494" width="191" height="1" uuid="23421679-964a-4ee1-a06c-d4470d0cd6bb"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="161" y="540" width="191" height="1" uuid="75ad03be-2746-4bb8-9602-329a1a65511c"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="420" y="416" width="135" height="1" uuid="2e5709cb-6c55-4b13-a367-40b1f984a85a"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<line>
+				<reportElement x="420" y="493" width="135" height="1" uuid="f78b737d-3751-4c5f-9802-654e0bf7527b"/>
+				<graphicElement>
+					<pen lineWidth="0.5"/>
+				</graphicElement>
+			</line>
+			<textField isBlankWhenNull="true">
+				<reportElement x="161" y="437" width="191" height="16" uuid="abe8ffd5-00e1-4a15-9884-627b09f23387"/>
+				<box>
+					<bottomPen lineWidth="0.0"/>
+				</box>
+				<textFieldExpression><![CDATA[$F{DISPLAY_NAME}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+	<columnFooter>
+		<band splitType="Stretch"/>
+	</columnFooter>
+	<pageFooter>
+		<band height="24" splitType="Stretch">
+			<subreport>
+				<reportElement x="0" y="0" width="555" height="24" uuid="326ecd66-b7ad-4850-8e0f-10877494dc9d"/>
+				<subreportParameter name="LOGIN_COMP_POID">
+					<subreportParameterExpression><![CDATA[$P{LOGIN_COMP_POID}]]></subreportParameterExpression>
+				</subreportParameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<subreportExpression><![CDATA[$P{SUB_FOOTER}]]></subreportExpression>
+			</subreport>
+		</band>
+	</pageFooter>
+	<summary>
+		<band splitType="Stretch"/>
+	</summary>
+</jasperReport>

@@ -250,7 +250,7 @@ class HrDepartmentMasterControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.message").value("Department deleted successfully"));
 
-            verify(departmentService).deleteDepartment(eq(DEPT_POID), eq(GROUP_POID), eq(USER_ID), eq(null));
+            verify(departmentService).deleteDepartment(DEPT_POID, GROUP_POID, USER_ID, null);
         }
 
         @Test

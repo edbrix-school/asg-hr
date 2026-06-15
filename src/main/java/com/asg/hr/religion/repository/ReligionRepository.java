@@ -19,4 +19,6 @@ public interface ReligionRepository extends JpaRepository<HrReligionMaster, Long
     Optional<HrReligionMaster> findByReligionCode(String religionCode);
 
     Optional<HrReligionMaster> findByReligionDescription(String description);
+
+    boolean existsByReligionPoid(Long religionPoid);
 }

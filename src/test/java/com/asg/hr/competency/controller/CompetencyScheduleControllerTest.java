@@ -2,6 +2,7 @@ package com.asg.hr.competency.controller;
 
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
+import com.asg.common.lib.dto.LovGetListDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.LoggingService;
@@ -156,7 +157,8 @@ class CompetencyScheduleControllerTest {
                 .recreate(true)
                 .build();
 
-        doNothing().when(service).createBatchEvaluation(eq(1L), any(LocalDate.class), anyBoolean());
+        when(service.createBatchEvaluation(eq(1L), any(LocalDate.class), anyBoolean()))
+                .thenReturn("Batch evaluation created successfully");
 
         mockMvc.perform(put("/v1/competency-schedule/1/create-batch")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -186,6 +188,7 @@ class CompetencyScheduleControllerTest {
                 .seqNo(1)
                 .active("Y")
                 .evaluationDate(LocalDate.of(2024, 12, 15))
+                .scheduleDtl(new LovGetListDto(1L, "1", "Annual Review 2024", 1L, "Annual Review 2024", 1, null))
                 .build();
     }
 }
