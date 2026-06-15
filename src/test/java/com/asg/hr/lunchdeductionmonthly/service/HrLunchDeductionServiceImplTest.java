@@ -63,7 +63,7 @@ class HrLunchDeductionServiceImplTest {
 
     private static final Long TRANSACTION_POID = 1L;
     private static final Long USER_POID = 99L;
-    private static final String COMPANY_POID = "1";
+    private static final Long COMPANY_POID = 1L;
     private static final String DOC_ID = "800-115";
     private static final LocalDate PAYROLL_MONTH = LocalDate.of(2025, 9, 1);
 
@@ -84,17 +84,15 @@ class HrLunchDeductionServiceImplTest {
         activeHdr = HrMonthlyLunchHdr.builder()
                 .transactionPoid(TRANSACTION_POID)
                 .docRef("LDM-001")
-                .companyPoid(COMPANY_POID)
+                .companyPoid(1L)
                 .payrollMonth(PAYROLL_MONTH)
                 .description("Sep 2025")
-                .payrollFinalized("N")
                 .deleted("N")
                 .build();
 
         finalizedHdr = HrMonthlyLunchHdr.builder()
                 .transactionPoid(TRANSACTION_POID)
                 .payrollMonth(PAYROLL_MONTH)
-                .payrollFinalized("Y")
                 .deleted("N")
                 .build();
 
@@ -192,17 +190,6 @@ class HrLunchDeductionServiceImplTest {
                     .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessageContaining("transactionPoid");
         }
-
-        @Test
-        void finalizedPayroll_throwsValidationException() {
-            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(finalizedHdr));
-
-            assertThatThrownBy(() -> service.update(TRANSACTION_POID, updateRequest))
-                    .isInstanceOf(ValidationException.class)
-                    .hasMessageContaining("finalized");
-
-            verify(hdrRepository, never()).saveAndFlush(any());
-        }
     }
 
     // -------------------------------------------------------------------------
@@ -282,17 +269,6 @@ class HrLunchDeductionServiceImplTest {
 
             verifyNoInteractions(procRepository);
         }
-
-        @Test
-        void finalizedPayroll_throwsValidationException() {
-            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(finalizedHdr));
-
-            assertThatThrownBy(() -> service.loadAndProcess(TRANSACTION_POID))
-                    .isInstanceOf(ValidationException.class)
-                    .hasMessageContaining("finalized");
-
-            verifyNoInteractions(procRepository);
-        }
     }
 
     // -------------------------------------------------------------------------
@@ -321,10 +297,11 @@ class HrLunchDeductionServiceImplTest {
 
             service.updateDetail(TRANSACTION_POID, request);
 
-            assertThat(existingDtl.getLeaveDays()).isEqualTo(5L);
+            assertThat(existingDtl.getOffDays()).isEqualTo(5L);
             assertThat(existingDtl.getTotalDays()).isEqualTo(17L);
-            assertThat(existingDtl.getAmount()).isEqualByComparingTo(new BigDecimal("8.500"));
+            assertThat(existingDtl.getLunchDeductionAmt()).isEqualByComparingTo(new BigDecimal("8.500"));
             verify(dtlRepository).save(existingDtl);
+            verify(loggingService).createLogSummaryEntry(eq(DOC_ID), eq("1"), anyString());
         }
 
         @Test
@@ -338,15 +315,16 @@ class HrLunchDeductionServiceImplTest {
 
             service.updateDetail(TRANSACTION_POID, request);
 
-            assertThat(existingDtl.getLeaveDays()).isEqualTo(3L);
-            assertThat(existingDtl.getTotalDays()).isEqualTo(20L); // unchanged
+            assertThat(existingDtl.getOffDays()).isEqualTo(3L);
+            assertThat(existingDtl.getTotalDays()).isEqualTo(20L);
             verify(dtlRepository).save(existingDtl);
+            verify(loggingService).createLogSummaryEntry(eq(DOC_ID), eq("1"), anyString());
         }
 
         @Test
         void updateLeaveDays_whenCostPerDayNull_skipsAmountRecalculation() {
             existingDtl.setCostPerDay(null);
-            existingDtl.setAmount(null);
+            existingDtl.setLunchDeductionAmt(null);
             HrLunchDeductionDtlRequest request = HrLunchDeductionDtlRequest.builder()
                     .detRowId(1L).leaveDays(2L).build();
 
@@ -355,9 +333,10 @@ class HrLunchDeductionServiceImplTest {
 
             service.updateDetail(TRANSACTION_POID, request);
 
-            assertThat(existingDtl.getTotalDays()).isEqualTo(20L); // 22-2
-            assertThat(existingDtl.getAmount()).isNull();
+            assertThat(existingDtl.getTotalDays()).isEqualTo(20L);
+            assertThat(existingDtl.getLunchDeductionAmt()).isNull();
             verify(dtlRepository).save(existingDtl);
+            verify(loggingService).createLogSummaryEntry(eq(DOC_ID), eq("1"), anyString());
         }
 
         @Test
@@ -372,6 +351,7 @@ class HrLunchDeductionServiceImplTest {
 
             assertThat(existingDtl.getDeductionType()).isEqualTo("FREE");
             verify(dtlRepository).save(existingDtl);
+            verify(loggingService).createLogSummaryEntry(eq(DOC_ID), eq("1"), anyString());
         }
 
         @Test
@@ -384,8 +364,9 @@ class HrLunchDeductionServiceImplTest {
 
             service.updateDetail(TRANSACTION_POID, request);
 
-            assertThat(existingDtl.getAmount()).isEqualByComparingTo(new BigDecimal("9.999"));
+            assertThat(existingDtl.getLunchDeductionAmt()).isEqualByComparingTo(new BigDecimal("9.999"));
             verify(dtlRepository).save(existingDtl);
+            verify(loggingService).createLogSummaryEntry(eq(DOC_ID), eq("1"), anyString());
         }
 
         @Test
@@ -400,11 +381,12 @@ class HrLunchDeductionServiceImplTest {
 
             assertThat(existingDtl.getRemarks()).isEqualTo("Special case");
             verify(dtlRepository).save(existingDtl);
+            verify(loggingService).createLogSummaryEntry(eq(DOC_ID), eq("1"), anyString());
         }
 
         @Test
         void nullLeaveDays_doesNotModifyExistingValues() {
-            BigDecimal originalAmount = existingDtl.getAmount();
+            BigDecimal originalAmount = existingDtl.getLunchDeductionAmt();
             Long originalTotalDays = existingDtl.getTotalDays();
 
             when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(activeHdr));
@@ -414,7 +396,8 @@ class HrLunchDeductionServiceImplTest {
                     HrLunchDeductionDtlRequest.builder().detRowId(1L).leaveDays(null).build());
 
             assertThat(existingDtl.getTotalDays()).isEqualTo(originalTotalDays);
-            assertThat(existingDtl.getAmount()).isEqualByComparingTo(originalAmount);
+            assertThat(existingDtl.getLunchDeductionAmt()).isEqualByComparingTo(originalAmount);
+            verify(loggingService).createLogSummaryEntry(eq(DOC_ID), eq("1"), anyString());
         }
 
         @Test
@@ -424,18 +407,6 @@ class HrLunchDeductionServiceImplTest {
             assertThatThrownBy(() -> service.updateDetail(TRANSACTION_POID,
                     HrLunchDeductionDtlRequest.builder().detRowId(1L).build()))
                     .isInstanceOf(ResourceNotFoundException.class);
-
-            verifyNoInteractions(dtlRepository);
-        }
-
-        @Test
-        void finalizedPayroll_throwsValidationException() {
-            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(finalizedHdr));
-
-            assertThatThrownBy(() -> service.updateDetail(TRANSACTION_POID,
-                    HrLunchDeductionDtlRequest.builder().detRowId(1L).build()))
-                    .isInstanceOf(ValidationException.class)
-                    .hasMessageContaining("finalized");
 
             verifyNoInteractions(dtlRepository);
         }
@@ -528,24 +499,13 @@ class HrLunchDeductionServiceImplTest {
 
             verifyNoInteractions(documentDeleteService);
         }
-
-        @Test
-        void finalizedPayroll_throwsValidationException() {
-            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(finalizedHdr));
-
-            assertThatThrownBy(() -> service.delete(TRANSACTION_POID, new DeleteReasonDto()))
-                    .isInstanceOf(ValidationException.class)
-                    .hasMessageContaining("finalized");
-
-            verifyNoInteractions(documentDeleteService);
-        }
     }
 
     // -------------------------------------------------------------------------
     // Helper
     // -------------------------------------------------------------------------
-    private HrMonthlyLunchDtl buildDtl(Long detRowId, Long monthDays, Long leaveDays, BigDecimal costPerDay) {
-        long totalDays = monthDays - leaveDays;
+    private HrMonthlyLunchDtl buildDtl(Long detRowId, Long monthDays, Long offDays, BigDecimal costPerDay) {
+        long totalDays = monthDays - offDays;
         return HrMonthlyLunchDtl.builder()
                 .detRowId(detRowId)
                 .transactionPoid(TRANSACTION_POID)
@@ -553,10 +513,10 @@ class HrLunchDeductionServiceImplTest {
                 .deductionType("DEDUCT")
                 .lunchDays(20L)
                 .monthDays(monthDays)
-                .leaveDays(leaveDays)
+                .offDays(offDays)
                 .totalDays(totalDays)
                 .costPerDay(costPerDay)
-                .amount(costPerDay.multiply(BigDecimal.valueOf(totalDays)))
+                .lunchDeductionAmt(costPerDay.multiply(BigDecimal.valueOf(totalDays)))
                 .build();
     }
 }

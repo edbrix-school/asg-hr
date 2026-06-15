@@ -76,7 +76,6 @@ class HrLunchDeductionMonthlyControllerTest {
                 .transactionPoid(1L)
                 .docRef("LDM-001")
                 .payrollMonth(LocalDate.of(2025, 9, 1))
-                .payrollFinalized("N")
                 .build();
     }
 

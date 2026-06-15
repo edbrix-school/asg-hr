@@ -12,6 +12,8 @@ public class HrLunchDeductionDtlRequest {
 
     private Long detRowId;
 
+    private String actionType;
+
     private Long employeePoid;
 
     private String deductionType;

@@ -115,10 +115,14 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
     @Transactional
     public void updateDetail(Long transactionPoid, HrLunchDeductionDtlRequest dtlRequest) {
         HrMonthlyLunchHdr hdr = getHdr(transactionPoid);
+        String docId = UserContext.getDocumentId();
+        String docKeyPoid = transactionPoid.toString();
 
         HrMonthlyLunchDtlKey key = new HrMonthlyLunchDtlKey(dtlRequest.getDetRowId(), transactionPoid);
         HrMonthlyLunchDtl dtl = dtlRepository.findById(key)
                 .orElseThrow(() -> new ResourceNotFoundException("Lunch Detail", "detRowId", dtlRequest.getDetRowId()));
+
+        String actionType = dtlRequest.getActionType() != null ? dtlRequest.getActionType().trim() : "UPDATED";
 
         if (dtlRequest.getLeaveDays() != null) {
             dtl.setOffDays(dtlRequest.getLeaveDays());
@@ -134,6 +138,10 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
         if (dtlRequest.getRemarks() != null) dtl.setRemarks(dtlRequest.getRemarks());
 
         dtlRepository.save(dtl);
+
+        String logDetail = String.format("KeyId = TRANSACTION_POID: %s DET_ROW_ID: %s Action: %s", 
+                transactionPoid, dtlRequest.getDetRowId(), actionType);
+        loggingService.createLogSummaryEntry(docId, docKeyPoid, logDetail);
     }
 
     @Override
