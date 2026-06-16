@@ -163,7 +163,7 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
 
         String operator = documentService.resolveOperator(request);
         String isDeleted = documentService.resolveIsDeleted(request);
-        List<FilterDto> filters = documentService.resolveDateFilters(request, "CREATED_DATE", startDate, endDate);
+        List<FilterDto> filters = documentService.resolveDateFilters(request, "TRANSACTION_DATE", startDate, endDate);
 
         RawSearchResult raw = documentService.search(
                 UserContext.getDocumentId(),
