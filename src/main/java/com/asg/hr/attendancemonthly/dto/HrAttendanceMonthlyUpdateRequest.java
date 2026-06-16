@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.time.LocalDate;
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,4 +23,6 @@ public class HrAttendanceMonthlyUpdateRequest {
 
     @NotNull(message = "Transaction date is mandatory")
     private LocalDate transactionDate;
+
+    private List<HrAttendanceMonthlyDtlUpdateRequest> details;
 }
