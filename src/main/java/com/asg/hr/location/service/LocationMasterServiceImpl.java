@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 
-@Service
+@Service("legacyLocationMasterServiceImpl")
 @RequiredArgsConstructor
 public class LocationMasterServiceImpl implements LocationMasterService {
 

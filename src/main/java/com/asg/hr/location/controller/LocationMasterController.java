@@ -25,8 +25,8 @@ import org.springframework.web.bind.annotation.*;
 
 import static com.asg.common.lib.dto.response.ApiResponse.*;
 
-@RestController
-@RequestMapping("/v1/location/master")
+@RestController("legacyLocationMasterController")
+@RequestMapping("/v1/location/legacy-master")
 @RequiredArgsConstructor
 public class LocationMasterController {
 
