@@ -38,6 +38,13 @@ class HrLeaveRequestControllerTest {
     @InjectMocks
     private HrLeaveRequestController controller;
 
+    @SuppressWarnings("unchecked")
+    private <T> T extractData(ResponseEntity<?> response) {
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+        Map<String, Object> result = (Map<String, Object>) body.get("result");
+        return (T) result.get("data");
+    }
+
     // -------------------------------------------------------------------------
     // create
     // -------------------------------------------------------------------------
@@ -53,7 +60,7 @@ class HrLeaveRequestControllerTest {
         ResponseEntity<?> result = controller.createLeave(request);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertEquals(response, result.getBody());
+        assertEquals(response, extractData(result));
         verify(service).create(any(LeaveCreateRequestDto.class));
     }
 
@@ -73,7 +80,7 @@ class HrLeaveRequestControllerTest {
         ResponseEntity<?> result = controller.updateLeave(request);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertEquals(response, result.getBody());
+        assertEquals(response, extractData(result));
         verify(service).update(any(LeaveUpdateRequestDto.class));
     }
 
@@ -91,7 +98,7 @@ class HrLeaveRequestControllerTest {
         ResponseEntity<?> result = controller.getById(1L);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertEquals(response, result.getBody());
+        assertEquals(response, extractData(result));
         verify(service).getById(1L);
     }
 
@@ -191,10 +198,10 @@ class HrLeaveRequestControllerTest {
         Map<String, Object> response = Map.of("data", "employee");
         when(service.getEmployeeDetails(1L)).thenReturn(response);
 
-        ResponseEntity<Map<String, Object>> result = controller.getEmployeeDetails(1L);
+        ResponseEntity<?> result = controller.getEmployeeDetails(1L);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertEquals(response, result.getBody());
+        assertEquals(response, extractData(result));
         verify(service).getEmployeeDetails(1L);
     }
 
@@ -207,10 +214,10 @@ class HrLeaveRequestControllerTest {
         Map<String, Object> response = Map.of("hod", 100L);
         when(service.getEmployeeHod(1L)).thenReturn(response);
 
-        ResponseEntity<Map<String, Object>> result = controller.getEmployeeHod(1L);
+        ResponseEntity<?> result = controller.getEmployeeHod(1L);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertEquals(response, result.getBody());
+        assertEquals(response, extractData(result));
         verify(service).getEmployeeHod(1L);
     }
 
@@ -225,11 +232,11 @@ class HrLeaveRequestControllerTest {
 
         when(service.getEligibleLeaveDays(1L, 2L, leaveStartDate, 3L)).thenReturn(response);
 
-        ResponseEntity<Map<String, Object>> result =
+        ResponseEntity<?> result =
                 controller.getEligibleLeaveDays(1L, 2L, leaveStartDate, 3L);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertEquals(response, result.getBody());
+        assertEquals(response, extractData(result));
         verify(service).getEligibleLeaveDays(1L, 2L, leaveStartDate, 3L);
     }
 
@@ -240,7 +247,7 @@ class HrLeaveRequestControllerTest {
 
         when(service.getEligibleLeaveDays(1L, 2L, leaveStartDate, null)).thenReturn(response);
 
-        ResponseEntity<Map<String, Object>> result =
+        ResponseEntity<?> result =
                 controller.getEligibleLeaveDays(1L, 2L, leaveStartDate, null);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
@@ -256,10 +263,10 @@ class HrLeaveRequestControllerTest {
         Map<String, Object> response = Map.of("data", "family");
         when(service.getTicketFamilyDetails(1L)).thenReturn(response);
 
-        ResponseEntity<Map<String, Object>> result = controller.getTicketFamilyDetails(1L);
+        ResponseEntity<?> result = controller.getTicketFamilyDetails(1L);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertEquals(response, result.getBody());
+        assertEquals(response, extractData(result));
         verify(service).getTicketFamilyDetails(1L);
     }
 
@@ -272,11 +279,11 @@ class HrLeaveRequestControllerTest {
         Map<String, Object> response = Map.of("status", "SUCCESS");
         when(service.updateLeaveHistory(1L, "TYPE", "01-Jan-2024", "2")).thenReturn(response);
 
-        ResponseEntity<Map<String, Object>> result =
+        ResponseEntity<?> result =
                 controller.updateLeaveHistoryLegacyParams(1L, "TYPE", "01-Jan-2024", "2");
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertEquals(response, result.getBody());
+        assertEquals(response, extractData(result));
         verify(service).updateLeaveHistory(1L, "TYPE", "01-Jan-2024", "2");
     }
 
@@ -285,7 +292,7 @@ class HrLeaveRequestControllerTest {
         Map<String, Object> response = Map.of("status", "SUCCESS");
         when(service.updateLeaveHistory(1L, null, null, null)).thenReturn(response);
 
-        ResponseEntity<Map<String, Object>> result =
+        ResponseEntity<?> result =
                 controller.updateLeaveHistoryLegacyParams(1L, null, null, null);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
@@ -301,10 +308,10 @@ class HrLeaveRequestControllerTest {
         Map<String, Object> response = Map.of("status", "SUCCESS");
         when(service.cancelLeaveHistory(1L)).thenReturn(response);
 
-        ResponseEntity<Map<String, Object>> result = controller.cancelLeaveHistory(1L);
+        ResponseEntity<?> result = controller.cancelLeaveHistory(1L);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertEquals(response, result.getBody());
+        assertEquals(response, extractData(result));
         verify(service).cancelLeaveHistory(1L);
     }
 
@@ -320,10 +327,10 @@ class HrLeaveRequestControllerTest {
 
         when(service.updateTicketDetails(any(LeaveTicketUpdateRequestDto.class))).thenReturn(response);
 
-        ResponseEntity<Map<String, Object>> result = controller.updateTicketDetails(request);
+        ResponseEntity<?> result = controller.updateTicketDetails(request);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertEquals(response, result.getBody());
+        assertEquals(response, extractData(result));
         verify(service).updateTicketDetails(any(LeaveTicketUpdateRequestDto.class));
     }
 
@@ -343,12 +350,12 @@ class HrLeaveRequestControllerTest {
                 eq(startDate), eq(rejoinDate), eq(BigDecimal.TEN), eq("DEFAULT")))
                 .thenReturn(response);
 
-        ResponseEntity<LeaveCalculationResponseDto> result = controller.calculateLeaveDays(
+        ResponseEntity<?> result = controller.calculateLeaveDays(
                 null, 1L, "ANNUAL", "WITH_PAY", null, null,
                 startDate, rejoinDate, BigDecimal.TEN, "DEFAULT");
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertEquals(response, result.getBody());
+        assertEquals(response, extractData(result));
     }
 
     @Test
@@ -362,7 +369,7 @@ class HrLeaveRequestControllerTest {
                 eq(startDate), eq(rejoinDate), isNull(), isNull()))
                 .thenReturn(response);
 
-        ResponseEntity<LeaveCalculationResponseDto> result = controller.calculateLeaveDays(
+        ResponseEntity<?> result = controller.calculateLeaveDays(
                 10L, 2L, "EMERGENCY", null, "EMERGENCY_PAID", null,
                 startDate, rejoinDate, null, null);
 
@@ -381,11 +388,11 @@ class HrLeaveRequestControllerTest {
         Map<String, Object> response = Map.of("annualLeaveTypeVisible", true);
         when(service.handleLeaveTypeChange("ANNUAL", "DEFAULT")).thenReturn(response);
 
-        ResponseEntity<Map<String, Object>> result =
+        ResponseEntity<?> result =
                 controller.handleLeaveTypeChange("ANNUAL", "DEFAULT");
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertEquals(response, result.getBody());
+        assertEquals(response, extractData(result));
         verify(service).handleLeaveTypeChange("ANNUAL", "DEFAULT");
     }
 
@@ -394,7 +401,7 @@ class HrLeaveRequestControllerTest {
         Map<String, Object> response = Map.of("emergencyLeaveTypeVisible", true);
         when(service.handleLeaveTypeChange("EMERGENCY", null)).thenReturn(response);
 
-        ResponseEntity<Map<String, Object>> result =
+        ResponseEntity<?> result =
                 controller.handleLeaveTypeChange("EMERGENCY", null);
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
