@@ -144,7 +144,15 @@ class PersonalDataSheetServiceImplTest {
             var resp = service.update(1L, req);
 
             verify(validator).validateRequest(req);
-            verify(loggingService).createLogSummaryEntry(LogDetailsEnum.MODIFIED, "800-112", "1");
+            verify(loggingService).logChanges(
+                    any(HrPersonalDataHdr.class), 
+                    any(HrPersonalDataHdr.class), 
+                    eq(HrPersonalDataHdr.class),
+                    eq("800-112"), 
+                    eq("1"), 
+                    eq(LogDetailsEnum.MODIFIED), 
+                    eq("TRANSACTION_POID")
+            );
 
             assertThat(resp.getEmployeeNamePassport()).isEqualTo("Jane Smith");
         }
