@@ -23,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jasperreports.engine.JasperReport;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -214,13 +215,19 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
                 .orElseThrow(() -> new AsgException(ERROR_NOT_FOUND + transactionPoid));
 
         validator.validateRequest(request);
+        
+        // Create a copy of the original entity for change logging
+        HrPersonalDataHdr oldEntity = new HrPersonalDataHdr();
+        BeanUtils.copyProperties(entity, oldEntity);
+        
         updateEntity(entity, request);
         entity.setLastmodifiedBy(UserContext.getUserId());
 
         entity = repository.save(entity);
 
-        loggingService.createLogSummaryEntry(LogDetailsEnum.MODIFIED
-                , UserContext.getDocumentId(), entity.getTransactionPoid().toString());
+        loggingService.logChanges(oldEntity, entity, HrPersonalDataHdr.class,
+                UserContext.getDocumentId(), entity.getTransactionPoid().toString(), 
+                LogDetailsEnum.MODIFIED, TRANSACTION_POID_FIELD);
 
         return mapToResponseDto(entity);
     }
