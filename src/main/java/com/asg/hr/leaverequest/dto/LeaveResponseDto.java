@@ -5,12 +5,14 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
 public class LeaveResponseDto {
 
     private Long transactionPoid;
+    private LocalDate transactionDate;
     private Long groupPoid;
     private Long companyPoid;
     private Long employeePoid;
@@ -77,6 +79,12 @@ public class LeaveResponseDto {
     private LocalDate hrTicketTillDate;
 
     private String status;
+    private String docRef;
+
+    private LocalDateTime createdDate;
+    private String createdBy;
+    private String modifiedBy;
+    private LocalDateTime modifiedDate;
 
     private List<LeaveRequestDetailDto> details;
 }

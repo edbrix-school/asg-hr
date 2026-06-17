@@ -645,6 +645,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         LeaveResponseDto dto = new LeaveResponseDto();
 
         dto.setTransactionPoid(entity.getTransactionPoid());
+        dto.setTransactionDate(entity.getTransactionDate());
         dto.setGroupPoid(entity.getGroupPoid());
         dto.setCompanyPoid(entity.getCompanyPoid());
         dto.setEmployeePoid(entity.getEmployeePoid());
@@ -701,6 +702,12 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         dto.setHrTicketTillDate(entity.getHrTicketTillDate());
 
         dto.setStatus(entity.getStatus());
+        dto.setDocRef(entity.getDocRef());
+
+        dto.setCreatedDate(entity.getCreatedDate());
+        dto.setCreatedBy(entity.getCreatedBy());
+        dto.setModifiedBy(entity.getLastModifiedBy());
+        dto.setModifiedDate(entity.getLastModifiedDate());
 
         dto.setDetails(
                 dtls.stream().map(d -> {
