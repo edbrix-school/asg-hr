@@ -34,7 +34,6 @@ public class EmployeeInductionResponseDto {
         private String inductionCategory;
         private LovGetListDto inductionCategoryDet;
         private Long assigneePoid;
-        private String assigneeName;
         private LovGetListDto assigneeDet;
         private LocalDate scheduledDate;
         private LocalDate completedDate;

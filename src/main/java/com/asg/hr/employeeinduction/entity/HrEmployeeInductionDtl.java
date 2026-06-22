@@ -44,6 +44,9 @@ public class HrEmployeeInductionDtl extends BaseEntity {
     @Column(name = "REMARKS", length = 200)
     private String remarks;
 
+    @Column(name = "ASSIGNEE_EMP_POID")
+    private Long assigneeEmpPoid;
+
     @PrePersist
     protected void onCreate() {
         if (status == null) {
@@ -93,11 +96,11 @@ public class HrEmployeeInductionDtl extends BaseEntity {
     }
 
     public Long getAssigneePoid() {
-        return null; // Column doesn't exist in actual table
+        return assigneeEmpPoid;
     }
 
     public void setAssigneePoid(Long assigneePoid) {
-        // No-op since column doesn't exist
+        this.assigneeEmpPoid = assigneePoid;
     }
 
     public LocalDate getScheduledDate() {
