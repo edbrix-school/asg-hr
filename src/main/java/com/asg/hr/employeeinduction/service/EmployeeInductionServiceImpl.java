@@ -362,6 +362,7 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
     private void applyDetailFields(HrEmployeeInductionDtl detail,
                                    EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto detailDto) {
         detail.setInductionCatgPoid(detailDto.getInductionCategory() != null ? Long.parseLong(detailDto.getInductionCategory()) : 1L);
+        detail.setAssigneeEmpPoid(detailDto.getAssigneePoid());
         detail.setSheduledDate(detailDto.getScheduledDate());
         detail.setCompleatedDate(detailDto.getCompletedDate());
         detail.setStatus(detailDto.getStatus());
@@ -379,7 +380,6 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
                                     .inductionCategory(detail.getInductionCatgPoid() != null ? detail.getInductionCatgPoid().toString() : null)
                                     .inductionCategoryDet(resolveLovByPoid(detail.getInductionCatgPoid(), EmployeeInductionConstants.LOV_INDUCTION_CATEGORY))
                                     .assigneePoid(assigneePoid)
-                                    .assigneeName(null)
                                     .assigneeDet(resolveLovByPoid(assigneePoid, EmployeeInductionConstants.LOV_EMPLOYEE_NAME))
                                     .scheduledDate(detail.getSheduledDate())
                                     .completedDate(detail.getCompleatedDate())

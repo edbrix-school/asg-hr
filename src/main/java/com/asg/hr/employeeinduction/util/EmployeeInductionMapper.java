@@ -49,6 +49,7 @@ public class EmployeeInductionMapper {
                 .detRowId(dto.getSn().longValue())
                 .header(header)
                 .inductionCatgPoid(dto.getInductionCategory() != null ? Long.parseLong(dto.getInductionCategory()) : null)
+                .assigneeEmpPoid(dto.getAssigneePoid())
                 .sheduledDate(dto.getScheduledDate())
                 .compleatedDate(dto.getCompletedDate())
                 .status(dto.getStatus())
@@ -60,7 +61,7 @@ public class EmployeeInductionMapper {
         return EmployeeInductionResponseDto.EmployeeInductionDetailResponseDto.builder()
                 .sn(entity.getDetRowId() != null ? entity.getDetRowId().intValue() : null)
                 .inductionCategory(entity.getInductionCatgPoid() != null ? entity.getInductionCatgPoid().toString() : null)
-                .assigneePoid(null) // Column doesn't exist in actual table
+                .assigneePoid(entity.getAssigneeEmpPoid())
                 .scheduledDate(entity.getSheduledDate())
                 .completedDate(entity.getCompleatedDate())
                 .status(entity.getStatus())
