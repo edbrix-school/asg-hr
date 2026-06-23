@@ -197,14 +197,18 @@ class HrLeaveRequestServiceImplTest {
     }
 
     @Test
-    void create_WhenAnnualSubtypeMissing_ThrowsValidationException() {
+    void create_WhenSpecialLeaveSubtypeMissing_ThrowsValidationException() {
         LeaveCreateRequestDto request = createRequest();
         request.setLeaveType("SPECIAL_LEAVE");
         request.setSplLeaveTypes(" ");
 
-        ValidationException ex = assertThrows(ValidationException.class, () -> service.create(request));
+        ValidationException ex = assertThrows(
+                ValidationException.class,
+                () -> service.create(request));
 
-        assertEquals("Leave subtype is required", ex.getMessage());
+        assertEquals(
+                "SPL leave subtype is required",
+                ex.getMessage());
     }
 
     @Test
