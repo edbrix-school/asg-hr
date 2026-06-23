@@ -223,20 +223,28 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
 
     private String getSubType(LeaveCreateRequestDto req) {
 
-
         String subType = null;
 
         if (contains(req.getLeaveType(), ANNUAL)) {
             subType = req.getAnnualLeaveType();
+
+            if (subType == null || subType.trim().isEmpty()) {
+                throw new ValidationException("Annual leave subtype is required");
+            }
+
         } else if (contains(req.getLeaveType(), EMERGENCY)) {
             subType = req.getEmergencyLeaveType();
-        } else {
-            subType = req.getSplLeaveTypes();
-        }
 
-        //  FIX 4: guard
-        if (subType == null || subType.trim().isEmpty()) {
-            throw new ValidationException("Leave subtype is required");
+            if (subType == null || subType.trim().isEmpty()) {
+                throw new ValidationException("Emergency leave subtype is required");
+            }
+
+        } else if (contains(req.getLeaveType(), SPECIAL_LEAVE)) {
+            subType = req.getSplLeaveTypes();
+
+            if (subType == null || subType.trim().isEmpty()) {
+                throw new ValidationException("SPL leave subtype is required");
+            }
         }
 
         return subType;
