@@ -14,7 +14,6 @@ import com.asg.hr.exceptions.ValidationException;
 import com.asg.hr.lunchdeductionmonthly.dto.*;
 import com.asg.hr.lunchdeductionmonthly.entity.HrMonthlyLunchDtl;
 import com.asg.hr.lunchdeductionmonthly.entity.HrMonthlyLunchHdr;
-import com.asg.hr.lunchdeductionmonthly.entity.key.HrMonthlyLunchDtlKey;
 import com.asg.hr.lunchdeductionmonthly.mapper.HrLunchDeductionMapper;
 import com.asg.hr.lunchdeductionmonthly.repository.HrLunchDeductionProcRepository;
 import com.asg.hr.lunchdeductionmonthly.repository.HrMonthlyLunchDtlRepository;
@@ -68,7 +67,6 @@ class HrLunchDeductionServiceImplTest {
     private static final LocalDate PAYROLL_MONTH = LocalDate.of(2025, 9, 1);
 
     private HrMonthlyLunchHdr activeHdr;
-    private HrMonthlyLunchHdr finalizedHdr;
     private HrLunchDeductionRequest createRequest;
     private HrLunchDeductionResponse mappedResponse;
 
@@ -90,12 +88,6 @@ class HrLunchDeductionServiceImplTest {
                 .deleted("N")
                 .build();
 
-        finalizedHdr = HrMonthlyLunchHdr.builder()
-                .transactionPoid(TRANSACTION_POID)
-                .payrollMonth(PAYROLL_MONTH)
-                .deleted("N")
-                .build();
-
         createRequest = HrLunchDeductionRequest.builder()
                 .payrollMonth(PAYROLL_MONTH)
                 .description("Sep 2025")
@@ -114,29 +106,52 @@ class HrLunchDeductionServiceImplTest {
         userContextMock.close();
     }
 
-    // -------------------------------------------------------------------------
-    // create()
-    // -------------------------------------------------------------------------
     @Nested
     class Create {
 
         @Test
-        void success_returnsResponse() {
+        void success_withDetails_returnsResponse() {
+            HrLunchDeductionDtlRequest dtlReq = HrLunchDeductionDtlRequest.builder()
+                    .deductionType("LUNCH").leaveDays(2L).amount(new BigDecimal("500.00")).build();
+            createRequest.setDetails(List.of(dtlReq));
+
+            HrMonthlyLunchDtl dtlEntity = buildDtl(1L, 22L, 2L, new BigDecimal("0.500"));
+            HrLunchDeductionDtlResponse dtlResponse = HrLunchDeductionDtlResponse.builder()
+                    .detRowId(1L).transactionPoid(TRANSACTION_POID).build();
+
             when(hdrRepository.existsByPayrollMonthAndDeletedAndCompanyPoid(PAYROLL_MONTH, "N", COMPANY_POID))
                     .thenReturn(false);
             when(mapper.toEntity(createRequest)).thenReturn(activeHdr);
             when(hdrRepository.saveAndFlush(activeHdr)).thenReturn(activeHdr);
             doNothing().when(entityManager).refresh(activeHdr);
+            when(mapper.toDtlEntityList(TRANSACTION_POID, List.of(dtlReq))).thenReturn(List.of(dtlEntity));
             when(mapper.toResponse(activeHdr)).thenReturn(mappedResponse);
+            when(mapper.toDtlResponseList(List.of(dtlEntity))).thenReturn(List.of(dtlResponse));
 
             HrLunchDeductionResponse result = service.create(createRequest);
 
             assertThat(result).isNotNull();
-            assertThat(result.getDocRef()).isEqualTo("LDM-001");
-            assertThat(result.getTransactionPoid()).isEqualTo(TRANSACTION_POID);
-            verify(hdrRepository).saveAndFlush(activeHdr);
-            verify(entityManager).refresh(activeHdr);
-            verify(loggingService).createLogSummaryEntry(eq(DOC_ID), eq("1"), anyString());
+            assertThat(result.getDetails()).hasSize(1);
+            verify(dtlRepository).saveAll(List.of(dtlEntity));
+            verify(loggingService, times(2)).createLogSummaryEntry(anyString(), anyString(), anyString());
+        }
+
+        @Test
+        void success_noDetails_returnsResponse() {
+            when(hdrRepository.existsByPayrollMonthAndDeletedAndCompanyPoid(PAYROLL_MONTH, "N", COMPANY_POID))
+                    .thenReturn(false);
+            when(mapper.toEntity(createRequest)).thenReturn(activeHdr);
+            when(hdrRepository.saveAndFlush(activeHdr)).thenReturn(activeHdr);
+            doNothing().when(entityManager).refresh(activeHdr);
+            when(mapper.toDtlEntityList(TRANSACTION_POID, List.of())).thenReturn(List.of());
+            when(mapper.toResponse(activeHdr)).thenReturn(mappedResponse);
+            when(mapper.toDtlResponseList(List.of())).thenReturn(List.of());
+
+            HrLunchDeductionResponse result = service.create(createRequest);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getDetails()).isEmpty();
+            verify(dtlRepository, never()).saveAll(any());
         }
 
         @Test
@@ -152,38 +167,170 @@ class HrLunchDeductionServiceImplTest {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // update()
-    // -------------------------------------------------------------------------
     @Nested
     class Update {
 
-        private HrLunchDeductionUpdateRequest updateRequest;
-
-        @BeforeEach
-        void setUp() {
-            updateRequest = HrLunchDeductionUpdateRequest.builder()
-                    .description("Updated desc")
-                    .remarks("Updated remarks")
-                    .build();
-        }
-
         @Test
-        void success_returnsUpdatedResponse() {
+        void success_withDetailsCREATED_returnsResponse() {
+            HrLunchDeductionDtlRequest dtlReq = HrLunchDeductionDtlRequest.builder()
+                    .actionType("CREATED")
+                    .deductionType("LUNCH")
+                    .leaveDays(2L)
+                    .amount(new BigDecimal("500.00"))
+                    .build();
+            HrLunchDeductionRequest updateRequest = HrLunchDeductionRequest.builder()
+                    .description("Updated")
+                    .details(List.of(dtlReq))
+                    .build();
+
+            HrMonthlyLunchDtl newDtl = buildDtl(1L, 22L, 2L, new BigDecimal("0.500"));
+            HrLunchDeductionDtlResponse dtlResponse = HrLunchDeductionDtlResponse.builder()
+                    .detRowId(1L).transactionPoid(TRANSACTION_POID).build();
+
             when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(activeHdr));
             when(hdrRepository.saveAndFlush(activeHdr)).thenReturn(activeHdr);
+            when(dtlRepository.findByTransactionPoid(TRANSACTION_POID)).thenReturn(List.of());
+            when(mapper.toDtlEntity(TRANSACTION_POID, dtlReq, 1L)).thenReturn(newDtl);
+            when(dtlRepository.saveAll(any())).thenReturn(List.of(newDtl));
             when(mapper.toResponse(activeHdr)).thenReturn(mappedResponse);
+            when(mapper.toDtlResponseList(any())).thenReturn(List.of(dtlResponse));
 
             HrLunchDeductionResponse result = service.update(TRANSACTION_POID, updateRequest);
 
             assertThat(result).isNotNull();
             verify(mapper).updateEntity(activeHdr, updateRequest);
             verify(hdrRepository).saveAndFlush(activeHdr);
-            verify(loggingService).createLogSummaryEntry(LogDetailsEnum.MODIFIED, DOC_ID, "1");
+            verify(dtlRepository).saveAll(any());
         }
 
         @Test
-        void notFound_throwsResourceNotFoundException() {
+        void success_withDetailsUPDATED_modifiesExistingDetail() {
+            HrMonthlyLunchDtl existingDtl = buildDtl(1L, 22L, 2L, new BigDecimal("0.500"));
+            HrLunchDeductionDtlRequest dtlReq = HrLunchDeductionDtlRequest.builder()
+                    .detRowId(1L)
+                    .actionType("UPDATED")
+                    .leaveDays(5L)
+                    .amount(new BigDecimal("750.00"))
+                    .build();
+            HrLunchDeductionRequest updateRequest = HrLunchDeductionRequest.builder()
+                    .description("Updated")
+                    .details(List.of(dtlReq))
+                    .build();
+
+            HrLunchDeductionDtlResponse dtlResponse = HrLunchDeductionDtlResponse.builder()
+                    .detRowId(1L).transactionPoid(TRANSACTION_POID).build();
+
+            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(activeHdr));
+            when(hdrRepository.saveAndFlush(activeHdr)).thenReturn(activeHdr);
+            when(dtlRepository.findByTransactionPoid(TRANSACTION_POID)).thenReturn(List.of(existingDtl));
+            when(dtlRepository.saveAll(any())).thenReturn(List.of(existingDtl));
+            when(mapper.toResponse(activeHdr)).thenReturn(mappedResponse);
+            when(mapper.toDtlResponseList(any())).thenReturn(List.of(dtlResponse));
+
+            HrLunchDeductionResponse result = service.update(TRANSACTION_POID, updateRequest);
+
+            assertThat(result).isNotNull();
+            assertThat(existingDtl.getLunchDeductionAmt()).isEqualByComparingTo(new BigDecimal("750.00"));
+        }
+
+        @Test
+        void success_withDetailsDELETED_removesDetail() {
+            HrMonthlyLunchDtl existingDtl = buildDtl(1L, 22L, 2L, new BigDecimal("0.500"));
+            HrLunchDeductionDtlRequest dtlReq = HrLunchDeductionDtlRequest.builder()
+                    .detRowId(1L)
+                    .actionType("DELETED")
+                    .build();
+            HrLunchDeductionRequest updateRequest = HrLunchDeductionRequest.builder()
+                    .description("Updated")
+                    .details(List.of(dtlReq))
+                    .build();
+
+            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(activeHdr));
+            when(hdrRepository.saveAndFlush(activeHdr)).thenReturn(activeHdr);
+            when(dtlRepository.findByTransactionPoid(TRANSACTION_POID)).thenReturn(List.of(existingDtl));
+            when(mapper.toResponse(activeHdr)).thenReturn(mappedResponse);
+            when(mapper.toDtlResponseList(any())).thenReturn(List.of());
+
+            HrLunchDeductionResponse result = service.update(TRANSACTION_POID, updateRequest);
+
+            assertThat(result).isNotNull();
+            verify(dtlRepository).deleteAll(List.of(existingDtl));
+        }
+
+        @Test
+        void autoDetectAction_noDetRowIdMeansCreated() {
+            HrLunchDeductionDtlRequest dtlReq = HrLunchDeductionDtlRequest.builder()
+                    .deductionType("LUNCH")
+                    .leaveDays(2L)
+                    .build();
+            HrLunchDeductionRequest updateRequest = HrLunchDeductionRequest.builder()
+                    .details(List.of(dtlReq))
+                    .build();
+
+            HrMonthlyLunchDtl newDtl = buildDtl(1L, 22L, 2L, new BigDecimal("0.500"));
+
+            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(activeHdr));
+            when(hdrRepository.saveAndFlush(activeHdr)).thenReturn(activeHdr);
+            when(dtlRepository.findByTransactionPoid(TRANSACTION_POID)).thenReturn(List.of());
+            when(mapper.toDtlEntity(TRANSACTION_POID, dtlReq, 1L)).thenReturn(newDtl);
+            when(dtlRepository.saveAll(any())).thenReturn(List.of(newDtl));
+            when(mapper.toResponse(activeHdr)).thenReturn(mappedResponse);
+            when(mapper.toDtlResponseList(any())).thenReturn(List.of());
+
+            HrLunchDeductionResponse result = service.update(TRANSACTION_POID, updateRequest);
+
+            assertThat(result).isNotNull();
+            verify(dtlRepository).saveAll(any());
+        }
+
+        @Test
+        void autoDetectAction_withDetRowIdMeansUpdated() {
+            HrMonthlyLunchDtl existingDtl = buildDtl(1L, 22L, 2L, new BigDecimal("0.500"));
+            HrLunchDeductionDtlRequest dtlReq = HrLunchDeductionDtlRequest.builder()
+                    .detRowId(1L)
+                    .leaveDays(3L)
+                    .build();
+            HrLunchDeductionRequest updateRequest = HrLunchDeductionRequest.builder()
+                    .details(List.of(dtlReq))
+                    .build();
+
+            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(activeHdr));
+            when(hdrRepository.saveAndFlush(activeHdr)).thenReturn(activeHdr);
+            when(dtlRepository.findByTransactionPoid(TRANSACTION_POID)).thenReturn(List.of(existingDtl));
+            when(dtlRepository.saveAll(any())).thenReturn(List.of(existingDtl));
+            when(mapper.toResponse(activeHdr)).thenReturn(mappedResponse);
+            when(mapper.toDtlResponseList(any())).thenReturn(List.of());
+
+            HrLunchDeductionResponse result = service.update(TRANSACTION_POID, updateRequest);
+
+            assertThat(result).isNotNull();
+            assertThat(existingDtl.getOffDays()).isEqualTo(3L);
+        }
+
+        @Test
+        void updateWithInvalidDetRowId_throwsException() {
+            HrLunchDeductionDtlRequest dtlReq = HrLunchDeductionDtlRequest.builder()
+                    .detRowId(99L)
+                    .actionType("UPDATED")
+                    .build();
+            HrLunchDeductionRequest updateRequest = HrLunchDeductionRequest.builder()
+                    .details(List.of(dtlReq))
+                    .build();
+
+            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(activeHdr));
+            when(dtlRepository.findByTransactionPoid(TRANSACTION_POID)).thenReturn(List.of());
+
+            assertThatThrownBy(() -> service.update(TRANSACTION_POID, updateRequest))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("detRowId");
+        }
+
+        @Test
+        void hdrNotFound_throwsResourceNotFoundException() {
+            HrLunchDeductionRequest updateRequest = HrLunchDeductionRequest.builder()
+                    .description("Updated")
+                    .build();
+
             when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> service.update(TRANSACTION_POID, updateRequest))
@@ -192,9 +339,6 @@ class HrLunchDeductionServiceImplTest {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // getById()
-    // -------------------------------------------------------------------------
     @Nested
     class GetById {
 
@@ -237,9 +381,6 @@ class HrLunchDeductionServiceImplTest {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // loadAndProcess()
-    // -------------------------------------------------------------------------
     @Nested
     class LoadAndProcess {
 
@@ -271,161 +412,6 @@ class HrLunchDeductionServiceImplTest {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // updateDetail()
-    // -------------------------------------------------------------------------
-    @Nested
-    class UpdateDetail {
-
-        private HrMonthlyLunchDtl existingDtl;
-        private HrMonthlyLunchDtlKey dtlKey;
-
-        @BeforeEach
-        void setUp() {
-            dtlKey = new HrMonthlyLunchDtlKey(1L, TRANSACTION_POID);
-            existingDtl = buildDtl(1L, 22L, 2L, new BigDecimal("0.500"));
-        }
-
-        @Test
-        void updateLeaveDays_recalculatesTotalDaysAndAmount() {
-            // monthDays=22, new leaveDays=5 -> totalDays=17, amount=17*0.500=8.500
-            HrLunchDeductionDtlRequest request = HrLunchDeductionDtlRequest.builder()
-                    .detRowId(1L).leaveDays(5L).build();
-
-            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(activeHdr));
-            when(dtlRepository.findById(dtlKey)).thenReturn(Optional.of(existingDtl));
-
-            service.updateDetail(TRANSACTION_POID, request);
-
-            assertThat(existingDtl.getOffDays()).isEqualTo(5L);
-            assertThat(existingDtl.getTotalDays()).isEqualTo(17L);
-            assertThat(existingDtl.getLunchDeductionAmt()).isEqualByComparingTo(new BigDecimal("8.500"));
-            verify(dtlRepository).save(existingDtl);
-            verify(loggingService).createLogSummaryEntry(eq(DOC_ID), eq("1"), anyString());
-        }
-
-        @Test
-        void updateLeaveDays_whenMonthDaysNull_skipsRecalculation() {
-            existingDtl.setMonthDays(null);
-            HrLunchDeductionDtlRequest request = HrLunchDeductionDtlRequest.builder()
-                    .detRowId(1L).leaveDays(3L).build();
-
-            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(activeHdr));
-            when(dtlRepository.findById(dtlKey)).thenReturn(Optional.of(existingDtl));
-
-            service.updateDetail(TRANSACTION_POID, request);
-
-            assertThat(existingDtl.getOffDays()).isEqualTo(3L);
-            assertThat(existingDtl.getTotalDays()).isEqualTo(20L);
-            verify(dtlRepository).save(existingDtl);
-            verify(loggingService).createLogSummaryEntry(eq(DOC_ID), eq("1"), anyString());
-        }
-
-        @Test
-        void updateLeaveDays_whenCostPerDayNull_skipsAmountRecalculation() {
-            existingDtl.setCostPerDay(null);
-            existingDtl.setLunchDeductionAmt(null);
-            HrLunchDeductionDtlRequest request = HrLunchDeductionDtlRequest.builder()
-                    .detRowId(1L).leaveDays(2L).build();
-
-            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(activeHdr));
-            when(dtlRepository.findById(dtlKey)).thenReturn(Optional.of(existingDtl));
-
-            service.updateDetail(TRANSACTION_POID, request);
-
-            assertThat(existingDtl.getTotalDays()).isEqualTo(20L);
-            assertThat(existingDtl.getLunchDeductionAmt()).isNull();
-            verify(dtlRepository).save(existingDtl);
-            verify(loggingService).createLogSummaryEntry(eq(DOC_ID), eq("1"), anyString());
-        }
-
-        @Test
-        void updateDeductionType_onlyUpdatesType() {
-            HrLunchDeductionDtlRequest request = HrLunchDeductionDtlRequest.builder()
-                    .detRowId(1L).deductionType("FREE").build();
-
-            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(activeHdr));
-            when(dtlRepository.findById(dtlKey)).thenReturn(Optional.of(existingDtl));
-
-            service.updateDetail(TRANSACTION_POID, request);
-
-            assertThat(existingDtl.getDeductionType()).isEqualTo("FREE");
-            verify(dtlRepository).save(existingDtl);
-            verify(loggingService).createLogSummaryEntry(eq(DOC_ID), eq("1"), anyString());
-        }
-
-        @Test
-        void updateAmount_overridesAmount() {
-            HrLunchDeductionDtlRequest request = HrLunchDeductionDtlRequest.builder()
-                    .detRowId(1L).amount(new BigDecimal("9.999")).build();
-
-            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(activeHdr));
-            when(dtlRepository.findById(dtlKey)).thenReturn(Optional.of(existingDtl));
-
-            service.updateDetail(TRANSACTION_POID, request);
-
-            assertThat(existingDtl.getLunchDeductionAmt()).isEqualByComparingTo(new BigDecimal("9.999"));
-            verify(dtlRepository).save(existingDtl);
-            verify(loggingService).createLogSummaryEntry(eq(DOC_ID), eq("1"), anyString());
-        }
-
-        @Test
-        void updateRemarks_onlyUpdatesRemarks() {
-            HrLunchDeductionDtlRequest request = HrLunchDeductionDtlRequest.builder()
-                    .detRowId(1L).remarks("Special case").build();
-
-            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(activeHdr));
-            when(dtlRepository.findById(dtlKey)).thenReturn(Optional.of(existingDtl));
-
-            service.updateDetail(TRANSACTION_POID, request);
-
-            assertThat(existingDtl.getRemarks()).isEqualTo("Special case");
-            verify(dtlRepository).save(existingDtl);
-            verify(loggingService).createLogSummaryEntry(eq(DOC_ID), eq("1"), anyString());
-        }
-
-        @Test
-        void nullLeaveDays_doesNotModifyExistingValues() {
-            BigDecimal originalAmount = existingDtl.getLunchDeductionAmt();
-            Long originalTotalDays = existingDtl.getTotalDays();
-
-            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(activeHdr));
-            when(dtlRepository.findById(dtlKey)).thenReturn(Optional.of(existingDtl));
-
-            service.updateDetail(TRANSACTION_POID,
-                    HrLunchDeductionDtlRequest.builder().detRowId(1L).leaveDays(null).build());
-
-            assertThat(existingDtl.getTotalDays()).isEqualTo(originalTotalDays);
-            assertThat(existingDtl.getLunchDeductionAmt()).isEqualByComparingTo(originalAmount);
-            verify(loggingService).createLogSummaryEntry(eq(DOC_ID), eq("1"), anyString());
-        }
-
-        @Test
-        void hdrNotFound_throwsResourceNotFoundException() {
-            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> service.updateDetail(TRANSACTION_POID,
-                    HrLunchDeductionDtlRequest.builder().detRowId(1L).build()))
-                    .isInstanceOf(ResourceNotFoundException.class);
-
-            verifyNoInteractions(dtlRepository);
-        }
-
-        @Test
-        void dtlNotFound_throwsResourceNotFoundException() {
-            when(hdrRepository.findById(TRANSACTION_POID)).thenReturn(Optional.of(activeHdr));
-            when(dtlRepository.findById(dtlKey)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> service.updateDetail(TRANSACTION_POID,
-                    HrLunchDeductionDtlRequest.builder().detRowId(1L).build()))
-                    .isInstanceOf(ResourceNotFoundException.class)
-                    .hasMessageContaining("detRowId");
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // list()
-    // -------------------------------------------------------------------------
     @Nested
     class ListRecords {
 
@@ -470,9 +456,6 @@ class HrLunchDeductionServiceImplTest {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // delete()
-    // -------------------------------------------------------------------------
     @Nested
     class Delete {
 
@@ -501,9 +484,6 @@ class HrLunchDeductionServiceImplTest {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Helper
-    // -------------------------------------------------------------------------
     private HrMonthlyLunchDtl buildDtl(Long detRowId, Long monthDays, Long offDays, BigDecimal costPerDay) {
         long totalDays = monthDays - offDays;
         return HrMonthlyLunchDtl.builder()

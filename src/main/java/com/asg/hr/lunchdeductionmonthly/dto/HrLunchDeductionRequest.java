@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -17,4 +18,6 @@ public class HrLunchDeductionRequest {
     private String description;
 
     private String remarks;
+
+    private List<HrLunchDeductionDtlRequest> details;
 }
