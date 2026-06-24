@@ -3,12 +3,14 @@ package com.asg.hr.lunchdeductionmonthly.service.impl;
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
+import com.asg.common.lib.dto.LovGetListDto;
 import com.asg.common.lib.dto.RawSearchResult;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.common.lib.service.LovDataService;
 import com.asg.common.lib.utility.PaginationUtil;
 import com.asg.hr.exceptions.ResourceAlreadyExistsException;
 import com.asg.hr.exceptions.ResourceNotFoundException;
@@ -45,6 +47,7 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
     private final DocumentSearchService documentSearchService;
     private final DocumentDeleteService documentDeleteService;
     private final LoggingService loggingService;
+    private final LovDataService lovService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -86,6 +89,7 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
         
         HrLunchDeductionResponse response = mapper.toResponse(saved);
         response.setDetails(mapper.toDtlResponseList(detailEntities));
+        enrichWithLovData(response);
         return response;
     }
 
@@ -104,6 +108,7 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
         List<HrMonthlyLunchDtl> updatedDetails = dtlRepository.findByTransactionPoid(transactionPoid);
         HrLunchDeductionResponse response = mapper.toResponse(saved);
         response.setDetails(mapper.toDtlResponseList(updatedDetails));
+        enrichWithLovData(response);
         return response;
     }
 
@@ -114,6 +119,7 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
         List<HrMonthlyLunchDtl> details = dtlRepository.findByTransactionPoid(transactionPoid);
         HrLunchDeductionResponse response = mapper.toResponse(hdr);
         response.setDetails(mapper.toDtlResponseList(details));
+        enrichWithLovData(response);
         return response;
     }
 
@@ -235,6 +241,32 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
         if (request.getDeductionType() != null) dtl.setDeductionType(request.getDeductionType());
         if (request.getAmount() != null) dtl.setLunchDeductionAmt(request.getAmount());
         if (request.getRemarks() != null) dtl.setRemarks(request.getRemarks());
+    }
+
+    private void enrichWithLovData(HrLunchDeductionResponse response) {
+        if (response == null || response.getDetails() == null || response.getDetails().isEmpty()) {
+            return;
+        }
+
+        for (HrLunchDeductionDtlResponse detail : response.getDetails()) {
+            if (detail != null) {
+                if (detail.getEmployeePoid() != null) {
+                    LovGetListDto empDet = lovService.getDetailsByPoidAndLovName(
+                            detail.getEmployeePoid(),
+                            "EMPLOYEE_NAME"
+                    );
+                    detail.setEmpDet(empDet);
+                }
+
+                if (detail.getDeductionType() != null) {
+                    LovGetListDto deductionTypeDet = lovService.getDetailsByCodeAndLovName(
+                            detail.getDeductionType(),
+                            "LUNCH_DEDUCTION_TYPE"
+                    );
+                    detail.setDeductionTypeDet(deductionTypeDet);
+                }
+            }
+        }
     }
 
     private String resolveDetailActionType(String actionType, Long detRowId) {

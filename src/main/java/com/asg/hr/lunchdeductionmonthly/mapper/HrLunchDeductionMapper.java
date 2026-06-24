@@ -38,6 +38,7 @@ public class HrLunchDeductionMapper {
         return HrLunchDeductionResponse.builder()
                 .transactionPoid(hdr.getTransactionPoid())
                 .docRef(hdr.getDocRef())
+                .transactionDate(hdr.getTransactionDate())
                 .payrollMonth(hdr.getPayrollMonth())
                 .description(hdr.getDescription())
                 .remarks(hdr.getRemarks())

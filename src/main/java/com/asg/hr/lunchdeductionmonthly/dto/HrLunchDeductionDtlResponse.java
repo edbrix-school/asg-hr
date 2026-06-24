@@ -1,5 +1,6 @@
 package com.asg.hr.lunchdeductionmonthly.dto;
 
+import com.asg.common.lib.dto.LovGetListDto;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -18,7 +19,11 @@ public class HrLunchDeductionDtlResponse {
 
     private String employeeName;
 
+    private LovGetListDto empDet;
+
     private String deductionType;
+
+    private LovGetListDto deductionTypeDet;
 
     private Long lunchDays;
 
@@ -30,7 +35,7 @@ public class HrLunchDeductionDtlResponse {
 
     private BigDecimal costPerDay;
 
-    private BigDecimal amount;      // maps to LUNCH_DEDCTION_AMT in DB
+    private BigDecimal amount;
 
     private String remarks;
 }
