@@ -21,6 +21,12 @@ public class HrLunchDeductionMapper {
                 .build();
     }
 
+    public void updateEntity(HrMonthlyLunchHdr hdr, HrLunchDeductionRequest request) {
+        if (hdr == null || request == null) return;
+        hdr.setDescription(request.getDescription());
+        hdr.setRemarks(request.getRemarks());
+    }
+
     public void updateEntity(HrMonthlyLunchHdr hdr, HrLunchDeductionUpdateRequest request) {
         if (hdr == null || request == null) return;
         hdr.setDescription(request.getDescription());
@@ -32,6 +38,7 @@ public class HrLunchDeductionMapper {
         return HrLunchDeductionResponse.builder()
                 .transactionPoid(hdr.getTransactionPoid())
                 .docRef(hdr.getDocRef())
+                .transactionDate(hdr.getTransactionDate())
                 .payrollMonth(hdr.getPayrollMonth())
                 .description(hdr.getDescription())
                 .remarks(hdr.getRemarks())
@@ -59,5 +66,29 @@ public class HrLunchDeductionMapper {
     public List<HrLunchDeductionDtlResponse> toDtlResponseList(List<HrMonthlyLunchDtl> dtlList) {
         if (dtlList == null) return Collections.emptyList();
         return dtlList.stream().map(this::toDtlResponse).toList();
+    }
+
+    public List<HrMonthlyLunchDtl> toDtlEntityList(Long transactionPoid, List<HrLunchDeductionDtlRequest> dtlRequests) {
+        if (dtlRequests == null) return Collections.emptyList();
+        List<HrMonthlyLunchDtl> result = new java.util.ArrayList<>();
+        for (int i = 0; i < dtlRequests.size(); i++) {
+            HrLunchDeductionDtlRequest req = dtlRequests.get(i);
+            if (req != null) {
+                result.add(toDtlEntity(transactionPoid, req, (long) (i + 1)));
+            }
+        }
+        return result;
+    }
+
+    public HrMonthlyLunchDtl toDtlEntity(Long transactionPoid, HrLunchDeductionDtlRequest request, Long detRowId) {
+        if (request == null) return null;
+        return HrMonthlyLunchDtl.builder()
+                .detRowId(detRowId)
+                .transactionPoid(transactionPoid)
+                .deductionType(request.getDeductionType())
+                .offDays(request.getLeaveDays())
+                .lunchDeductionAmt(request.getAmount())
+                .remarks(request.getRemarks())
+                .build();
     }
 }

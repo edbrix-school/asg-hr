@@ -1,5 +1,6 @@
 package com.asg.hr.lunchdeductionmonthly.dto;
 
+import com.asg.common.lib.dto.LovGetListDto;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -14,6 +15,8 @@ public class HrLunchDeductionResponse {
     private Long transactionPoid;
 
     private String docRef;
+
+    private LocalDate transactionDate;
 
     private LocalDate payrollMonth;
 

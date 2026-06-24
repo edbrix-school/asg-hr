@@ -12,13 +12,11 @@ public interface HrLunchDeductionService {
 
     HrLunchDeductionResponse create(HrLunchDeductionRequest request);
 
-    HrLunchDeductionResponse update(Long transactionPoid, HrLunchDeductionUpdateRequest request);
+    HrLunchDeductionResponse update(Long transactionPoid, HrLunchDeductionRequest request);
 
     HrLunchDeductionResponse getById(Long transactionPoid);
 
     HrLunchDeductionLoadDto loadAndProcess(Long transactionPoid);
-
-    void updateDetail(Long transactionPoid, HrLunchDeductionDtlRequest dtlRequest);
 
     Map<String, Object> list(FilterRequestDto filterRequest, Pageable pageable);
 

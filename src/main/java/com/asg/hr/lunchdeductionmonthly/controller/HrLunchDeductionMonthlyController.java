@@ -57,7 +57,7 @@ public class HrLunchDeductionMonthlyController {
     @AllowedAction(UserRolesRightsEnum.EDIT)
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable("id") @NotNull @Positive Long transactionPoid,
-                                    @Valid @RequestBody HrLunchDeductionUpdateRequest request) {
+                                    @Valid @RequestBody HrLunchDeductionRequest request) {
         HrLunchDeductionResponse response = lunchDeductionService.update(transactionPoid, request);
         return ApiResponse.success("Lunch deduction record updated successfully", response);
     }
@@ -67,14 +67,6 @@ public class HrLunchDeductionMonthlyController {
     public ResponseEntity<?> loadAndProcess(@PathVariable("id") @NotNull @Positive Long transactionPoid) {
         HrLunchDeductionLoadDto response = lunchDeductionService.loadAndProcess(transactionPoid);
         return ApiResponse.success("Lunch details loaded and processed successfully", response);
-    }
-
-    @AllowedAction(UserRolesRightsEnum.EDIT)
-    @PutMapping("/{id}/details")
-    public ResponseEntity<?> updateDetail(@PathVariable("id") @NotNull @Positive Long transactionPoid,
-                                          @Valid @RequestBody HrLunchDeductionDtlRequest dtlRequest) {
-        lunchDeductionService.updateDetail(transactionPoid, dtlRequest);
-        return ApiResponse.success("Lunch deduction detail updated successfully");
     }
 
     @AllowedAction(UserRolesRightsEnum.DELETE)

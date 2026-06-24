@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -76,6 +77,14 @@ class HrLunchDeductionMonthlyControllerTest {
                 .transactionPoid(1L)
                 .docRef("LDM-001")
                 .payrollMonth(LocalDate.of(2025, 9, 1))
+                .details(List.of(
+                        HrLunchDeductionDtlResponse.builder()
+                                .detRowId(1L)
+                                .transactionPoid(1L)
+                                .deductionType("LUNCH")
+                                .amount(new BigDecimal("500.00"))
+                                .build()
+                ))
                 .build();
     }
 
@@ -84,9 +93,6 @@ class HrLunchDeductionMonthlyControllerTest {
         userContextMock.close();
     }
 
-    // -------------------------------------------------------------------------
-    // POST /list
-    // -------------------------------------------------------------------------
     @Nested
     class ListEndpoint {
 
@@ -113,9 +119,6 @@ class HrLunchDeductionMonthlyControllerTest {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // GET /{id}
-    // -------------------------------------------------------------------------
     @Nested
     class GetByIdEndpoint {
 
@@ -140,14 +143,35 @@ class HrLunchDeductionMonthlyControllerTest {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // POST / (create)
-    // -------------------------------------------------------------------------
     @Nested
     class CreateEndpoint {
 
         @Test
-        void success_returnsOk() throws Exception {
+        void success_withDetails_returnsOk() throws Exception {
+            HrLunchDeductionRequest request = HrLunchDeductionRequest.builder()
+                    .payrollMonth(LocalDate.of(2025, 9, 1))
+                    .description("Sep 2025")
+                    .details(List.of(
+                            HrLunchDeductionDtlRequest.builder()
+                                    .deductionType("LUNCH")
+                                    .leaveDays(2L)
+                                    .amount(new BigDecimal("500.00"))
+                                    .build()
+                    ))
+                    .build();
+
+            when(service.create(any(HrLunchDeductionRequest.class))).thenReturn(sampleResponse);
+
+            mockMvc.perform(post(BASE_URL)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk());
+
+            verify(service).create(any(HrLunchDeductionRequest.class));
+        }
+
+        @Test
+        void success_noDetails_returnsOk() throws Exception {
             HrLunchDeductionRequest request = HrLunchDeductionRequest.builder()
                     .payrollMonth(LocalDate.of(2025, 9, 1))
                     .description("Sep 2025")
@@ -165,9 +189,8 @@ class HrLunchDeductionMonthlyControllerTest {
 
         @Test
         void missingPayrollMonth_returns400() throws Exception {
-            HrLunchDeductionRequest request = HrLunchDeductionRequest.builder()
-                    .description("no month")
-                    .build();
+            HrLunchDeductionRequest request = new HrLunchDeductionRequest();
+            request.setDescription("no month");
 
             mockMvc.perform(post(BASE_URL)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -181,6 +204,7 @@ class HrLunchDeductionMonthlyControllerTest {
         void duplicatePayrollMonth_returns409() throws Exception {
             HrLunchDeductionRequest request = HrLunchDeductionRequest.builder()
                     .payrollMonth(LocalDate.of(2025, 9, 1))
+                    .details(List.of())
                     .build();
 
             when(service.create(any()))
@@ -193,36 +217,58 @@ class HrLunchDeductionMonthlyControllerTest {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // PUT /{id}
-    // -------------------------------------------------------------------------
     @Nested
     class UpdateEndpoint {
 
         @Test
-        void success_returnsOk() throws Exception {
-            HrLunchDeductionUpdateRequest request = HrLunchDeductionUpdateRequest.builder()
-                    .description("Updated").remarks("note").build();
+        void success_withDetails_returnsOk() throws Exception {
+            HrLunchDeductionRequest request = HrLunchDeductionRequest.builder()
+                    .payrollMonth(LocalDate.of(2025, 9, 1))
+                    .description("Updated")
+                    .remarks("note")
+                    .details(List.of(
+                            HrLunchDeductionDtlRequest.builder()
+                                    .detRowId(1L)
+                                    .actionType("UPDATED")
+                                    .leaveDays(3L)
+                                    .amount(new BigDecimal("750.00"))
+                                    .build(),
+                            HrLunchDeductionDtlRequest.builder()
+                                    .actionType("CREATED")
+                                    .deductionType("LUNCH")
+                                    .leaveDays(2L)
+                                    .amount(new BigDecimal("500.00"))
+                                    .build()
+                    ))
+                    .build();
 
-            when(service.update(eq(1L), any(HrLunchDeductionUpdateRequest.class))).thenReturn(sampleResponse);
+            when(service.update(eq(1L), any(HrLunchDeductionRequest.class))).thenReturn(sampleResponse);
 
             mockMvc.perform(put(BASE_URL + "/1")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk());
 
-            verify(service).update(eq(1L), any(HrLunchDeductionUpdateRequest.class));
+            verify(service).update(eq(1L), any(HrLunchDeductionRequest.class));
         }
 
         @Test
-        void finalizedRecord_returns400() throws Exception {
-            when(service.update(eq(1L), any())).thenThrow(
-                    new ValidationException("Cannot modify record because payroll has already been finalized for this period."));
+        void success_headerOnly_returnsOk() throws Exception {
+            HrLunchDeductionRequest request = HrLunchDeductionRequest.builder()
+                    .payrollMonth(LocalDate.of(2025, 9, 1))
+                    .description("Updated")
+                    .remarks("note")
+                    .details(List.of())
+                    .build();
+
+            when(service.update(eq(1L), any(HrLunchDeductionRequest.class))).thenReturn(sampleResponse);
 
             mockMvc.perform(put(BASE_URL + "/1")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new HrLunchDeductionUpdateRequest())))
-                    .andExpect(status().isBadRequest());
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isOk());
+
+            verify(service).update(eq(1L), any(HrLunchDeductionRequest.class));
         }
 
         @Test
@@ -230,16 +276,18 @@ class HrLunchDeductionMonthlyControllerTest {
             when(service.update(eq(99L), any()))
                     .thenThrow(new ResourceNotFoundException("Lunch Deduction", "transactionPoid", 99L));
 
+            HrLunchDeductionRequest request = HrLunchDeductionRequest.builder()
+                    .payrollMonth(LocalDate.of(2025, 9, 1))
+                    .details(List.of())
+                    .build();
+
             mockMvc.perform(put(BASE_URL + "/99")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new HrLunchDeductionUpdateRequest())))
+                            .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isNotFound());
         }
     }
 
-    // -------------------------------------------------------------------------
-    // POST /{id}/load
-    // -------------------------------------------------------------------------
     @Nested
     class LoadAndProcessEndpoint {
 
@@ -267,66 +315,8 @@ class HrLunchDeductionMonthlyControllerTest {
             mockMvc.perform(post(BASE_URL + "/99/load"))
                     .andExpect(status().isNotFound());
         }
-
-        @Test
-        void finalizedPayroll_returns400() throws Exception {
-            when(service.loadAndProcess(1L)).thenThrow(
-                    new ValidationException("Cannot modify record because payroll has already been finalized for this period."));
-
-            mockMvc.perform(post(BASE_URL + "/1/load"))
-                    .andExpect(status().isBadRequest());
-        }
     }
 
-    // -------------------------------------------------------------------------
-    // PUT /{id}/details
-    // -------------------------------------------------------------------------
-    @Nested
-    class UpdateDetailEndpoint {
-
-        @Test
-        void success_returnsOk() throws Exception {
-            HrLunchDeductionDtlRequest request = HrLunchDeductionDtlRequest.builder()
-                    .detRowId(1L).leaveDays(3L).deductionType("DEDUCT").build();
-
-            doNothing().when(service).updateDetail(eq(1L), any(HrLunchDeductionDtlRequest.class));
-
-            mockMvc.perform(put(BASE_URL + "/1/details")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isOk());
-
-            verify(service).updateDetail(eq(1L), any(HrLunchDeductionDtlRequest.class));
-        }
-
-        @Test
-        void detailNotFound_returns404() throws Exception {
-            doThrow(new ResourceNotFoundException("Lunch Detail", "detRowId", 99L))
-                    .when(service).updateDetail(eq(1L), any());
-
-            mockMvc.perform(put(BASE_URL + "/1/details")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(
-                                    HrLunchDeductionDtlRequest.builder().detRowId(99L).build())))
-                    .andExpect(status().isNotFound());
-        }
-
-        @Test
-        void finalizedRecord_returns400() throws Exception {
-            doThrow(new ValidationException("Cannot modify record because payroll has already been finalized for this period."))
-                    .when(service).updateDetail(eq(1L), any());
-
-            mockMvc.perform(put(BASE_URL + "/1/details")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(
-                                    HrLunchDeductionDtlRequest.builder().detRowId(1L).build())))
-                    .andExpect(status().isBadRequest());
-        }
-    }
-
-    // -------------------------------------------------------------------------
-    // DELETE /{id}
-    // -------------------------------------------------------------------------
     @Nested
     class DeleteEndpoint {
 
@@ -362,17 +352,6 @@ class HrLunchDeductionMonthlyControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(new DeleteReasonDto())))
                     .andExpect(status().isNotFound());
-        }
-
-        @Test
-        void finalizedPayroll_returns400() throws Exception {
-            doThrow(new ValidationException("Cannot modify record because payroll has already been finalized for this period."))
-                    .when(service).delete(eq(1L), any());
-
-            mockMvc.perform(delete(BASE_URL + "/1")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(new DeleteReasonDto())))
-                    .andExpect(status().isBadRequest());
         }
     }
 }

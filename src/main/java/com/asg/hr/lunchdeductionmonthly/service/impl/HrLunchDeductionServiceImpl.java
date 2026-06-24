@@ -3,12 +3,14 @@ package com.asg.hr.lunchdeductionmonthly.service.impl;
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
+import com.asg.common.lib.dto.LovGetListDto;
 import com.asg.common.lib.dto.RawSearchResult;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.common.lib.service.LovDataService;
 import com.asg.common.lib.utility.PaginationUtil;
 import com.asg.hr.exceptions.ResourceAlreadyExistsException;
 import com.asg.hr.exceptions.ResourceNotFoundException;
@@ -16,7 +18,6 @@ import com.asg.hr.exceptions.ValidationException;
 import com.asg.hr.lunchdeductionmonthly.dto.*;
 import com.asg.hr.lunchdeductionmonthly.entity.HrMonthlyLunchDtl;
 import com.asg.hr.lunchdeductionmonthly.entity.HrMonthlyLunchHdr;
-import com.asg.hr.lunchdeductionmonthly.entity.key.HrMonthlyLunchDtlKey;
 import com.asg.hr.lunchdeductionmonthly.mapper.HrLunchDeductionMapper;
 import com.asg.hr.lunchdeductionmonthly.repository.HrLunchDeductionProcRepository;
 import com.asg.hr.lunchdeductionmonthly.repository.HrMonthlyLunchDtlRepository;
@@ -32,8 +33,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -47,6 +47,7 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
     private final DocumentSearchService documentSearchService;
     private final DocumentDeleteService documentDeleteService;
     private final LoggingService loggingService;
+    private final LovDataService lovService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -68,24 +69,47 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
         HrMonthlyLunchHdr saved = hdrRepository.saveAndFlush(hdr);
         entityManager.refresh(saved);
 
+        List<HrLunchDeductionDtlRequest> details = request.getDetails() == null ? List.of() : request.getDetails();
+        List<HrMonthlyLunchDtl> detailEntities = mapper.toDtlEntityList(saved.getTransactionPoid(), details);
+        if (!detailEntities.isEmpty()) {
+            dtlRepository.saveAll(detailEntities);
+            String docId = UserContext.getDocumentId();
+            String docKeyPoid = saved.getTransactionPoid().toString();
+            for (HrMonthlyLunchDtl entity : detailEntities) {
+                String logDetail = String.format("Row Created on Lunch Detail with detRowId: %s", entity.getDetRowId());
+                loggingService.createLogSummaryEntry(docId, docKeyPoid, logDetail);
+            }
+        }
+
         loggingService.createLogSummaryEntry(
                 UserContext.getDocumentId(),
                 saved.getTransactionPoid().toString(),
                 LogDetailsEnum.CREATED.getDescription() + " " + saved.getDocRef()
         );
-        return mapper.toResponse(saved);
+        
+        HrLunchDeductionResponse response = mapper.toResponse(saved);
+        response.setDetails(mapper.toDtlResponseList(detailEntities));
+        enrichWithLovData(response);
+        return response;
     }
 
     @Override
     @Transactional
-    public HrLunchDeductionResponse update(Long transactionPoid, HrLunchDeductionUpdateRequest request) {
+    public HrLunchDeductionResponse update(Long transactionPoid, HrLunchDeductionRequest request) {
         HrMonthlyLunchHdr hdr = getHdr(transactionPoid);
 
         mapper.updateEntity(hdr, request);
         HrMonthlyLunchHdr saved = hdrRepository.saveAndFlush(hdr);
 
+        updateLunchDeductionDetails(transactionPoid, request.getDetails());
+
         loggingService.createLogSummaryEntry(LogDetailsEnum.MODIFIED, UserContext.getDocumentId(), transactionPoid.toString());
-        return mapper.toResponse(saved);
+        
+        List<HrMonthlyLunchDtl> updatedDetails = dtlRepository.findByTransactionPoid(transactionPoid);
+        HrLunchDeductionResponse response = mapper.toResponse(saved);
+        response.setDetails(mapper.toDtlResponseList(updatedDetails));
+        enrichWithLovData(response);
+        return response;
     }
 
     @Override
@@ -95,6 +119,7 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
         List<HrMonthlyLunchDtl> details = dtlRepository.findByTransactionPoid(transactionPoid);
         HrLunchDeductionResponse response = mapper.toResponse(hdr);
         response.setDetails(mapper.toDtlResponseList(details));
+        enrichWithLovData(response);
         return response;
     }
 
@@ -109,39 +134,6 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
         return HrLunchDeductionLoadDto.builder()
                 .lunchDetails(mapper.toDtlResponseList(details))
                 .build();
-    }
-
-    @Override
-    @Transactional
-    public void updateDetail(Long transactionPoid, HrLunchDeductionDtlRequest dtlRequest) {
-        HrMonthlyLunchHdr hdr = getHdr(transactionPoid);
-        String docId = UserContext.getDocumentId();
-        String docKeyPoid = transactionPoid.toString();
-
-        HrMonthlyLunchDtlKey key = new HrMonthlyLunchDtlKey(dtlRequest.getDetRowId(), transactionPoid);
-        HrMonthlyLunchDtl dtl = dtlRepository.findById(key)
-                .orElseThrow(() -> new ResourceNotFoundException("Lunch Detail", "detRowId", dtlRequest.getDetRowId()));
-
-        String actionType = dtlRequest.getActionType() != null ? dtlRequest.getActionType().trim() : "UPDATED";
-
-        if (dtlRequest.getLeaveDays() != null) {
-            dtl.setOffDays(dtlRequest.getLeaveDays());
-            if (dtl.getMonthDays() != null) {
-                dtl.setTotalDays(dtl.getMonthDays() - dtlRequest.getLeaveDays());
-                if (dtl.getCostPerDay() != null) {
-                    dtl.setLunchDeductionAmt(dtl.getCostPerDay().multiply(java.math.BigDecimal.valueOf(dtl.getTotalDays())));
-                }
-            }
-        }
-        if (dtlRequest.getDeductionType() != null) dtl.setDeductionType(dtlRequest.getDeductionType());
-        if (dtlRequest.getAmount() != null) dtl.setLunchDeductionAmt(dtlRequest.getAmount());
-        if (dtlRequest.getRemarks() != null) dtl.setRemarks(dtlRequest.getRemarks());
-
-        dtlRepository.save(dtl);
-
-        String logDetail = String.format("KeyId = TRANSACTION_POID: %s DET_ROW_ID: %s Action: %s", 
-                transactionPoid, dtlRequest.getDetRowId(), actionType);
-        loggingService.createLogSummaryEntry(docId, docKeyPoid, logDetail);
     }
 
     @Override
@@ -166,6 +158,127 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
                 transactionPoid, "HR_MONTHLY_LUNCH_HDR", "TRANSACTION_POID", deleteReasonDto, null);
 
         loggingService.createLogSummaryEntry(LogDetailsEnum.DELETED, UserContext.getDocumentId(), transactionPoid.toString());
+    }
+
+    private void updateLunchDeductionDetails(Long transactionPoid, List<HrLunchDeductionDtlRequest> detailRequests) {
+        List<HrLunchDeductionDtlRequest> details = detailRequests == null ? List.of() : detailRequests;
+        String docId = UserContext.getDocumentId();
+        String docKeyPoid = transactionPoid.toString();
+
+        List<HrMonthlyLunchDtl> existingDetails = dtlRepository.findByTransactionPoid(transactionPoid);
+        Map<Long, HrMonthlyLunchDtl> existingByDetRowId = new HashMap<>();
+        long maxDetRowId = 0;
+        if (existingDetails != null) {
+            for (HrMonthlyLunchDtl e : existingDetails) {
+                if (e == null || e.getDetRowId() == null) continue;
+                long detRowId = e.getDetRowId();
+                existingByDetRowId.put(detRowId, e);
+                maxDetRowId = Math.max(maxDetRowId, detRowId);
+            }
+        }
+
+        Set<Long> deletedDetRowIds = new HashSet<>();
+        List<HrMonthlyLunchDtl> toDelete = new ArrayList<>();
+        List<HrMonthlyLunchDtl> toUpdate = new ArrayList<>();
+        List<HrMonthlyLunchDtl> toCreate = new ArrayList<>();
+
+        for (HrLunchDeductionDtlRequest d : details) {
+            if (d == null) continue;
+
+            String action = resolveDetailActionType(d.getActionType(), d.getDetRowId());
+            Long detRowIdNorm = normalizeDetRowId(d.getDetRowId());
+
+            switch (action) {
+                case "CREATED":
+                    maxDetRowId++;
+                    HrMonthlyLunchDtl newDtl = mapper.toDtlEntity(transactionPoid, d, maxDetRowId);
+                    toCreate.add(newDtl);
+                    break;
+                case "UPDATED":
+                    if (detRowIdNorm == null) throw new ValidationException("detRowId required for UPDATE action");
+                    HrMonthlyLunchDtl dtl = existingByDetRowId.get(detRowIdNorm);
+                    if (dtl == null) throw new ResourceNotFoundException("Lunch Detail", "detRowId", detRowIdNorm);
+                    updateDetailEntity(dtl, d);
+                    toUpdate.add(dtl);
+                    break;
+                case "DELETED":
+                    if (detRowIdNorm == null) throw new ValidationException("detRowId required for DELETE action");
+                    HrMonthlyLunchDtl dtlToDel = existingByDetRowId.get(detRowIdNorm);
+                    if (dtlToDel == null) throw new ResourceNotFoundException("Lunch Detail", "detRowId", detRowIdNorm);
+                    toDelete.add(dtlToDel);
+                    deletedDetRowIds.add(detRowIdNorm);
+                    break;
+            }
+        }
+
+        if (!toDelete.isEmpty()) {
+            dtlRepository.deleteAll(toDelete);
+            toDelete.forEach(deleted -> loggingService.createLogSummaryEntry(docId, docKeyPoid,
+                    String.format("Row Deleted from Lunch Detail with detRowId: %s", deleted.getDetRowId())));
+        }
+        if (!toCreate.isEmpty()) {
+            dtlRepository.saveAll(toCreate);
+            toCreate.forEach(created -> loggingService.createLogSummaryEntry(docId, docKeyPoid,
+                    String.format("Row Created on Lunch Detail with detRowId: %s", created.getDetRowId())));
+        }
+        if (!toUpdate.isEmpty()) {
+            dtlRepository.saveAll(toUpdate);
+            toUpdate.forEach(updated -> loggingService.createLogSummaryEntry(docId, docKeyPoid,
+                    String.format("Row Updated in Lunch Detail with detRowId: %s", updated.getDetRowId())));
+        }
+    }
+
+    private void updateDetailEntity(HrMonthlyLunchDtl dtl, HrLunchDeductionDtlRequest request) {
+        if (request.getLeaveDays() != null) {
+            dtl.setOffDays(request.getLeaveDays());
+            if (dtl.getMonthDays() != null) {
+                dtl.setTotalDays(dtl.getMonthDays() - request.getLeaveDays());
+                if (dtl.getCostPerDay() != null) {
+                    dtl.setLunchDeductionAmt(dtl.getCostPerDay().multiply(java.math.BigDecimal.valueOf(dtl.getTotalDays())));
+                }
+            }
+        }
+        if (request.getDeductionType() != null) dtl.setDeductionType(request.getDeductionType());
+        if (request.getAmount() != null) dtl.setLunchDeductionAmt(request.getAmount());
+        if (request.getRemarks() != null) dtl.setRemarks(request.getRemarks());
+    }
+
+    private void enrichWithLovData(HrLunchDeductionResponse response) {
+        if (response == null || response.getDetails() == null || response.getDetails().isEmpty()) {
+            return;
+        }
+
+        for (HrLunchDeductionDtlResponse detail : response.getDetails()) {
+            if (detail != null) {
+                if (detail.getEmployeePoid() != null) {
+                    LovGetListDto empDet = lovService.getDetailsByPoidAndLovName(
+                            detail.getEmployeePoid(),
+                            "EMPLOYEE_NAME"
+                    );
+                    detail.setEmpDet(empDet);
+                }
+
+                if (detail.getDeductionType() != null) {
+                    LovGetListDto deductionTypeDet = lovService.getDetailsByCodeAndLovName(
+                            detail.getDeductionType(),
+                            "LUNCH_DEDUCTION_TYPE"
+                    );
+                    detail.setDeductionTypeDet(deductionTypeDet);
+                }
+            }
+        }
+    }
+
+    private String resolveDetailActionType(String actionType, Long detRowId) {
+        if (actionType == null || actionType.isBlank()) {
+            return normalizeDetRowId(detRowId) == null ? "CREATED" : "UPDATED";
+        }
+        return actionType.trim().toUpperCase();
+    }
+
+    private Long normalizeDetRowId(Long detRowId) {
+        if (detRowId == null || detRowId == 0) return null;
+        return detRowId;
     }
 
     private HrMonthlyLunchHdr getHdr(Long transactionPoid) {
