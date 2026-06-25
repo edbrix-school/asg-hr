@@ -9,6 +9,8 @@ import com.asg.common.lib.exception.ResourceNotFoundException;
 import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationCalculateScoresRequestDto;
+import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationCalculateScoresResponseDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationRequestDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationResponseDto;
 import com.asg.hr.competencyevaluation.service.CompetencyEvaluationService;
@@ -144,8 +146,26 @@ public class CompetencyEvaluationController {
         }
     }
 
-    @Operation(summary = "Calculate HOD total score and percentages",
-            description = "Recalculates total rating, average rating %, and employee agreement % from detail lines.",
+    @Operation(summary = "Calculate scores from detail ratings in request body",
+            description = "Calculates scores from detail ratings in request body",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @AllowedAction(UserRolesRightsEnum.EDIT)
+    @PostMapping("/calculate-scores")
+    public ResponseEntity<?> calculateScoresFromDetails(
+            @Valid @RequestBody CompetencyEvaluationCalculateScoresRequestDto request) {
+        try {
+            CompetencyEvaluationCalculateScoresResponseDto data =
+                    competencyEvaluationService.calculateScoresFromDetails(request);
+            return success("Scores calculated successfully", data);
+        } catch (ValidationException ex) {
+            return badRequest(ex.getMessage());
+        } catch (Exception ex) {
+            return internalServerError(ex.getMessage());
+        }
+    }
+
+    @Operation(summary = "Calculate HOD total score and percentages from saved records",
+            description = "Reads detail lines from database for the transaction and persists scores to header.",
             security = @SecurityRequirement(name = "bearerAuth"))
     @AllowedAction(UserRolesRightsEnum.EDIT)
     @PostMapping("/{transactionPoid}/calculate-scores")

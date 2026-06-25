@@ -7,6 +7,7 @@ import com.asg.common.lib.exception.ResourceNotFoundException;
 import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationCalculateScoresResponseDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationRequestDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationResponseDto;
 import com.asg.hr.competencyevaluation.service.CompetencyEvaluationService;
@@ -189,6 +190,25 @@ class CompetencyEvaluationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new DeleteReasonDto())))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void calculateScoresFromDetails_success() throws Exception {
+        CompetencyEvaluationCalculateScoresResponseDto response = CompetencyEvaluationCalculateScoresResponseDto.builder()
+                .totalRating(new BigDecimal("37.00"))
+                .avgRatingPercent(new BigDecimal("40.22"))
+                .employeeAgreedPercent(new BigDecimal("17.39"))
+                .build();
+        when(competencyEvaluationService.calculateScoresFromDetails(any())).thenReturn(response);
+
+        mockMvc.perform(post("/v1/competency-evaluation/calculate-scores")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"details":[{"detRowId":1,"rating":"EXCELLENT","employeeAgreed":"AGREE"}]}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.result.data.totalRating").value(37.00));
     }
 
     @Test

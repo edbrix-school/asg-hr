@@ -2,6 +2,8 @@ package com.asg.hr.competencyevaluation.service;
 
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
+import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationCalculateScoresRequestDto;
+import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationCalculateScoresResponseDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationRequestDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationResponseDto;
 import org.springframework.data.domain.Pageable;
@@ -22,4 +24,7 @@ public interface CompetencyEvaluationService {
     void delete(Long transactionPoid, DeleteReasonDto deleteReasonDto);
 
     CompetencyEvaluationResponseDto calculateScores(Long transactionPoid);
+
+    CompetencyEvaluationCalculateScoresResponseDto calculateScoresFromDetails(
+            CompetencyEvaluationCalculateScoresRequestDto request);
 }

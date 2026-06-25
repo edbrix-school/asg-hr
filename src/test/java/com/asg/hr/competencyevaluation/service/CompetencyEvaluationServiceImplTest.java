@@ -19,6 +19,8 @@ import com.asg.hr.competency.entity.CompetencyMasterEntity;
 import com.asg.hr.competency.entity.HrCompetencySchedule;
 import com.asg.hr.competency.repository.CompetencyMasterRepository;
 import com.asg.hr.competency.repository.HrCompetencyScheduleRepository;
+import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationCalculateScoresRequestDto;
+import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationCalculateScoresResponseDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationRequestDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationResponseDto;
 import com.asg.hr.competencyevaluation.entity.HrCompetencyEvaluationDtl;
@@ -35,6 +37,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -768,6 +771,27 @@ class CompetencyEvaluationServiceImplTest {
             assertNotNull(result.getTotalRating());
             verify(hdrRepository).save(hdr);
         }
+    }
+
+    @Test
+    void calculateScoresFromDetails_returnsScoresWithoutDb() {
+        CompetencyEvaluationCalculateScoresRequestDto request = CompetencyEvaluationCalculateScoresRequestDto.builder()
+                .details(List.of(
+                        CompetencyEvaluationCalculateScoresRequestDto.DetailRatingDto.builder()
+                                .detRowId(1L).rating("EXCELLENT").employeeAgreed("AGREE").build(),
+                        CompetencyEvaluationCalculateScoresRequestDto.DetailRatingDto.builder()
+                                .detRowId(2L).rating("GOOD").employeeAgreed("DISAGREE").build(),
+                        CompetencyEvaluationCalculateScoresRequestDto.DetailRatingDto.builder()
+                                .detRowId(3L).rating("").employeeAgreed("").build()
+                ))
+                .build();
+
+        CompetencyEvaluationCalculateScoresResponseDto result = service.calculateScoresFromDetails(request);
+
+        assertEquals(0, new BigDecimal("7.00").compareTo(result.getTotalRating()));
+        assertEquals(0, new BigDecimal("58.33").compareTo(result.getAvgRatingPercent()));
+        assertEquals(0, new BigDecimal("33.33").compareTo(result.getEmployeeAgreedPercent()));
+        assertEquals(3, result.getDetails().size());
     }
 
     @Test

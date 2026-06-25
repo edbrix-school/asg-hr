@@ -19,6 +19,8 @@ import com.asg.hr.competency.entity.CompetencyMasterEntity;
 import com.asg.hr.competency.entity.HrCompetencySchedule;
 import com.asg.hr.competency.repository.CompetencyMasterRepository;
 import com.asg.hr.competency.repository.HrCompetencyScheduleRepository;
+import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationCalculateScoresRequestDto;
+import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationCalculateScoresResponseDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationRequestDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationResponseDto;
 import com.asg.hr.competencyevaluation.entity.HrCompetencyEvaluationDtl;
@@ -207,6 +209,25 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
         hdrRepository.save(hdr);
 
         return mapToResponse(hdr, lines);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CompetencyEvaluationCalculateScoresResponseDto calculateScoresFromDetails(
+            CompetencyEvaluationCalculateScoresRequestDto request) {
+        List<String> ratings = request.getDetails().stream()
+                .map(CompetencyEvaluationCalculateScoresRequestDto.DetailRatingDto::getRating)
+                .toList();
+        List<String> employeeAgreed = request.getDetails().stream()
+                .map(CompetencyEvaluationCalculateScoresRequestDto.DetailRatingDto::getEmployeeAgreed)
+                .toList();
+        CompetencyEvaluationScores.ScoreResult scores = CompetencyEvaluationScores.calculate(ratings, employeeAgreed);
+        return CompetencyEvaluationCalculateScoresResponseDto.builder()
+                .totalRating(scores.totalRating())
+                .avgRatingPercent(scores.avgRatingPercent())
+                .employeeAgreedPercent(scores.employeeAgreedPercent())
+                .details(request.getDetails())
+                .build();
     }
 
     private void rejectIfCompleted(HrCompetencyEvaluationHdr hdr) {
