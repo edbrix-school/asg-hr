@@ -6,6 +6,7 @@ import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationRequestDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationResponseDto;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 public interface CompetencyEvaluationService {
@@ -16,7 +17,7 @@ public interface CompetencyEvaluationService {
 
     CompetencyEvaluationResponseDto getById(Long transactionPoid);
 
-    Map<String, Object> list(FilterRequestDto filterRequest, Pageable pageable);
+    Map<String, Object> list(FilterRequestDto filterRequest, LocalDate startDate, LocalDate endDate, Pageable pageable);
 
     void delete(Long transactionPoid, DeleteReasonDto deleteReasonDto);
 

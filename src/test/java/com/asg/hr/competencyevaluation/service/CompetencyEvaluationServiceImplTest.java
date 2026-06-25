@@ -854,17 +854,20 @@ class CompetencyEvaluationServiceImplTest {
         List<FilterDto> filterList = List.of(new FilterDto("DOC_REF", "X"));
         FilterRequestDto fr = new FilterRequestDto("AND", "N", filterList);
         Pageable pageable = PageRequest.of(0, 5);
+        LocalDate startDate = LocalDate.of(2026, 2, 25);
+        LocalDate endDate = LocalDate.of(2026, 6, 25);
         RawSearchResult raw = new RawSearchResult(List.of(Map.of("DOC_REF", "CE-1")), Map.of(), 1L);
         when(documentSearchService.resolveOperator(fr)).thenReturn("AND");
         when(documentSearchService.resolveIsDeleted(fr)).thenReturn("N");
-        when(documentSearchService.resolveFilters(fr)).thenReturn(filterList);
+        when(documentSearchService.resolveDateFilters(fr, "TRANSACTION_DATE", startDate, endDate)).thenReturn(filterList);
         when(documentSearchService.search(any(), any(), eq("AND"), eq(pageable), eq("N"), any(), any()))
                 .thenReturn(raw);
 
         try (var uc = mockStatic(UserContext.class)) {
             uc.when(UserContext::getDocumentId).thenReturn("DOC800");
-            Map<String, Object> result = service.list(fr, pageable);
+            Map<String, Object> result = service.list(fr, startDate, endDate, pageable);
             assertNotNull(result);
+            verify(documentSearchService).resolveDateFilters(fr, "TRANSACTION_DATE", startDate, endDate);
         }
     }
 }

@@ -32,6 +32,7 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.reset;
@@ -160,13 +161,26 @@ class CompetencyEvaluationControllerTest {
 
     @Test
     void list_success() throws Exception {
-        when(competencyEvaluationService.list(any(), any(Pageable.class)))
+        when(competencyEvaluationService.list(any(), any(), any(), any(Pageable.class)))
                 .thenReturn(Map.of("content", List.of()));
 
         mockMvc.perform(post("/v1/competency-evaluation/list")
+                        .param("startDate", "2026-02-25")
+                        .param("endDate", "2026-06-25")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new FilterRequestDto("AND", "N", List.of()))))
                 .andExpect(status().isOk());
+
+        verify(competencyEvaluationService).list(any(), eq(LocalDate.of(2026, 2, 25)), eq(LocalDate.of(2026, 6, 25)), any(Pageable.class));
+    }
+
+    @Test
+    void list_onlyStartDate_returns400() throws Exception {
+        mockMvc.perform(post("/v1/competency-evaluation/list")
+                        .param("startDate", "2026-02-25")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new FilterRequestDto("AND", "N", List.of()))))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -235,7 +249,7 @@ class CompetencyEvaluationControllerTest {
 
     @Test
     void list_unexpectedError_returns500() throws Exception {
-        when(competencyEvaluationService.list(any(), any(Pageable.class)))
+        when(competencyEvaluationService.list(any(), any(), any(), any(Pageable.class)))
                 .thenThrow(new RuntimeException("boom"));
 
         mockMvc.perform(post("/v1/competency-evaluation/list")

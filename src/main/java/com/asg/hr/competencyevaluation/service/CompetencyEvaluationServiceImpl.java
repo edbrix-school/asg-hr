@@ -158,10 +158,10 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> list(FilterRequestDto filterRequest, Pageable pageable) {
+    public Map<String, Object> list(FilterRequestDto filterRequest, LocalDate startDate, LocalDate endDate, Pageable pageable) {
         String operator = documentSearchService.resolveOperator(filterRequest);
         String isDeleted = documentSearchService.resolveIsDeleted(filterRequest);
-        List<FilterDto> filters = documentSearchService.resolveFilters(filterRequest);
+        List<FilterDto> filters = documentSearchService.resolveDateFilters(filterRequest, "TRANSACTION_DATE", startDate, endDate);
 
         RawSearchResult raw = documentSearchService.search(
                 UserContext.getDocumentId(),

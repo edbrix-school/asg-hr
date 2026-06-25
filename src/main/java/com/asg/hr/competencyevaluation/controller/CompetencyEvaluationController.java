@@ -30,8 +30,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 import static com.asg.common.lib.dto.response.ApiResponse.badRequest;
@@ -111,9 +113,14 @@ public class CompetencyEvaluationController {
     @PostMapping("/list")
     public ResponseEntity<?> list(
             @ParameterObject Pageable pageable,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
             @RequestBody(required = false) FilterRequestDto filterRequest) {
+        if ((startDate == null) != (endDate == null)) {
+            return badRequest("Both startDate and endDate must be provided together");
+        }
         try {
-            Map<String, Object> result = competencyEvaluationService.list(filterRequest, pageable);
+            Map<String, Object> result = competencyEvaluationService.list(filterRequest, startDate, endDate, pageable);
             return success("Employee performance reviews fetched successfully", result);
         } catch (Exception e) {
             return internalServerError("Unable to fetch reviews: " + e.getMessage());
