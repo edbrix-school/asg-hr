@@ -2,16 +2,20 @@ package com.asg.hr.employeeinduction.service;
 
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
+import com.asg.common.lib.dto.LovGetListDto;
 import com.asg.common.lib.dto.RawSearchResult;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.ResourceNotFoundException;
 import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.common.lib.service.LovDataService;
+import com.asg.common.lib.service.PrintService;
 import com.asg.hr.employeeinduction.dto.EmployeeInductionRequestDto;
 import com.asg.hr.employeeinduction.dto.EmployeeInductionResponseDto;
 import com.asg.hr.employeeinduction.entity.HrEmployeeInductionDtl;
 import com.asg.hr.employeeinduction.entity.HrEmployeeInductionHdr;
+import com.asg.hr.employeeinduction.repository.EmployeeInductionProcRepository;
 import com.asg.hr.employeeinduction.repository.HrEmployeeInductionDtlRepository;
 import com.asg.hr.employeeinduction.repository.HrEmployeeInductionHdrRepository;
 import jakarta.persistence.EntityManager;
@@ -20,7 +24,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.quality.Strictness;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
@@ -35,6 +41,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class EmployeeInductionServiceImplTest {
 
     @Mock
@@ -51,6 +58,18 @@ class EmployeeInductionServiceImplTest {
 
     @Mock
     private DocumentDeleteService documentDeleteService;
+
+    @Mock
+    private LovDataService lovDataService;
+
+    @Mock
+    private EmployeeInductionProcRepository procRepository;
+
+    @Mock
+    private PrintService printService;
+
+    @Mock
+    private javax.sql.DataSource dataSource;
 
     @Mock
     private EntityManager entityManager;
@@ -80,6 +99,19 @@ class EmployeeInductionServiceImplTest {
                 .build();
 
         detailEntities = new ArrayList<>();
+        
+        // Setup LOV service mock to return empty details
+        when(lovDataService.getDetailsByPoidAndLovName(anyLong(), anyString()))
+                .thenReturn(new LovGetListDto());
+        when(lovDataService.getDetailsByCodeAndLovName(anyString(), anyString()))
+                .thenReturn(new LovGetListDto());
+        
+        // Setup EntityManager mocks
+        doNothing().when(entityManager).flush();
+        doNothing().when(entityManager).refresh(any());
+        
+        // Setup detail repository mocks
+        when(dtlRepository.findMaxDetRowIdByHdrPoid(anyLong())).thenReturn(null);
     }
 
     @Test
@@ -94,10 +126,11 @@ class EmployeeInductionServiceImplTest {
 
         // Then
         assertNotNull(result);
+        assertEquals(1L, result.getPoid());
         assertEquals("IND-001", result.getDocId());
         assertEquals(1L, result.getEmployeePoid());
         verify(hdrRepository).save(any(HrEmployeeInductionHdr.class));
-        verify(loggingService).createLogSummaryEntry(any(LogDetailsEnum.class), any(), any());
+        verify(loggingService).createLogSummaryEntry(eq(LogDetailsEnum.CREATED), isNull(), eq("1"));
     }
 
     @Test
@@ -123,9 +156,10 @@ class EmployeeInductionServiceImplTest {
 
         when(hdrRepository.findByPoidAndNotDeleted(1L)).thenReturn(Optional.of(headerEntity));
         when(hdrRepository.save(any(HrEmployeeInductionHdr.class))).thenReturn(headerEntity);
-        when(dtlRepository.findByHdrPoidAndNotDeleted(1L)).thenReturn(detailEntities);
+        when(dtlRepository.findByHdrPoidAndNotDeleted(1L)).thenReturn(List.of(existingDetail));
         when(dtlRepository.findById(any())).thenReturn(Optional.of(existingDetail));
         when(dtlRepository.save(any(HrEmployeeInductionDtl.class))).thenReturn(existingDetail);
+        when(dtlRepository.saveAll(anyList())).thenReturn(List.of(existingDetail));
 
         // When
         EmployeeInductionResponseDto result = employeeInductionService.updateInduction(1L, requestDto);
@@ -188,6 +222,7 @@ class EmployeeInductionServiceImplTest {
         assertTrue(result.containsKey("inductions"));
         assertTrue(result.containsKey("totalCount"));
         assertEquals(1, result.get("totalCount"));
+        assertEquals(1, ((List<?>) result.get("inductions")).size());
     }
 
     @Test
@@ -207,6 +242,8 @@ class EmployeeInductionServiceImplTest {
     @Test
     void sendOverdueNotifications_Success() {
         HrEmployeeInductionDtl overdueDetail = HrEmployeeInductionDtl.builder()
+                .transactionPoid(1L)
+                .detRowId(1L)
                 .header(headerEntity)
                 .sheduledDate(LocalDate.now().minusDays(1))
                 .inductionCatgPoid(1L)
@@ -221,6 +258,7 @@ class EmployeeInductionServiceImplTest {
 
     @Test
     void list_Success() {
+        // Given
         FilterRequestDto filterRequest = new FilterRequestDto("AND", "N", List.of());
         Pageable pageable = PageRequest.of(0, 10);
         RawSearchResult rawResult = new RawSearchResult(
@@ -234,9 +272,12 @@ class EmployeeInductionServiceImplTest {
         when(documentService.search(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(rawResult);
 
+        // When
         Map<String, Object> result = employeeInductionService.list(filterRequest, null, null, pageable);
 
+        // Then
         assertNotNull(result);
+        assertTrue(result.containsKey("content"));
         verify(documentService).search(any(), any(), any(), any(), any(), any(), any());
     }
 
@@ -264,6 +305,7 @@ class EmployeeInductionServiceImplTest {
                         .inductionCategory("1")
                         .assigneePoid(2L)
                         .scheduledDate(LocalDate.now().plusDays(1))
+                        .completedDate(null)
                         .status("N")
                         .remarks("Test detail")
                         .build()

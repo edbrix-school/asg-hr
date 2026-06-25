@@ -260,7 +260,7 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
             log.info("Successfully retrieved {} induction categories", categories.size());
             return categories;
         } catch (Exception e) {
-            log.error("Failed to retrieve induction categories", e);
+            log.error("Failed to retrieve induction categories: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to retrieve induction categories: " + e.getMessage(), e);
         }
     }
@@ -285,7 +285,7 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
 
         for (EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto detailDto : detailDtos) {
             String action = detailDto.getActionType() != null
-                    ? detailDto.getActionType().trim().toUpperCase()
+                    ? detailDto.getActionType().trim().toUpperCase(java.util.Locale.ROOT)
                     : (detailDto.getSn() != null ? "ISUPDATED" : "ISCREATED");
 
             switch (action) {
@@ -370,21 +370,48 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
     }
 
     private EmployeeInductionResponseDto mapToResponseDto(HrEmployeeInductionHdr header) {
-        LovGetListDto employeeDet = resolveLovByPoid(header.getEmployeePoid(), EmployeeInductionConstants.LOV_EMPLOYEE_NAME);
+        LovGetListDto employeeDet = lovDataService.getDetailsByPoidAndLovName(
+                header.getEmployeePoid(),
+                "EMPLOYEE_NAME"
+        );
+        
         List<EmployeeInductionResponseDto.EmployeeInductionDetailResponseDto> detailDtos = 
                 dtlRepository.findByHdrPoidAndNotDeleted(header.getTransactionPoid()).stream()
                         .map(detail -> {
-                            Long assigneePoid = detail.getAssigneePoid();
+                            LovGetListDto inductionCategoryDet = null;
+                            if (detail.getInductionCatgPoid() != null) {
+                                inductionCategoryDet = lovDataService.getDetailsByPoidAndLovName(
+                                        detail.getInductionCatgPoid(),
+                                        "INDUCTION_CATEGORY"
+                                );
+                            }
+                            
+                            LovGetListDto assigneeDet = null;
+                            if (detail.getAssigneePoid() != null) {
+                                assigneeDet = lovDataService.getDetailsByPoidAndLovName(
+                                        detail.getAssigneePoid(),
+                                        "EMPLOYEE_NAME"
+                                );
+                            }
+                            
+                            LovGetListDto statusDet = null;
+                            if (detail.getStatus() != null) {
+                                statusDet = lovDataService.getDetailsByCodeAndLovName(
+                                        detail.getStatus(),
+                                        "YES_NO"
+                                );
+                            }
+                            
                             return EmployeeInductionResponseDto.EmployeeInductionDetailResponseDto.builder()
                                     .sn(detail.getDetRowId() != null ? detail.getDetRowId().intValue() : null)
                                     .inductionCategory(detail.getInductionCatgPoid() != null ? detail.getInductionCatgPoid().toString() : null)
-                                    .inductionCategoryDet(resolveLovByPoid(detail.getInductionCatgPoid(), EmployeeInductionConstants.LOV_INDUCTION_CATEGORY))
-                                    .assigneePoid(assigneePoid)
-                                    .assigneeDet(resolveLovByPoid(assigneePoid, EmployeeInductionConstants.LOV_EMPLOYEE_NAME))
+                                    .inductionCategoryDet(inductionCategoryDet)
+                                    .assigneePoid(detail.getAssigneePoid())
+                                    .assigneeDet(assigneeDet)
                                     .scheduledDate(detail.getSheduledDate())
                                     .completedDate(detail.getCompleatedDate())
                                     .status(detail.getStatus())
-                                    .statusDet(resolveLovByCode(detail.getStatus(), EmployeeInductionConstants.LOV_YES_NO))
+                                    .statusDet(statusDet)
                                     .remarks(detail.getRemarks())
                                     .build();
                         })
@@ -394,39 +421,13 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
                 .poid(header.getPoid())
                 .docId(header.getDocId())
                 .employeePoid(header.getEmployeePoid())
-                .employeeName(employeeDet.getDescription())
+                .employeeName(employeeDet != null ? employeeDet.getDescription() : null)
                 .employeeDet(employeeDet)
                 .createdBy(header.getCreatedBy())
                 .createdDate(header.getCreatedDate())
                 .remarks(header.getRemarks())
                 .details(detailDtos)
                 .build();
-    }
-
-    private LovGetListDto resolveLovByPoid(Long poid, String lovName) {
-        if (poid == null) {
-            return new LovGetListDto();
-        }
-        try {
-            LovGetListDto lov = lovDataService.getDetailsByPoidAndLovNameFast(poid, lovName);
-            return lov != null ? lov : new LovGetListDto();
-        } catch (Exception e) {
-            log.warn("Failed to resolve LOV {} for poid {}", lovName, poid, e);
-            return new LovGetListDto();
-        }
-    }
-
-    private LovGetListDto resolveLovByCode(String code, String lovName) {
-        if (code == null || code.isBlank()) {
-            return new LovGetListDto();
-        }
-        try {
-            LovGetListDto lov = lovDataService.getLovItemByCodeFast(code.trim(), lovName);
-            return lov != null ? lov : new LovGetListDto();
-        } catch (Exception e) {
-            log.warn("Failed to resolve LOV {} for code {}", lovName, code, e);
-            return new LovGetListDto();
-        }
     }
 
     private void validateRequest(EmployeeInductionRequestDto requestDto) {
@@ -504,10 +505,10 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
             return pdf;
             
         } catch (JRException e) {
-            log.error("JasperReports error generating PDF for employee induction {}: {}", transactionPoid, e.getMessage());
+            log.error("JasperReports error generating PDF for employee induction {}: {}", transactionPoid, e.getMessage(), e);
             throw e;
         } catch (Exception e) {
-            log.error("Error generating PDF for employee induction {}: {}", transactionPoid, e.getMessage());
+            log.error("Error generating PDF for employee induction {}: {}", transactionPoid, e.getMessage(), e);
             throw new JRException(e);
         }
     }
