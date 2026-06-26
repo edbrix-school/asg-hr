@@ -19,6 +19,8 @@ import com.asg.hr.competency.entity.CompetencyMasterEntity;
 import com.asg.hr.competency.entity.HrCompetencySchedule;
 import com.asg.hr.competency.repository.CompetencyMasterRepository;
 import com.asg.hr.competency.repository.HrCompetencyScheduleRepository;
+import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationCalculateScoresRequestDto;
+import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationCalculateScoresResponseDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationRequestDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationResponseDto;
 import com.asg.hr.competencyevaluation.entity.HrCompetencyEvaluationDtl;
@@ -35,6 +37,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -771,6 +774,27 @@ class CompetencyEvaluationServiceImplTest {
     }
 
     @Test
+    void calculateScoresFromDetails_returnsScoresWithoutDb() {
+        CompetencyEvaluationCalculateScoresRequestDto request = CompetencyEvaluationCalculateScoresRequestDto.builder()
+                .details(List.of(
+                        CompetencyEvaluationCalculateScoresRequestDto.DetailRatingDto.builder()
+                                .detRowId(1L).rating("EXCELLENT").employeeAgreed("AGREE").build(),
+                        CompetencyEvaluationCalculateScoresRequestDto.DetailRatingDto.builder()
+                                .detRowId(2L).rating("GOOD").employeeAgreed("DISAGREE").build(),
+                        CompetencyEvaluationCalculateScoresRequestDto.DetailRatingDto.builder()
+                                .detRowId(3L).rating("").employeeAgreed("").build()
+                ))
+                .build();
+
+        CompetencyEvaluationCalculateScoresResponseDto result = service.calculateScoresFromDetails(request);
+
+        assertEquals(0, new BigDecimal("7.00").compareTo(result.getTotalRating()));
+        assertEquals(0, new BigDecimal("58.33").compareTo(result.getAvgRatingPercent()));
+        assertEquals(0, new BigDecimal("33.33").compareTo(result.getEmployeeAgreedPercent()));
+        assertEquals(3, result.getDetails().size());
+    }
+
+    @Test
     void calculateScores_notFound() {
         when(hdrRepository.findActiveById(1L)).thenReturn(Optional.empty());
         assertThrows(ResourceNotFoundException.class, () -> service.calculateScores(1L));
@@ -854,17 +878,20 @@ class CompetencyEvaluationServiceImplTest {
         List<FilterDto> filterList = List.of(new FilterDto("DOC_REF", "X"));
         FilterRequestDto fr = new FilterRequestDto("AND", "N", filterList);
         Pageable pageable = PageRequest.of(0, 5);
+        LocalDate startDate = LocalDate.of(2026, 2, 25);
+        LocalDate endDate = LocalDate.of(2026, 6, 25);
         RawSearchResult raw = new RawSearchResult(List.of(Map.of("DOC_REF", "CE-1")), Map.of(), 1L);
         when(documentSearchService.resolveOperator(fr)).thenReturn("AND");
         when(documentSearchService.resolveIsDeleted(fr)).thenReturn("N");
-        when(documentSearchService.resolveFilters(fr)).thenReturn(filterList);
+        when(documentSearchService.resolveDateFilters(fr, "TRANSACTION_DATE", startDate, endDate)).thenReturn(filterList);
         when(documentSearchService.search(any(), any(), eq("AND"), eq(pageable), eq("N"), any(), any()))
                 .thenReturn(raw);
 
         try (var uc = mockStatic(UserContext.class)) {
             uc.when(UserContext::getDocumentId).thenReturn("DOC800");
-            Map<String, Object> result = service.list(fr, pageable);
+            Map<String, Object> result = service.list(fr, startDate, endDate, pageable);
             assertNotNull(result);
+            verify(documentSearchService).resolveDateFilters(fr, "TRANSACTION_DATE", startDate, endDate);
         }
     }
 }

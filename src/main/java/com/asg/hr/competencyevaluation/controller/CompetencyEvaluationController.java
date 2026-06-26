@@ -9,6 +9,8 @@ import com.asg.common.lib.exception.ResourceNotFoundException;
 import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationCalculateScoresRequestDto;
+import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationCalculateScoresResponseDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationRequestDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationResponseDto;
 import com.asg.hr.competencyevaluation.service.CompetencyEvaluationService;
@@ -30,8 +32,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 import static com.asg.common.lib.dto.response.ApiResponse.badRequest;
@@ -111,9 +115,14 @@ public class CompetencyEvaluationController {
     @PostMapping("/list")
     public ResponseEntity<?> list(
             @ParameterObject Pageable pageable,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
             @RequestBody(required = false) FilterRequestDto filterRequest) {
+        if ((startDate == null) != (endDate == null)) {
+            return badRequest("Both startDate and endDate must be provided together");
+        }
         try {
-            Map<String, Object> result = competencyEvaluationService.list(filterRequest, pageable);
+            Map<String, Object> result = competencyEvaluationService.list(filterRequest, startDate, endDate, pageable);
             return success("Employee performance reviews fetched successfully", result);
         } catch (Exception e) {
             return internalServerError("Unable to fetch reviews: " + e.getMessage());
@@ -137,8 +146,26 @@ public class CompetencyEvaluationController {
         }
     }
 
-    @Operation(summary = "Calculate HOD total score and percentages",
-            description = "Recalculates total rating, average rating %, and employee agreement % from detail lines.",
+    @Operation(summary = "Calculate scores from detail ratings in request body",
+            description = "Calculates scores from detail ratings in request body",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @AllowedAction(UserRolesRightsEnum.EDIT)
+    @PostMapping("/calculate-scores")
+    public ResponseEntity<?> calculateScoresFromDetails(
+            @Valid @RequestBody CompetencyEvaluationCalculateScoresRequestDto request) {
+        try {
+            CompetencyEvaluationCalculateScoresResponseDto data =
+                    competencyEvaluationService.calculateScoresFromDetails(request);
+            return success("Scores calculated successfully", data);
+        } catch (ValidationException ex) {
+            return badRequest(ex.getMessage());
+        } catch (Exception ex) {
+            return internalServerError(ex.getMessage());
+        }
+    }
+
+    @Operation(summary = "Calculate HOD total score and percentages from saved records",
+            description = "Reads detail lines from database for the transaction and persists scores to header.",
             security = @SecurityRequirement(name = "bearerAuth"))
     @AllowedAction(UserRolesRightsEnum.EDIT)
     @PostMapping("/{transactionPoid}/calculate-scores")

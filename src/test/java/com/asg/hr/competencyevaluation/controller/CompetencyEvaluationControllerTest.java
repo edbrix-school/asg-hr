@@ -7,6 +7,7 @@ import com.asg.common.lib.exception.ResourceNotFoundException;
 import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationCalculateScoresResponseDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationRequestDto;
 import com.asg.hr.competencyevaluation.dto.CompetencyEvaluationResponseDto;
 import com.asg.hr.competencyevaluation.service.CompetencyEvaluationService;
@@ -32,6 +33,7 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.reset;
@@ -160,13 +162,26 @@ class CompetencyEvaluationControllerTest {
 
     @Test
     void list_success() throws Exception {
-        when(competencyEvaluationService.list(any(), any(Pageable.class)))
+        when(competencyEvaluationService.list(any(), any(), any(), any(Pageable.class)))
                 .thenReturn(Map.of("content", List.of()));
 
         mockMvc.perform(post("/v1/competency-evaluation/list")
+                        .param("startDate", "2026-02-25")
+                        .param("endDate", "2026-06-25")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new FilterRequestDto("AND", "N", List.of()))))
                 .andExpect(status().isOk());
+
+        verify(competencyEvaluationService).list(any(), eq(LocalDate.of(2026, 2, 25)), eq(LocalDate.of(2026, 6, 25)), any(Pageable.class));
+    }
+
+    @Test
+    void list_onlyStartDate_returns400() throws Exception {
+        mockMvc.perform(post("/v1/competency-evaluation/list")
+                        .param("startDate", "2026-02-25")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new FilterRequestDto("AND", "N", List.of()))))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -175,6 +190,25 @@ class CompetencyEvaluationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new DeleteReasonDto())))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void calculateScoresFromDetails_success() throws Exception {
+        CompetencyEvaluationCalculateScoresResponseDto response = CompetencyEvaluationCalculateScoresResponseDto.builder()
+                .totalRating(new BigDecimal("37.00"))
+                .avgRatingPercent(new BigDecimal("40.22"))
+                .employeeAgreedPercent(new BigDecimal("17.39"))
+                .build();
+        when(competencyEvaluationService.calculateScoresFromDetails(any())).thenReturn(response);
+
+        mockMvc.perform(post("/v1/competency-evaluation/calculate-scores")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"details":[{"detRowId":1,"rating":"EXCELLENT","employeeAgreed":"AGREE"}]}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.result.data.totalRating").value(37.00));
     }
 
     @Test
@@ -235,7 +269,7 @@ class CompetencyEvaluationControllerTest {
 
     @Test
     void list_unexpectedError_returns500() throws Exception {
-        when(competencyEvaluationService.list(any(), any(Pageable.class)))
+        when(competencyEvaluationService.list(any(), any(), any(), any(Pageable.class)))
                 .thenThrow(new RuntimeException("boom"));
 
         mockMvc.perform(post("/v1/competency-evaluation/list")
