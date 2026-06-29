@@ -167,6 +167,7 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
         entity.setTransactionDate(LocalDate.now());
         entity.setStatus(STATUS_DRAFT);
         entity.setCreatedBy(UserContext.getUserId());
+        entity.setDeleted("N");
 
         // Save header first without child entities
         entity = repository.save(entity);
@@ -200,7 +201,7 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
     public PersonalDataSheetResponseDto getById(Long transactionPoid) {
         log.info(LOG_FETCH_MSG, transactionPoid);
 
-        HrPersonalDataHdr entity = repository.findByTransactionPoidAndNotDeleted(transactionPoid)
+        HrPersonalDataHdr entity = repository.findByTransactionPoid(transactionPoid)
                 .orElseThrow(() -> new AsgException(ERROR_NOT_FOUND + transactionPoid));
 
         return mapToResponseDto(entity);

@@ -11,7 +11,10 @@ import java.util.Optional;
 @Repository
 public interface HrPersonalDataHdrRepository extends JpaRepository<HrPersonalDataHdr, Long> {
 
-    @Query("SELECT h FROM HrPersonalDataHdr h WHERE h.transactionPoid = :transactionPoid AND h.deleted = 'N'")
+    @Query("SELECT h FROM HrPersonalDataHdr h WHERE h.transactionPoid = :transactionPoid AND (h.deleted = 'N' OR h.deleted IS NULL OR h.deleted = '')")
     Optional<HrPersonalDataHdr> findByTransactionPoidAndNotDeleted(@Param("transactionPoid") Long transactionPoid);
+
+    @Query("SELECT h FROM HrPersonalDataHdr h WHERE h.transactionPoid = :transactionPoid")
+    Optional<HrPersonalDataHdr> findByTransactionPoid(@Param("transactionPoid") Long transactionPoid);
 
 }
