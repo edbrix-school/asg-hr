@@ -395,9 +395,7 @@ class PersonalDataSheetServiceImplEdgeCaseTest {
     @Test
     void getById_WithLargeChildEntityCollections_ShouldHandleEfficiently() {
         // Arrange
-        when(repository.findByTransactionPoidAndNotDeleted(1L)).thenReturn(Optional.of(validEntity));
-        
-        // Create mock entities instead of using Collections.nCopies with mock()
+        when(repository.findByTransactionPoid(1L)).thenReturn(Optional.of(validEntity));
         List<HrPersonalDataDependent> mockDependents = new ArrayList<>();
         List<HrPersonalDataEmergency> mockEmergencies = new ArrayList<>();
         List<HrPersonalDataNominee> mockNominees = new ArrayList<>();

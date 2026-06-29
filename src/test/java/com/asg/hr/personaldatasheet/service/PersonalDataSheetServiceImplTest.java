@@ -88,7 +88,7 @@ class PersonalDataSheetServiceImplTest {
 
     @Test
     void getById_whenMissing_throws() {
-        when(repository.findByTransactionPoidAndNotDeleted(1L)).thenReturn(Optional.empty());
+        when(repository.findByTransactionPoid(1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getById(1L))
                 .isInstanceOf(AsgException.class)
@@ -98,7 +98,7 @@ class PersonalDataSheetServiceImplTest {
     @Test
     void getById_success_mapsToResponse() {
         HrPersonalDataHdr entity = createValidEntity();
-        when(repository.findByTransactionPoidAndNotDeleted(1L)).thenReturn(Optional.of(entity));
+        when(repository.findByTransactionPoid(1L)).thenReturn(Optional.of(entity));
         when(dependentRepository.findByTransactionPoid(1L)).thenReturn(Collections.emptyList());
         when(emergencyRepository.findByTransactionPoid(1L)).thenReturn(Collections.emptyList());
         when(nomineeRepository.findByTransactionPoid(1L)).thenReturn(Collections.emptyList());
