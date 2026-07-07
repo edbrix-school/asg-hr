@@ -139,13 +139,16 @@ class EmployeeTrainingServiceImplTest {
                 1L
         );
 
+        LocalDate startDate = LocalDate.of(2030, 1, 1);
+        LocalDate endDate = LocalDate.of(2030, 1, 31);
+
         when(documentSearchService.resolveOperator(filterRequest)).thenReturn("AND");
         when(documentSearchService.resolveIsDeleted(filterRequest)).thenReturn("N");
-        when(documentSearchService.resolveFilters(filterRequest)).thenReturn(List.of(filter));
+        when(documentSearchService.resolveDateFilters(filterRequest, "TRANSACTION_DATE", startDate, endDate)).thenReturn(List.of(filter));
         when(documentSearchService.search(eq("800-108"), any(), eq("AND"), eq(pageable), eq("N"), eq("COURSE_NAME"), eq("TRANSACTION_POID")))
                 .thenReturn(raw);
 
-        Map<String, Object> result = service.listTrainings("800-108", filterRequest, pageable);
+        Map<String, Object> result = service.listTrainings("800-108", filterRequest, startDate, endDate, pageable);
 
         assertNotNull(result);
         verify(documentSearchService).search(eq("800-108"), any(), eq("AND"), eq(pageable), eq("N"),

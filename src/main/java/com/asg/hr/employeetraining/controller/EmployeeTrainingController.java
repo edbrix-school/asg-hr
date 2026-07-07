@@ -35,10 +35,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import java.time.LocalDate;
 import java.util.Map;
 import static com.asg.common.lib.dto.response.ApiResponse.success;
 import static com.asg.common.lib.dto.response.ApiResponse.error;
+import static com.asg.common.lib.dto.response.ApiResponse.badRequest;
 
 
 @RestController
@@ -80,12 +83,19 @@ public class EmployeeTrainingController {
     @PostMapping("/list")
     public ResponseEntity<?> listTrainings(
             @ParameterObject Pageable pageable,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
             @RequestBody(required = false) FilterRequestDto filterRequest
     ) {
-        log.info("List Employee Training request | page={}, size={}",
+        log.info("List Employee Training request | page={}, size={}, startDate={}, endDate={}",
                 pageable.getPageNumber(),
-                pageable.getPageSize());
-        Map<String, Object> result = employeeTrainingService.listTrainings(UserContext.getDocumentId(), filterRequest, pageable);
+                pageable.getPageSize(),
+                startDate,
+                endDate);
+        if ((startDate == null) != (endDate == null)) {
+            return badRequest("Both startDate and endDate must be provided together");
+        }
+        Map<String, Object> result = employeeTrainingService.listTrainings(UserContext.getDocumentId(), filterRequest, startDate, endDate, pageable);
         return success("Employee training list fetched successfully", result);
     }
 

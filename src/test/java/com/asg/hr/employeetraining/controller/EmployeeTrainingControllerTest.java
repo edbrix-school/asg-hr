@@ -67,19 +67,33 @@ class EmployeeTrainingControllerTest {
     void listTrainings_ReturnsSuccess() {
         Pageable pageable = PageRequest.of(0, 10);
         FilterRequestDto filters = new FilterRequestDto("AND", "N", List.of(new FilterDto("COURSE_NAME", "Safety")));
+        LocalDate startDate = LocalDate.of(2030, 1, 1);
+        LocalDate endDate = LocalDate.of(2030, 1, 31);
 
-        when(employeeTrainingService.listTrainings("800-108", filters, pageable))
+        when(employeeTrainingService.listTrainings("800-108", filters, startDate, endDate, pageable))
                 .thenReturn(Map.of("items", List.of(), "total", 0));
 
         try (MockedStatic<UserContext> userContext = org.mockito.Mockito.mockStatic(UserContext.class)) {
             userContext.when(UserContext::getDocumentId).thenReturn("800-108");
 
-            ResponseEntity<?> entity = controller.listTrainings(pageable, filters);
+            ResponseEntity<?> entity = controller.listTrainings(pageable, startDate, endDate, filters);
 
             assertNotNull(entity);
             assertEquals(200, entity.getStatusCode().value());
-            verify(employeeTrainingService).listTrainings("800-108", filters, pageable);
+            verify(employeeTrainingService).listTrainings("800-108", filters, startDate, endDate, pageable);
         }
+    }
+
+    @Test
+    void listTrainings_ReturnsBadRequest_WhenOnlyStartDateProvided() {
+        Pageable pageable = PageRequest.of(0, 10);
+        FilterRequestDto filters = new FilterRequestDto("AND", "N", List.of(new FilterDto("COURSE_NAME", "Safety")));
+        LocalDate startDate = LocalDate.of(2030, 1, 1);
+
+        ResponseEntity<?> entity = controller.listTrainings(pageable, startDate, null, filters);
+
+        assertNotNull(entity);
+        assertEquals(400, entity.getStatusCode().value());
     }
 
     @Test

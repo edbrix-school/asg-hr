@@ -6,6 +6,7 @@ import com.asg.hr.employeetraining.dto.EmployeeTrainingRequest;
 import com.asg.hr.employeetraining.dto.EmployeeTrainingResponse;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 public interface EmployeeTrainingService {
@@ -15,10 +16,12 @@ public interface EmployeeTrainingService {
      *
      * @param docId document master id used by document-search
      * @param filterRequest dynamic search filters (may be null/empty)
+     * @param startDate optional inclusive lower bound applied on {@code TRANSACTION_DATE} (must be paired with {@code endDate})
+     * @param endDate optional inclusive upper bound applied on {@code TRANSACTION_DATE} (must be paired with {@code startDate})
      * @param pageable pagination and sorting information
      * @return a map containing paginated items and metadata (format depends on {@code PaginationUtil})
      */
-    Map<String, Object> listTrainings(String docId, FilterRequestDto filterRequest, Pageable pageable);
+    Map<String, Object> listTrainings(String docId, FilterRequestDto filterRequest, LocalDate startDate, LocalDate endDate, Pageable pageable);
 
     /**
      * Fetches a single employee training transaction (header + detail rows) and enriches LOV fields.
