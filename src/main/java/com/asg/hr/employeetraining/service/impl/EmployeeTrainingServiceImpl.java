@@ -68,14 +68,16 @@ public class EmployeeTrainingServiceImpl implements EmployeeTrainingService {
      *
      * @param docId document master id used by document-search
      * @param filterRequest dynamic search filters (may be null/empty)
+     * @param startDate optional inclusive lower bound applied on {@code TRANSACTION_DATE}
+     * @param endDate optional inclusive upper bound applied on {@code TRANSACTION_DATE}
      * @param pageable pagination and sorting information
      * @return a map containing paginated records and metadata
      */
-    public Map<String, Object> listTrainings(String docId, FilterRequestDto filterRequest, Pageable pageable) {
+    public Map<String, Object> listTrainings(String docId, FilterRequestDto filterRequest, LocalDate startDate, LocalDate endDate, Pageable pageable) {
 
         String operator = documentSearchService.resolveOperator(filterRequest);
         String isDeleted = documentSearchService.resolveIsDeleted(filterRequest);
-        List<FilterDto> filters = documentSearchService.resolveFilters(filterRequest);
+        List<FilterDto> filters = documentSearchService.resolveDateFilters(filterRequest, "TRANSACTION_DATE", startDate, endDate);
 
         RawSearchResult raw = documentSearchService.search(
                 docId,
@@ -568,7 +570,28 @@ public class EmployeeTrainingServiceImpl implements EmployeeTrainingService {
         if (actionType == null || actionType.isBlank()) {
             return normalizeDetRowId(detRowId) == null ? EmployeeTrainingConstants.ACTION_IS_CREATED : EmployeeTrainingConstants.ACTION_IS_UPDATED;
         }
-        return actionType.trim();
+        return normalizeActionType(actionType.trim());
+    }
+
+    /**
+     * Maps an incoming actionType to its canonical constant case-insensitively so that values like
+     * "iscreated" or "ISCREATED" resolve to {@link EmployeeTrainingConstants#ACTION_IS_CREATED}. Unknown
+     * values are returned trimmed (unchanged) so validation can reject them.
+     */
+    private String normalizeActionType(String actionType) {
+        if (EmployeeTrainingConstants.ACTION_IS_CREATED.equalsIgnoreCase(actionType)) {
+            return EmployeeTrainingConstants.ACTION_IS_CREATED;
+        }
+        if (EmployeeTrainingConstants.ACTION_IS_UPDATED.equalsIgnoreCase(actionType)) {
+            return EmployeeTrainingConstants.ACTION_IS_UPDATED;
+        }
+        if (EmployeeTrainingConstants.ACTION_IS_DELETED.equalsIgnoreCase(actionType)) {
+            return EmployeeTrainingConstants.ACTION_IS_DELETED;
+        }
+        if (EmployeeTrainingConstants.ACTION_NO_CHANGE.equalsIgnoreCase(actionType)) {
+            return EmployeeTrainingConstants.ACTION_NO_CHANGE;
+        }
+        return actionType;
     }
 
     private Integer normalizeDetRowId(Integer detRowId) {
