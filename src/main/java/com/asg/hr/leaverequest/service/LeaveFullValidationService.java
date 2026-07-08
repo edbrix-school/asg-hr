@@ -11,7 +11,7 @@ public class LeaveFullValidationService {
         validateMandatoryFields(req);
         validateLeaveSubType(req);
         validateLeaveDates(req);
-        validateLeaveDays(req);
+        //validateLeaveDays(req);
         validateTicket(req);
     }
 
@@ -48,14 +48,14 @@ public class LeaveFullValidationService {
         }
     }
 
-    private void validateLeaveDays(LeaveCreateRequestDto req) {
+   /* private void validateLeaveDays(LeaveCreateRequestDto req) {
         if (req.getLeaveDays() == null || req.getLeaveDays().signum() < 0) {
             throw new ValidationException("Leave days is not calculated, please check the dates entered");
         }
         if (req.getBalanceTillRejoin() != null && req.getBalanceTillRejoin().signum() < 0) {
             throw new ValidationException("Check Final Leave Balance can not be negative");
         }
-    }
+    }*/
 
     private void validateTicket(LeaveCreateRequestDto req) {
         if (!"Y".equals(req.getTicketRequired())) {
