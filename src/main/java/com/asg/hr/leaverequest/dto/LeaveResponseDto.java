@@ -17,6 +17,8 @@ public class LeaveResponseDto {
     private Long companyPoid;
     private Long employeePoid;
     private LovGetListDto employeeDtl;
+    private String designationName;
+    private LocalDate joinDate;
 
     private String leaveType;
     private LovGetListDto leaveTypeDtl;
@@ -72,6 +74,20 @@ public class LeaveResponseDto {
     private BigDecimal medicalBalance;
     private String lastLeaveDetails;
     private String lastTicketDetails;
+    private BigDecimal workedDays;
+    private BigDecimal leaveSalary;
+    private BigDecimal workdaysFromLastLeave;
+    private LocalDate lastRejoinDate;
+    private BigDecimal basicEligibleLeaveDays;
+    private BigDecimal basicSalary;
+    private BigDecimal basicSalPerDay;
+    private BigDecimal grossSalPerDay;
+    private BigDecimal basicFixAlw;
+    private BigDecimal basicFixOt;
+    private BigDecimal basicHra;
+    private BigDecimal basicTransport;
+    private String bankGuaranteeDetails;
+    private Long crPoid;
     private String hrTicketIssueType;
     private BigDecimal hrTicketIssuedCount;
     private BigDecimal hrTicketEncashment;

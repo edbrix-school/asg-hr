@@ -365,6 +365,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         c.setSettlementPoid(req.getSettlementPoid());
         c.setBookedTicket(req.getBookedTicket());
         c.setAirSectorPoid(req.getAirSectorPoid());
+        c.setPjDocRef(req.getPjDocRef());
         c.setPaidLeaves(req.getPaidLeaves());
         c.setMedicalEligible(req.getMedicalEligible());
         c.setMedicalTaken(req.getMedicalTaken());
@@ -424,6 +425,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         entity.setSettlementPoid(req.getSettlementPoid());
         entity.setBookedTicket(req.getBookedTicket());
         entity.setAirSectorPoid(req.getAirSectorPoid());
+        entity.setPjDocRef(req.getPjDocRef());
         entity.setPaidLeaves(req.getPaidLeaves());
         entity.setMedicalEligible(req.getMedicalEligible());
         entity.setMedicalTaken(req.getMedicalTaken());
@@ -732,6 +734,17 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         );
 
         dto.setEmployeeDtl(lovService.getDetailsByPoidAndLovNameFast(entity.getEmployeePoid(), "EMPLOYEE_NAME"));
+
+        Map<String, Object> empDetails = getEmployeeDetails(entity.getEmployeePoid());
+        List<?> empData = (List<?>) empDetails.get("data");
+        if (empData != null && !empData.isEmpty()) {
+            Object empRow = empData.get(0);
+            if (empRow instanceof Map<?, ?> empMap) {
+                Object desig = empMap.get("designationName");
+                if (desig != null) dto.setDesignationName(desig.toString());
+                dto.setJoinDate(extractLocalDate(empRow, "joinDate", 3));
+            }
+        }
         dto.setLeaveTypeDtl(lovService.getLovItemByCodeFast(entity.getLeaveType(), "EMP_LEAVE_TYPE"));
         dto.setAnnualLeaveTypeDtl(lovService.getLovItemByCodeFast(entity.getAnnualLeaveType(), "ANNUAL_LEAVE_TYPE"));
         dto.setEmergencyLeaveTypeDtl(lovService.getLovItemByCodeFast(entity.getEmergencyLeaveType(), "ANNUAL_LEAVE_TYPE"));
@@ -763,6 +776,22 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
             dto.setMedicalEligible(toBigDecimal(row.get("medicalEligible")));
             dto.setLastLeaveDetails(row.get("lastLeaveDetails") != null ? row.get("lastLeaveDetails").toString() : null);
             dto.setLastTicketDetails(row.get("lastTicketDetails") != null ? row.get("lastTicketDetails").toString() : null);
+            dto.setWorkedDays(toBigDecimal(row.get("workedDays")));
+            dto.setLeaveSalary(toBigDecimal(row.get("leaveSalary")));
+            dto.setWorkdaysFromLastLeave(toBigDecimal(row.get("workdaysFromLastLeave")));
+            dto.setBasicEligibleLeaveDays(toBigDecimal(row.get("basicEligibleLeaveDays")));
+            dto.setBasicSalary(toBigDecimal(row.get("basicSalary")));
+            dto.setBasicSalPerDay(toBigDecimal(row.get("basicSalPerDay")));
+            dto.setGrossSalPerDay(toBigDecimal(row.get("grossSalPerDay")));
+            dto.setBasicFixAlw(toBigDecimal(row.get("basicFixAlw")));
+            dto.setBasicFixOt(toBigDecimal(row.get("basicFixOt")));
+            dto.setBasicHra(toBigDecimal(row.get("basicHra")));
+            dto.setBasicTransport(toBigDecimal(row.get("basicTransport")));
+            dto.setBankGuaranteeDetails(row.get("bankGuaranteeDetails") != null ? row.get("bankGuaranteeDetails").toString() : null);
+            dto.setCrPoid(row.get("crPoid") != null ? ((Number) row.get("crPoid")).longValue() : null);
+            Object lastRejoin = row.get("lastRejoinDate");
+            if (lastRejoin instanceof java.sql.Timestamp ts) dto.setLastRejoinDate(ts.toLocalDateTime().toLocalDate());
+            else if (lastRejoin instanceof java.sql.Date sd) dto.setLastRejoinDate(sd.toLocalDate());
 
             BigDecimal leaveDaysVal = dto.getLeaveDays() != null ? dto.getLeaveDays() : BigDecimal.ZERO;
             if (dto.getEligibleLeaveDays() != null) {

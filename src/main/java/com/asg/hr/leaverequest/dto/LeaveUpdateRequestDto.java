@@ -17,7 +17,7 @@ public class LeaveUpdateRequestDto {
     private String annualLeaveType;
     private String emergencyLeaveType;
     private String splLeaveTypes;
-
+    private String pjDocRef;
     private LocalDate leaveStartDate;
     private LocalDate planedRejoinDate;
     private String updateRejoinDate;

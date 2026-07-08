@@ -13,7 +13,7 @@ public class LeaveCreateRequestDto {
     private Long employeePoid;
     private String leaveDaysMethod;
     private Boolean annualEncashmentRight;
-
+    private String pjDocRef;
     private String leaveType;
     private String annualLeaveType;
     private String emergencyLeaveType;
