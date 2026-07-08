@@ -157,16 +157,31 @@ public class HrLeaveProcedureRepositoryImpl implements HrLeaveProcedureRepositor
 
                 while (rs.next()) {
                     Map<String, Object> row = new HashMap<>();
-                    row.put("eligibleLeave", rs.getObject(1));
-                    row.put("eligibleTicket", rs.getObject(2));
-                    row.put("ticketPeriod", rs.getObject(3));
-                    row.put("earnedTicket", rs.getObject(4));
-                    row.put("airSectorPoid", rs.getObject(5));
-                    row.put("paidLeavesTaken", rs.getObject(6));
-                    row.put("medicalTaken", rs.getObject(7));
-                    row.put("medicalEligible", rs.getObject(8));
-                    row.put("lastLeaveDetails", rs.getObject(9));
-                    row.put("lastTicketDetails", rs.getObject(10));
+                    row.put("joinDate", rs.getObject(1));
+                    row.put("basicSalary", rs.getObject(2));
+                    row.put("workedDays", rs.getObject(3));
+                    row.put("eligibleLeave", rs.getObject(4));
+                    row.put("leaveSalary", rs.getObject(5));
+                    row.put("earnedTicket", rs.getObject(6));
+                    row.put("ticketPeriod", rs.getObject(7));
+                    row.put("eligibleTicket", rs.getObject(8));
+                    row.put("airSectorPoid", rs.getObject(9));
+                    row.put("lastLeaveDetails", rs.getObject(10));
+                    row.put("workdaysFromLastLeave", rs.getObject(11));
+                    row.put("paidLeavesTaken", rs.getObject(12));
+                    row.put("lastRejoinDate", rs.getObject(13));
+                    row.put("basicEligibleLeaveDays", rs.getObject(14));
+                    row.put("basicSalPerDay", rs.getObject(15));
+                    row.put("grossSalPerDay", rs.getObject(16));
+                    row.put("basicFixAlw", rs.getObject(17));
+                    row.put("basicFixOt", rs.getObject(18));
+                    row.put("basicHra", rs.getObject(19));
+                    row.put("basicTransport", rs.getObject(20));
+                    row.put("bankGuaranteeDetails", rs.getObject(21));
+                    row.put("crPoid", rs.getObject(22));
+                    row.put("medicalTaken", rs.getObject(23));
+                    row.put("medicalEligible", rs.getObject(24));
+                    row.put("lastTicketDetails", rs.getObject(25));
                     data.add(row);
                 }
 
