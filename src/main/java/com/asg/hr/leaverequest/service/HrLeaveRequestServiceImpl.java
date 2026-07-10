@@ -91,7 +91,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
 
         normalizeLeaveTypeFields(req);
         validation.validateBeforeSave(req);
-        validateAgainstAccumLeave(req);
+        //validateAgainstAccumLeave(req);
         validateAnnualProbation(req);
         validateNoDateOverlap(null, req.getEmployeePoid(), req.getLeaveStartDate(), req.getPlanedRejoinDate());
 
@@ -262,7 +262,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         normalizeLeaveTypeFields(req);
         LeaveCreateRequestDto createRequest = convertToCreate(req, entity);
         validation.validateBeforeSave(createRequest);
-        validateAgainstAccumLeave(createRequest);
+        //validateAgainstAccumLeave(createRequest);
         validateAnnualProbation(createRequest);
         validateNoDateOverlap(req.getTransactionPoid(), entity.getEmployeePoid(), req.getLeaveStartDate(), req.getPlanedRejoinDate());
 
