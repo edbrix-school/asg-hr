@@ -37,7 +37,7 @@ public class EmployeeTrainingRequest {
     @Size(max = 30, message = "Training type must not exceed 30 characters")
     private String trainingType;
 
-    @NotBlank(message = "Institution is required")
+
     @Size(max = 100, message = "Institution must not exceed 100 characters")
     private String institution;
 
