@@ -50,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
@@ -317,7 +318,7 @@ class CompetencyEvaluationServiceImplTest {
                     .build();
             when(hdrRepository.findActiveById(99L)).thenReturn(Optional.of(withScores));
 
-            doNothing().when(loggingService).createLogSummaryEntry(any(LogDetailsEnum.class), any(), any());
+            doNothing().when(loggingService).createLogSummaryEntry(anyString(), anyString(), anyString());
 
             CompetencyEvaluationResponseDto dto = service.create(baseRequest());
 
@@ -372,7 +373,7 @@ class CompetencyEvaluationServiceImplTest {
                     .build();
             when(hdrRepository.findActiveById(99L)).thenReturn(Optional.of(withScores));
 
-            doNothing().when(loggingService).createLogSummaryEntry(any(LogDetailsEnum.class), any(), any());
+            doNothing().when(loggingService).createLogSummaryEntry(anyString(), anyString(), anyString());
 
             assertNotNull(service.create(req));
         }
@@ -624,7 +625,7 @@ class CompetencyEvaluationServiceImplTest {
                     HrCompetencyEvaluationDtl.builder().transactionPoid(99L).detRowId(1L).rating("GOOD").build()));
             when(hdrRepository.findActiveById(99L)).thenReturn(Optional.of(
                     HrCompetencyEvaluationHdr.builder().transactionPoid(99L).deleted("N").build()));
-            doNothing().when(loggingService).createLogSummaryEntry(any(LogDetailsEnum.class), any(), any());
+            doNothing().when(loggingService).createLogSummaryEntry(anyString(), anyString(), anyString());
 
             assertNotNull(service.create(baseRequest()));
         }
@@ -635,6 +636,7 @@ class CompetencyEvaluationServiceImplTest {
         Long txnId = 50L;
         HrCompetencyEvaluationHdr hdr = HrCompetencyEvaluationHdr.builder()
                 .transactionPoid(txnId)
+                .docRef("CE-001")
                 .status("PENDING")
                 .deleted("N")
                 .compSchedulePoid(5L)
@@ -697,6 +699,7 @@ class CompetencyEvaluationServiceImplTest {
             when(dtlRepository.findByTransactionPoidOrderByDetRowId(txnId))
                     .thenReturn(List.of(line1, line2))
                     .thenReturn(List.of(line1, line3));
+            doNothing().when(loggingService).createLogSummaryEntry(anyString(), anyString(), anyString());
             doNothing().when(loggingService).logChanges(any(), any(), any(), any(), any(), any(), any());
             stubNativeLovQueries();
 
@@ -705,6 +708,7 @@ class CompetencyEvaluationServiceImplTest {
             assertNotNull(result);
             verify(dtlRepository).delete(line2);
             verify(dtlRepository, atLeastOnce()).save(any(HrCompetencyEvaluationDtl.class));
+            verify(loggingService).createLogSummaryEntry("DOC800", txnId.toString(), "Modified CE-001");
             verify(loggingService).logChanges(any(), any(), eq(HrCompetencyEvaluationHdr.class),
                     eq("DOC800"), eq(txnId.toString()), eq(LogDetailsEnum.MODIFIED), eq("TRANSACTION_POID"));
         }

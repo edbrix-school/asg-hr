@@ -94,8 +94,10 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
         applyScoresToHeader(hdr.getTransactionPoid());
 
         hdr = hdrRepository.findActiveById(hdr.getTransactionPoid()).orElse(hdr);
-        loggingService.createLogSummaryEntry(LogDetailsEnum.CREATED, UserContext.getDocumentId(),
-                hdr.getTransactionPoid().toString());
+        loggingService.createLogSummaryEntry(
+                UserContext.getDocumentId(),
+                hdr.getTransactionPoid().toString(),
+                String.format("%s %s", LogDetailsEnum.CREATED.getDescription(), hdr.getDocRef()));
         return mapToResponse(hdr, dtlRepository.findByTransactionPoidOrderByDetRowId(hdr.getTransactionPoid()));
     }
 
@@ -141,6 +143,10 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
         applyScoresToHeader(transactionPoid);
 
         hdr = hdrRepository.findActiveById(transactionPoid).orElse(hdr);
+        loggingService.createLogSummaryEntry(
+                UserContext.getDocumentId(),
+                transactionPoid.toString(),
+                String.format("%s %s", LogDetailsEnum.MODIFIED.getDescription(), hdr.getDocRef()));
         loggingService.logChanges(oldCopy, hdr, HrCompetencyEvaluationHdr.class,
                 UserContext.getDocumentId(), transactionPoid.toString(), LogDetailsEnum.MODIFIED, PRIMARY_KEY);
 
