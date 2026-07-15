@@ -95,8 +95,10 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
         applyScoresToHeader(hdr.getTransactionPoid());
 
         hdr = hdrRepository.findActiveById(hdr.getTransactionPoid()).orElse(hdr);
-        loggingService.createLogSummaryEntry(LogDetailsEnum.CREATED, UserContext.getDocumentId(),
-                hdr.getTransactionPoid().toString());
+        loggingService.createLogSummaryEntry(
+                UserContext.getDocumentId(),
+                hdr.getTransactionPoid().toString(),
+                String.format("%s %s", LogDetailsEnum.CREATED.getDescription(), hdr.getDocRef()));
         return mapToResponse(hdr, dtlRepository.findByTransactionPoidOrderByDetRowId(hdr.getTransactionPoid()));
     }
 
@@ -182,8 +184,9 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
     @Override
     @Transactional
     public void delete(Long transactionPoid, DeleteReasonDto deleteReasonDto) {
-        hdrRepository.findActiveById(transactionPoid)
+        HrCompetencyEvaluationHdr hdr = hdrRepository.findActiveById(transactionPoid)
                 .orElseThrow(() -> new ResourceNotFoundException(ENTITY_LABEL, POID_FIELD, transactionPoid));
+        loggingService.logDelete(hdr, UserContext.getDocumentId(), transactionPoid.toString());
         documentDeleteService.deleteDocument(transactionPoid, TABLE_NAME, PRIMARY_KEY, deleteReasonDto, null);
         log.info("Soft deleted competency evaluation {}", transactionPoid);
     }
@@ -421,6 +424,8 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
 
         String user = ASGHelperUtils.getCurrentUser();
         LocalDateTime now = LocalDateTime.now();
+        String docId = UserContext.getDocumentId();
+        String docKeyPoid = transactionPoid.toString();
 
         for (int i = 0; i < detailDtos.size(); i++) {
             CompetencyEvaluationRequestDto.CompetencyEvaluationDetailRequestDto dto = detailDtos.get(i);
@@ -438,6 +443,8 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
                     line.setCreatedDate(now);
                     dtlRepository.save(line);
                     byDetRowId.put(maxDetRowId, line);
+                    loggingService.createLogSummaryEntry(docId, docKeyPoid,
+                            String.format("Row Created on Competency Evaluation Detail with detRowId: %s", maxDetRowId));
                 }
                 case CompetencyEvaluationConstants.ACTION_IS_UPDATED -> {
                     HrCompetencyEvaluationDtl line = byDetRowId.get(dto.getDetRowId());
@@ -448,6 +455,8 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
                     line.setLastModifiedBy(user);
                     line.setLastModifiedDate(now);
                     dtlRepository.save(line);
+                    loggingService.createLogSummaryEntry(docId, docKeyPoid,
+                            String.format("Row Updated in Competency Evaluation Detail with detRowId: %s", dto.getDetRowId()));
                 }
                 case CompetencyEvaluationConstants.ACTION_IS_DELETED -> {
                     HrCompetencyEvaluationDtl line = byDetRowId.get(dto.getDetRowId());
@@ -456,6 +465,8 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
                     }
                     dtlRepository.delete(line);
                     byDetRowId.remove(dto.getDetRowId());
+                    loggingService.createLogSummaryEntry(docId, docKeyPoid,
+                            String.format("Row Deleted from Competency Evaluation Detail with detRowId: %s", dto.getDetRowId()));
                 }
                 case CompetencyEvaluationConstants.ACTION_NO_CHANGE -> {
                     if (!byDetRowId.containsKey(dto.getDetRowId())) {

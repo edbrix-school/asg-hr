@@ -50,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
@@ -301,13 +302,14 @@ class CompetencyEvaluationServiceImplTest {
                     .build();
             when(hdrRepository.findActiveById(99L)).thenReturn(Optional.of(withScores));
 
-            doNothing().when(loggingService).createLogSummaryEntry(any(LogDetailsEnum.class), any(), any());
+            doNothing().when(loggingService).createLogSummaryEntry(anyString(), anyString(), anyString());
 
             CompetencyEvaluationResponseDto dto = service.create(baseRequest());
 
             assertNotNull(dto);
             assertEquals(99L, dto.getTransactionPoid());
             verify(dtlRepository).save(any(HrCompetencyEvaluationDtl.class));
+            verify(loggingService).createLogSummaryEntry("DOC800", "99", "Created - CE-001");
         }
     }
 
@@ -356,7 +358,7 @@ class CompetencyEvaluationServiceImplTest {
                     .build();
             when(hdrRepository.findActiveById(99L)).thenReturn(Optional.of(withScores));
 
-            doNothing().when(loggingService).createLogSummaryEntry(any(LogDetailsEnum.class), any(), any());
+            doNothing().when(loggingService).createLogSummaryEntry(anyString(), anyString(), anyString());
 
             assertNotNull(service.create(req));
         }
@@ -461,13 +463,18 @@ class CompetencyEvaluationServiceImplTest {
 
     @Test
     void delete_callsDocumentDelete() {
-        when(hdrRepository.findActiveById(1L)).thenReturn(Optional.of(
-                HrCompetencyEvaluationHdr.builder().transactionPoid(1L).deleted("N").build()));
+        HrCompetencyEvaluationHdr hdr = HrCompetencyEvaluationHdr.builder().transactionPoid(1L).deleted("N").build();
+        when(hdrRepository.findActiveById(1L)).thenReturn(Optional.of(hdr));
 
-        service.delete(1L, new DeleteReasonDto());
+        try (var uc = mockStatic(UserContext.class)) {
+            uc.when(UserContext::getDocumentId).thenReturn("DOC800");
 
-        verify(documentDeleteService).deleteDocument(eq(1L), eq("HR_COMPETENCY_EVALUATION_HDR"),
-                eq("TRANSACTION_POID"), any(), any());
+            service.delete(1L, new DeleteReasonDto());
+
+            verify(loggingService).logDelete(hdr, "DOC800", "1");
+            verify(documentDeleteService).deleteDocument(eq(1L), eq("HR_COMPETENCY_EVALUATION_HDR"),
+                    eq("TRANSACTION_POID"), any(), any());
+        }
     }
 
     private void stubScheduleAndCompetency() {
@@ -600,7 +607,7 @@ class CompetencyEvaluationServiceImplTest {
                     HrCompetencyEvaluationDtl.builder().transactionPoid(99L).detRowId(1L).rating("GOOD").build()));
             when(hdrRepository.findActiveById(99L)).thenReturn(Optional.of(
                     HrCompetencyEvaluationHdr.builder().transactionPoid(99L).deleted("N").build()));
-            doNothing().when(loggingService).createLogSummaryEntry(any(LogDetailsEnum.class), any(), any());
+            doNothing().when(loggingService).createLogSummaryEntry(anyString(), anyString(), anyString());
 
             assertNotNull(service.create(baseRequest()));
         }

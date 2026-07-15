@@ -99,7 +99,10 @@ public class CompetencyEvaluationController {
             @Parameter(description = "Transaction POID", required = true) @PathVariable Long transactionPoid) {
         try {
             CompetencyEvaluationResponseDto data = competencyEvaluationService.getById(transactionPoid);
-            loggingService.createLogSummaryEntry(LogDetailsEnum.VIEWED, UserContext.getDocumentId(), transactionPoid.toString());
+            loggingService.createLogSummaryEntry(
+                    UserContext.getDocumentId(),
+                    transactionPoid.toString(),
+                    String.format("%s - %s", LogDetailsEnum.VIEWED.getDescription(), data.getDocRef()));
             return success("Employee performance review fetched successfully", data);
         } catch (ResourceNotFoundException ex) {
             return notFound(ex.getMessage());
