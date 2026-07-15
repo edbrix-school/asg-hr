@@ -83,7 +83,6 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
         validateScheduleOverlapsCurrentYear(schedule);
         validateEvaluationDateIfPresent(schedule, request.getEvaluationDate());
         validateCompetencyLines(request, false);
-        validateDetailRatings(request, false);
 
         HrCompetencyEvaluationHdr hdr = buildHeaderFromRequest(request);
         hdr.setDeleted(DELETED_NO);
@@ -116,7 +115,6 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
         validateScheduleOverlapsCurrentYear(schedule);
         validateEvaluationDateIfPresent(schedule, request.getEvaluationDate());
         validateCompetencyLines(request, true);
-        validateDetailRatings(request, true);
 
         HrCompetencyEvaluationHdr oldCopy = snapshot(hdr);
 
@@ -196,7 +194,6 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
         rejectIfCompleted(hdr);
 
         List<HrCompetencyEvaluationDtl> lines = dtlRepository.findByTransactionPoidOrderByDetRowId(transactionPoid);
-        validateAllRatingsOnLines(lines);
         CompetencyEvaluationScores.ScoreResult scores = CompetencyEvaluationScores.calculate(
                 lines.stream().map(HrCompetencyEvaluationDtl::getRating).toList(),
                 lines.stream().map(HrCompetencyEvaluationDtl::getEmployeeAgreed).toList()
@@ -515,37 +512,8 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
         }
     }
 
-    private void validateDetailRatings(CompetencyEvaluationRequestDto request, boolean isUpdate) {
-        String message = isUpdate
-                ? "Every line with isCreated or isUpdated must have a rating before save"
-                : "Every competency must have a rating before save";
-        List<CompetencyEvaluationRequestDto.CompetencyEvaluationDetailRequestDto> details = request.getDetails();
-        for (int i = 0; i < details.size(); i++) {
-            CompetencyEvaluationRequestDto.CompetencyEvaluationDetailRequestDto line = details.get(i);
-            if (isUpdate) {
-                String action = resolveDetailActionType(line.getActionType(), line.getDetRowId());
-                if (CompetencyEvaluationConstants.ACTION_IS_DELETED.equals(action)
-                        || CompetencyEvaluationConstants.ACTION_NO_CHANGE.equals(action)) {
-                    continue;
-                }
-            }
-            if (line.getRating() == null || line.getRating().isBlank()) {
-                throw new ValidationException(message + " (row " + (i + 1) + ")");
-            }
-        }
-    }
-
     private static boolean isActive(String active) {
         return active != null && ACTIVE_YES.equalsIgnoreCase(active.trim());
-    }
-
-    private void validateAllRatingsOnLines(List<HrCompetencyEvaluationDtl> lines) {
-        boolean anyMissing = lines.stream()
-                .map(HrCompetencyEvaluationDtl::getRating)
-                .anyMatch(r -> r == null || r.isBlank());
-        if (anyMissing) {
-            throw new ValidationException("Every competency must have a rating before calculating scores.");
-        }
     }
 
     private CompetencyEvaluationResponseDto mapToResponse(HrCompetencyEvaluationHdr hdr, List<HrCompetencyEvaluationDtl> lines) {

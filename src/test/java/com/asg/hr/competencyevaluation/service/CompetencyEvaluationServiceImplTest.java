@@ -231,17 +231,33 @@ class CompetencyEvaluationServiceImplTest {
     }
 
     @Test
-    void create_throwsWhenRatingMissing() {
-        try (var uc = mockStatic(UserContext.class)) {
+    void create_allowsMissingRating() {
+        try (var uc = mockStatic(UserContext.class);
+             var au = mockStatic(ASGHelperUtils.class)) {
             uc.when(UserContext::getGroupPoid).thenReturn(100L);
+            uc.when(UserContext::getCompanyPoid).thenReturn(200L);
+            uc.when(UserContext::getDocumentId).thenReturn("DOC800");
+            au.when(ASGHelperUtils::getCurrentUser).thenReturn("tester");
+
             when(scheduleRepository.findById(5L)).thenReturn(Optional.of(schedule));
             when(competencyMasterRepository.findByIdAndGroupPoidAndNotDeleted(7L, 100L)).thenReturn(Optional.of(competency));
 
             CompetencyEvaluationRequestDto req = baseRequest();
-            req.getDetails().get(0).setRating("  ");
+            req.getDetails().get(0).setRating(null);
 
-            ValidationException ex = assertThrows(ValidationException.class, () -> service.create(req));
-            assertTrue(ex.getMessage().contains("rating"));
+            when(hdrRepository.save(any(HrCompetencyEvaluationHdr.class))).thenAnswer(inv -> {
+                HrCompetencyEvaluationHdr h = inv.getArgument(0);
+                h.setTransactionPoid(99L);
+                return h;
+            });
+            when(dtlRepository.save(any(HrCompetencyEvaluationDtl.class))).thenAnswer(inv -> inv.getArgument(0));
+            when(dtlRepository.findByTransactionPoidOrderByDetRowId(99L)).thenReturn(List.of(
+                    HrCompetencyEvaluationDtl.builder().transactionPoid(99L).detRowId(1L).rating(null).build()));
+            when(hdrRepository.findActiveById(99L)).thenReturn(Optional.of(
+                    HrCompetencyEvaluationHdr.builder().transactionPoid(99L).deleted("N").build()));
+            doNothing().when(loggingService).createLogSummaryEntry(any(LogDetailsEnum.class), any(), any());
+
+            assertNotNull(service.create(req));
         }
     }
 
@@ -377,19 +393,27 @@ class CompetencyEvaluationServiceImplTest {
     }
 
     @Test
-    void calculateScores_throwsWhenRatingMissing() {
+    void calculateScores_allowsMissingRating() {
         HrCompetencyEvaluationHdr hdr = HrCompetencyEvaluationHdr.builder()
                 .transactionPoid(1L)
                 .status("PENDING")
                 .deleted("N")
+                .docRef("CE-1")
                 .build();
         when(hdrRepository.findActiveById(1L)).thenReturn(Optional.of(hdr));
         when(dtlRepository.findByTransactionPoidOrderByDetRowId(1L)).thenReturn(List.of(
-                HrCompetencyEvaluationDtl.builder().rating(null).build()
+                HrCompetencyEvaluationDtl.builder().detRowId(1L).rating(null).employeeAgreed(null).build()
         ));
+        when(hdrRepository.save(any(HrCompetencyEvaluationHdr.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        ValidationException ex = assertThrows(ValidationException.class, () -> service.calculateScores(1L));
-        assertTrue(ex.getMessage().contains("rating"));
+        try (var au = mockStatic(ASGHelperUtils.class)) {
+            au.when(ASGHelperUtils::getCurrentUser).thenReturn("tester");
+            CompetencyEvaluationResponseDto result = service.calculateScores(1L);
+            assertNotNull(result);
+            assertEquals(0, BigDecimal.ZERO.compareTo(result.getTotalRating()));
+            assertEquals(0, BigDecimal.ZERO.compareTo(result.getAvgRatingPercent()));
+            verify(hdrRepository).save(hdr);
+        }
     }
 
     @Test
