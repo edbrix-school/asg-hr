@@ -138,7 +138,7 @@ class CompetencyEvaluationControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.result.data.transactionPoid").value(10));
 
-            verify(loggingService).createLogSummaryEntry(LogDetailsEnum.VIEWED, "DOC800", "10");
+            verify(loggingService).createLogSummaryEntry("DOC800", "10", "Viewed CE-001");
         }
     }
 
