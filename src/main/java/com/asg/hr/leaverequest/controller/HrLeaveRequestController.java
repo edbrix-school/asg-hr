@@ -4,8 +4,10 @@ import com.asg.common.lib.annotation.AllowedAction;
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.dto.response.ApiResponse;
+import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.enums.UserRolesRightsEnum;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.leaverequest.dto.LeaveCalculationResponseDto;
 import com.asg.hr.leaverequest.dto.LeaveCreateRequestDto;
 import com.asg.hr.leaverequest.dto.LeaveResponseDto;
@@ -45,6 +47,7 @@ public class HrLeaveRequestController {
             DateTimeFormatter.ofPattern("dd-MMM-yyyy", Locale.ENGLISH);
 
     private final HrLeaveRequestService service;
+    private final LoggingService loggingService;
 
     @PostMapping("/create")
     @AllowedAction(UserRolesRightsEnum.CREATE)
@@ -71,6 +74,8 @@ public class HrLeaveRequestController {
     public ResponseEntity<?> getById(@PathVariable Long transactionPoid) {
 
         LeaveResponseDto response = service.getById(transactionPoid);
+
+        loggingService.createLogSummaryEntry(LogDetailsEnum.VIEWED, UserContext.getDocumentId(), transactionPoid.toString());
 
         return ApiResponse.success("Leave request retrieved successfully", response);
     }

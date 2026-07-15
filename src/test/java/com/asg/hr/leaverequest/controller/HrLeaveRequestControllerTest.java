@@ -35,6 +35,9 @@ class HrLeaveRequestControllerTest {
     @Mock
     private HrLeaveRequestService service;
 
+    @Mock
+    private com.asg.common.lib.service.LoggingService loggingService;
+
     @InjectMocks
     private HrLeaveRequestController controller;
 
@@ -95,11 +98,17 @@ class HrLeaveRequestControllerTest {
 
         when(service.getById(1L)).thenReturn(response);
 
-        ResponseEntity<?> result = controller.getById(1L);
+        try (MockedStatic<UserContext> mockedUserContext = mockStatic(UserContext.class)) {
+            mockedUserContext.when(UserContext::getDocumentId).thenReturn("DOC-001");
 
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertEquals(response, extractData(result));
-        verify(service).getById(1L);
+            ResponseEntity<?> result = controller.getById(1L);
+
+            assertEquals(HttpStatus.OK, result.getStatusCode());
+            assertEquals(response, extractData(result));
+            verify(service).getById(1L);
+            verify(loggingService).createLogSummaryEntry(
+                    com.asg.common.lib.enums.LogDetailsEnum.VIEWED, "DOC-001", "1");
+        }
     }
 
     // -------------------------------------------------------------------------
