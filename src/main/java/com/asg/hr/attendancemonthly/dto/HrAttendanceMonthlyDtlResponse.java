@@ -2,6 +2,7 @@ package com.asg.hr.attendancemonthly.dto;
 
 import lombok.*;
 import java.math.BigDecimal;
+import com.asg.common.lib.dto.LovGetListDto;
 
 @Data
 @Builder
@@ -30,4 +31,5 @@ public class HrAttendanceMonthlyDtlResponse {
     private Long lateCounts;
     private BigDecimal lateDeduction;
     private BigDecimal shortHoursDed;
+    private LovGetListDto empDtl;
 }

@@ -16,6 +16,7 @@ public interface HrAttendanceMonthlyMapper {
     HrAttendanceMonthlyResponse toResponse(HrAttendanceMonthlyHdr hdr);
 
     @Mapping(target = "employeeName", ignore = true)
+    @Mapping(target = "empDtl", ignore = true)
     HrAttendanceMonthlyDtlResponse toDtlResponse(HrAttendanceMonthlyDtl dtl);
 
     List<HrAttendanceMonthlyDtlResponse> toDtlResponseList(List<HrAttendanceMonthlyDtl> dtlList);
