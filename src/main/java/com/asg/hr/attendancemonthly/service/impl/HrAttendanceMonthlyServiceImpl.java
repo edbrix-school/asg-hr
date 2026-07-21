@@ -51,6 +51,7 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -152,7 +153,13 @@ public class HrAttendanceMonthlyServiceImpl implements HrAttendanceMonthlyServic
               );
 
             List<HrAttendanceMonthlyDtl> attendanceMonthlyDtls = getHrAttendanceMonthlyDtls(transactionPoid);
-            return HrAttendanceMonthlyLoadAttendanceDto.builder().attendanceDetails(attendanceMonthlyDtls).build();
+            List<HrAttendanceMonthlyDtlResponse> dtlResponses = mapper.toDtlResponseList(attendanceMonthlyDtls);
+            List<Long> empPoids = dtlResponses.stream().map(HrAttendanceMonthlyDtlResponse::getEmployeePoid).filter(Objects::nonNull).distinct().toList();
+            Map<Long, LovGetListDto> empMap = lovDataService.getDetailsByPoidsAndLovName(empPoids, LOV_EMPLOYEE_NAME);
+            dtlResponses.forEach(dtl -> dtl.setEmpDtl(empMap.get(dtl.getEmployeePoid())));
+            return HrAttendanceMonthlyLoadAttendanceDto.builder()
+                    .attendanceDetails(dtlResponses)
+                    .build();
         } catch (ValidationException e) {
             throw new ValidationException(e.getMessage());
         }
@@ -177,11 +184,8 @@ public class HrAttendanceMonthlyServiceImpl implements HrAttendanceMonthlyServic
             throw new ValidationException("Attendance From date cannot be after Attendance To date.");
         }
 
-        boolean exists = hdrRepository.existsByAttendanceFromAndAttendanceToAndEmployeeWiseAndDeleted(
-                request.getAttendanceFrom(), request.getAttendanceTo(), "N", "N");
-
-        if (exists) {
-            throw new ResourceAlreadyExistsException("Attendance record", "given date period");
+        if (hdrRepository.existsOverlappingPeriod(request.getAttendanceFrom(), request.getAttendanceTo())) {
+            throw new ResourceAlreadyExistsException("Attendance record", "overlapping date range");
         }
     }
 

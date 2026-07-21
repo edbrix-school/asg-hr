@@ -12,7 +12,7 @@ public class ResourceAlreadyExistsException extends RuntimeException{
     }
 
     public ResourceAlreadyExistsException(String fieldName, String fieldValue) {
-        super(String.format("%s already exists with value: %s", fieldName, fieldValue));
+        super(String.format("%s already exists for: %s", fieldName, fieldValue));
         this.fieldName = fieldName;
         this.fieldValue = fieldValue;
     }

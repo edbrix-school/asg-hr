@@ -16,7 +16,7 @@ class ResourceAlreadyExistsExceptionTest {
     @Test
     void testConstructorWithFieldNameAndValue() {
         ResourceAlreadyExistsException ex = new ResourceAlreadyExistsException("Department", "IT");
-        assertEquals("Department already exists with value: IT", ex.getMessage());
+        assertEquals("Department already exists for: IT", ex.getMessage());
         assertEquals("Department", ex.getFieldName());
         assertEquals("IT", ex.getFieldValue());
     }

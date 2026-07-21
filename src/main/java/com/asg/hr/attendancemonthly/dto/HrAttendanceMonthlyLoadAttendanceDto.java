@@ -1,6 +1,5 @@
 package com.asg.hr.attendancemonthly.dto;
 
-import com.asg.hr.attendancemonthly.entity.HrAttendanceMonthlyDtl;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,5 +12,5 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class HrAttendanceMonthlyLoadAttendanceDto {
-   private List<HrAttendanceMonthlyDtl> attendanceDetails;
+   private List<HrAttendanceMonthlyDtlResponse> attendanceDetails;
 }
