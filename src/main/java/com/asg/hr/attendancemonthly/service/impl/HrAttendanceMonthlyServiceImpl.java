@@ -104,6 +104,8 @@ public class HrAttendanceMonthlyServiceImpl implements HrAttendanceMonthlyServic
         final HrAttendanceMonthlyHdr savedHdr = hdrRepository.saveAndFlush(hdr);
 
         if (request.getDetails() != null) {
+            entityManager.flush();
+            entityManager.clear();
             for (HrAttendanceMonthlyDtlUpdateRequest dtlReq : request.getDetails()) {
                 if ("ISDELETED".equalsIgnoreCase(dtlReq.getActionType())) {
                     dtlRepository.deleteById(new HrAttendanceMonthlyDtlKey(dtlReq.getDetRowId(), transactionPoid));
@@ -117,7 +119,7 @@ public class HrAttendanceMonthlyServiceImpl implements HrAttendanceMonthlyServic
                     dtlRepository.findById(new HrAttendanceMonthlyDtlKey(dtlReq.getDetRowId(), transactionPoid))
                             .ifPresent(dtl -> {
                                 mapper.updateDtlEntity(dtl, dtlReq);
-                                dtlRepository.save(dtl);
+                                dtlRepository.saveAndFlush(dtl);
                             });
                 }
             }

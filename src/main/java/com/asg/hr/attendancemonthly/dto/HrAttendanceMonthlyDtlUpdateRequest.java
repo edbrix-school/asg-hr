@@ -25,6 +25,7 @@ public class HrAttendanceMonthlyDtlUpdateRequest {
     private BigDecimal netHours;
     private Integer lateCounts;
     private Integer lateDeduction;
+    private BigDecimal shortHoursDed;
 
     private Long detRowId;
     private String actionType; // ISCREATED, ISUPDATED, ISDELETED
