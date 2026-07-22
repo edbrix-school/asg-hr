@@ -103,6 +103,7 @@ public class HrNationalityController {
                             name = "HR Nationality Update Request",
                             value = """
                                 {
+                                  "nationalityCode": "IND",
                                   "nationalityDescription": "INDIA (Updated)",
                                   "active": true,
                                   "seqNo": 1,
