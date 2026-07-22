@@ -152,7 +152,7 @@ public class HrResignationServiceImpl implements HrResignationService {
         loggingService.createLogSummaryEntry(LogDetailsEnum.CREATED, docId, key);
 
         HrResignationResponse response = mapper.toResponse(saved);
-        enrichLovDetails(response);
+       // enrichLovDetails(response);
         return response;
     }
 

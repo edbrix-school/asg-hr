@@ -40,5 +40,7 @@ public class HrResignationRequest {
 
     @Size(max = 1000, message = "Remarks must not exceed 1000 characters")
     private String remarks;
+
+    private Long departmentPoid;
 }
 
