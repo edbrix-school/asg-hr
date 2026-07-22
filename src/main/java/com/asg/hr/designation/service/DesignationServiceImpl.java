@@ -139,25 +139,23 @@ public class DesignationServiceImpl implements DesignationService {
         }
 
         checkDuplicate(
-                repository.existsByDesignationCodeIgnoreCase(request.getDesignationCode()),
-                () -> repository.existsByDesignationCodeIgnoreCaseAndDesignationPoidNot(request.getDesignationCode(), designationPoid),
+                () -> repository.existsByDesignationCode(request.getDesignationCode()),
+                () -> repository.existsByDesignationCodeAndDesignationPoidNot(request.getDesignationCode(), designationPoid),
+                designationPoid,
                 "Designation Code already exists: " + request.getDesignationCode()
         );
 
         checkDuplicate(
-                repository.existsByDesignationNameIgnoreCase(request.getDesignationName()),
-                () -> repository.existsByDesignationNameIgnoreCaseAndDesignationPoidNot(request.getDesignationName(), designationPoid),
+                () -> repository.existsByDesignationName(request.getDesignationName()),
+                () -> repository.existsByDesignationNameAndDesignationPoidNot(request.getDesignationName(), designationPoid),
+                designationPoid,
                 "Designation Name already exists: " + request.getDesignationName()
         );
     }
 
-    private void checkDuplicate(boolean existsForCreate, java.util.function.Supplier<Boolean> existsForUpdateSupplier, String message) {
-        boolean exists;
-        if (existsForUpdateSupplier == null) {
-            exists = existsForCreate;
-        } else {
-            exists = existsForUpdateSupplier.get();
-        }
+    private void checkDuplicate(java.util.function.BooleanSupplier existsForCreate,
+            java.util.function.BooleanSupplier existsForUpdate, Long designationPoid, String message) {
+        boolean exists = designationPoid == null ? existsForCreate.getAsBoolean() : existsForUpdate.getAsBoolean();
         if (exists) {
             throw new DuplicateKeyException(message);
         }

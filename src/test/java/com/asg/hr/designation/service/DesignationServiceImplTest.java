@@ -290,10 +290,10 @@ class DesignationServiceImplTest {
                 case "save" -> save(args);
                 case "findById" -> findById(args);
                 case "findByDesignationPoidAndDeleted" -> findByDesignationPoidAndDeleted(args);
-                case "existsByDesignationCodeIgnoreCase" -> false;
-                case "existsByDesignationNameIgnoreCase" -> false;
-                case "existsByDesignationCodeIgnoreCaseAndDesignationPoidNot" -> existsByCodeAndPoidNot;
-                case "existsByDesignationNameIgnoreCaseAndDesignationPoidNot" -> existsByNameAndPoidNot;
+                case "existsByDesignationCode" -> existsByCodeAndPoidNot;
+                case "existsByDesignationName" -> existsByNameAndPoidNot;
+                case "existsByDesignationCodeAndDesignationPoidNot" -> existsByCodeAndPoidNot;
+                case "existsByDesignationNameAndDesignationPoidNot" -> existsByNameAndPoidNot;
                 case "count" -> (long) store.size();
                 case "existsById" -> args != null && args.length > 0 && store.containsKey(args[0]);
                 case "deleteById" -> {
