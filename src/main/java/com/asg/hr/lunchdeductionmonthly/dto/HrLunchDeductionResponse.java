@@ -4,6 +4,7 @@ import com.asg.common.lib.dto.LovGetListDto;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -23,6 +24,10 @@ public class HrLunchDeductionResponse {
     private String description;
 
     private String remarks;
+
+    private String createdBy;
+
+    private LocalDateTime createdDate;
 
     private List<HrLunchDeductionDtlResponse> details;
 }

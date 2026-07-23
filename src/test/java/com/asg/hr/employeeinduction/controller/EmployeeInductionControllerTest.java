@@ -222,14 +222,10 @@ class EmployeeInductionControllerTest {
                 InductionCategoryDto.builder()
                         .inductionCatgPoid(1L)
                         .status("N")
-                        .description("Safety Training")
-                        .seqNo(1)
                         .build(),
                 InductionCategoryDto.builder()
                         .inductionCatgPoid(2L)
                         .status("N")
-                        .description("Company Policies")
-                        .seqNo(2)
                         .build()
         );
 
@@ -240,9 +236,9 @@ class EmployeeInductionControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.result.data").isArray())
                 .andExpect(jsonPath("$.result.data[0].inductionCatgPoid").value(1))
-                .andExpect(jsonPath("$.result.data[0].description").value("Safety Training"))
+                .andExpect(jsonPath("$.result.data[0].status").value("N"))
                 .andExpect(jsonPath("$.result.data[1].inductionCatgPoid").value(2))
-                .andExpect(jsonPath("$.result.data[1].description").value("Company Policies"));
+                .andExpect(jsonPath("$.result.data[1].status").value("N"));
 
         verify(employeeInductionService).getInductionCategories();
     }

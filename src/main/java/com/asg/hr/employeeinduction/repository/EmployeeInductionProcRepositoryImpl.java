@@ -8,6 +8,8 @@ import org.springframework.jdbc.core.SqlParameter;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+
 import java.sql.Types;
 import java.util.List;
 import java.util.Map;
@@ -26,14 +28,13 @@ public class EmployeeInductionProcRepositoryImpl implements EmployeeInductionPro
         try {
             SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
                     .withProcedureName("PROC_HR_INDUCTION_CATG_CUR")
-                    .withSchemaName("PRODUCTION")
                     .declareParameters(
                             new SqlParameter("P_TRN_POID", Types.NUMERIC),
                             new SqlOutParameter("P_RESULT", Types.VARCHAR),
                             new SqlOutParameter("ATT_REC", Types.REF_CURSOR)
                     );
-            
-            Map<String, Object> result = jdbcCall.execute(0); // Pass 0 as P_TRN_POID
+
+            Map<String, Object> result = jdbcCall.execute(new MapSqlParameterSource("P_TRN_POID", 0));
             
             String procedureResult = (String) result.get("P_RESULT");
             log.info("Stored procedure result: {}", procedureResult);

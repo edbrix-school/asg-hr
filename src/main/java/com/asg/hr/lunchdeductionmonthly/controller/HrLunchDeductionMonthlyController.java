@@ -20,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
@@ -34,8 +35,10 @@ public class HrLunchDeductionMonthlyController {
     @AllowedAction(UserRolesRightsEnum.VIEW)
     @PostMapping("/list")
     public ResponseEntity<?> list(@RequestBody(required = false) FilterRequestDto filterRequest,
+                                  @RequestParam(required = false) LocalDate startDate,
+                                  @RequestParam(required = false) LocalDate endDate,
                                   @ParameterObject Pageable pageable) {
-        Map<String, Object> result = lunchDeductionService.list(filterRequest, pageable);
+        Map<String, Object> result = lunchDeductionService.list(filterRequest, startDate, endDate, pageable);
         return ApiResponse.success("Lunch deduction records retrieved successfully", result);
     }
 

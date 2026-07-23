@@ -42,6 +42,8 @@ public class HrLunchDeductionMapper {
                 .payrollMonth(hdr.getPayrollMonth())
                 .description(hdr.getDescription())
                 .remarks(hdr.getRemarks())
+                .createdBy(hdr.getCreatedBy())
+                .createdDate(hdr.getCreatedDate())
                 .build();
     }
 

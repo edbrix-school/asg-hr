@@ -10,9 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class InductionCategoryDto {
-    
+
     private Long inductionCatgPoid;
     private String status;
-    private String description;
-    private Integer seqNo;
 }
