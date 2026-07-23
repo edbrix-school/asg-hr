@@ -450,8 +450,6 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
         return InductionCategoryDto.builder()
                 .inductionCatgPoid(getLongValue(rawData, "INDUCTION_CATG_POID"))
                 .status(getStringValue(rawData, "STATUS"))
-                .description(getStringValue(rawData, "DESCRIPTION"))
-                .seqNo(getIntegerValue(rawData, "CATG_SEQNO"))
                 .build();
     }
 
@@ -472,20 +470,6 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
     private String getStringValue(Map<String, Object> data, String key) {
         Object value = data.get(key);
         return value != null ? value.toString() : null;
-    }
-
-    private Integer getIntegerValue(Map<String, Object> data, String key) {
-        Object value = data.get(key);
-        if (value == null) return null;
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
-        }
-        try {
-            return Integer.parseInt(value.toString());
-        } catch (NumberFormatException e) {
-            log.warn("Could not parse {} as Integer: {}", key, value);
-            return null;
-        }
     }
 
     @Override

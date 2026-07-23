@@ -33,6 +33,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.*;
 
 @Slf4j
@@ -76,8 +77,8 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
             String docId = UserContext.getDocumentId();
             String docKeyPoid = saved.getTransactionPoid().toString();
             for (HrMonthlyLunchDtl entity : detailEntities) {
-                String logDetail = String.format("Row Created on Lunch Detail with detRowId: %s", entity.getDetRowId());
-                loggingService.createLogSummaryEntry(docId, docKeyPoid, logDetail);
+                String logDetail = String.format("KeyId = detRowId:%s", entity.getDetRowId());
+                loggingService.createLog(null, entity, HrMonthlyLunchDtl.class, docId, docKeyPoid, logDetail);
             }
         }
 
@@ -131,17 +132,19 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
         procRepository.loadLunchDetails(transactionPoid, UserContext.getUserPoid(), hdr.getPayrollMonth());
 
         List<HrMonthlyLunchDtl> details = dtlRepository.findByTransactionPoid(transactionPoid);
+        List<HrLunchDeductionDtlResponse> dtlResponses = mapper.toDtlResponseList(details);
+        enrichDtlWithLovData(dtlResponses);
         return HrLunchDeductionLoadDto.builder()
-                .lunchDetails(mapper.toDtlResponseList(details))
+                .lunchDetails(dtlResponses)
                 .build();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> list(FilterRequestDto filterRequest, Pageable pageable) {
+    public Map<String, Object> list(FilterRequestDto filterRequest, LocalDate startDate, LocalDate endDate, Pageable pageable) {
         String operator = documentSearchService.resolveOperator(filterRequest);
         String isDeleted = documentSearchService.resolveIsDeleted(filterRequest);
-        List<FilterDto> filters = documentSearchService.resolveFilters(filterRequest);
+        List<FilterDto> filters = documentSearchService.resolveDateFilters(filterRequest, "PAYROLL_MONTH", startDate, endDate);
 
         RawSearchResult raw = documentSearchService.search(
                 UserContext.getDocumentId(), filters, operator, pageable, isDeleted, "DESCRIPTION", "TRANSACTION_POID");
@@ -213,58 +216,52 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
 
         if (!toDelete.isEmpty()) {
             dtlRepository.deleteAll(toDelete);
-            toDelete.forEach(deleted -> loggingService.createLogSummaryEntry(docId, docKeyPoid,
-                    String.format("Row Deleted from Lunch Detail with detRowId: %s", deleted.getDetRowId())));
+            toDelete.forEach(deleted -> loggingService.logDelete(deleted, docId, docKeyPoid));
         }
         if (!toCreate.isEmpty()) {
             dtlRepository.saveAll(toCreate);
-            toCreate.forEach(created -> loggingService.createLogSummaryEntry(docId, docKeyPoid,
-                    String.format("Row Created on Lunch Detail with detRowId: %s", created.getDetRowId())));
+            toCreate.forEach(created -> loggingService.createLog(null, created, HrMonthlyLunchDtl.class, docId, docKeyPoid,
+                    String.format("KeyId = detRowId:%s", created.getDetRowId())));
         }
         if (!toUpdate.isEmpty()) {
             dtlRepository.saveAll(toUpdate);
-            toUpdate.forEach(updated -> loggingService.createLogSummaryEntry(docId, docKeyPoid,
-                    String.format("Row Updated in Lunch Detail with detRowId: %s", updated.getDetRowId())));
+            toUpdate.forEach(updated -> loggingService.createLog(existingByDetRowId.get(updated.getDetRowId()), updated, HrMonthlyLunchDtl.class, docId, docKeyPoid,
+                    String.format("KeyId = detRowId:%s", updated.getDetRowId())));
         }
     }
 
     private void updateDetailEntity(HrMonthlyLunchDtl dtl, HrLunchDeductionDtlRequest request) {
         if (request.getLeaveDays() != null) {
+            if (dtl.getMonthDays() == null)
+                throw new ValidationException("Cannot update leave days: month days not set for detRowId: " + dtl.getDetRowId());
+            if (request.getLeaveDays() < 0 || request.getLeaveDays() > dtl.getMonthDays())
+                throw new ValidationException("Leave days must be between 0 and month days (" + dtl.getMonthDays() + ")");
             dtl.setOffDays(request.getLeaveDays());
-            if (dtl.getMonthDays() != null) {
-                dtl.setTotalDays(dtl.getMonthDays() - request.getLeaveDays());
-                if (dtl.getCostPerDay() != null) {
-                    dtl.setLunchDeductionAmt(dtl.getCostPerDay().multiply(java.math.BigDecimal.valueOf(dtl.getTotalDays())));
-                }
+            long totalDays = dtl.getMonthDays() - request.getLeaveDays();
+            dtl.setTotalDays(totalDays);
+            if (dtl.getCostPerDay() != null) {
+                dtl.setLunchDeductionAmt(dtl.getCostPerDay().multiply(java.math.BigDecimal.valueOf(totalDays)));
             }
         }
-        if (request.getDeductionType() != null) dtl.setDeductionType(request.getDeductionType());
+        // deductionType is non-editable after creation
         if (request.getAmount() != null) dtl.setLunchDeductionAmt(request.getAmount());
         if (request.getRemarks() != null) dtl.setRemarks(request.getRemarks());
     }
 
     private void enrichWithLovData(HrLunchDeductionResponse response) {
-        if (response == null || response.getDetails() == null || response.getDetails().isEmpty()) {
-            return;
-        }
+        if (response == null || response.getDetails() == null || response.getDetails().isEmpty()) return;
+        enrichDtlWithLovData(response.getDetails());
+    }
 
-        for (HrLunchDeductionDtlResponse detail : response.getDetails()) {
-            if (detail != null) {
-                if (detail.getEmployeePoid() != null) {
-                    LovGetListDto empDet = lovService.getDetailsByPoidAndLovName(
-                            detail.getEmployeePoid(),
-                            "EMPLOYEE_NAME"
-                    );
-                    detail.setEmpDet(empDet);
-                }
-
-                if (detail.getDeductionType() != null) {
-                    LovGetListDto deductionTypeDet = lovService.getDetailsByCodeAndLovName(
-                            detail.getDeductionType(),
-                            "LUNCH_DEDUCTION_TYPE"
-                    );
-                    detail.setDeductionTypeDet(deductionTypeDet);
-                }
+    private void enrichDtlWithLovData(List<HrLunchDeductionDtlResponse> details) {
+        if (details == null || details.isEmpty()) return;
+        for (HrLunchDeductionDtlResponse detail : details) {
+            if (detail == null) continue;
+            if (detail.getEmployeePoid() != null) {
+                detail.setEmpDet(lovService.getDetailsByPoidAndLovName(detail.getEmployeePoid(), "EMPLOYEE_NAME"));
+            }
+            if (detail.getDeductionType() != null) {
+                detail.setDeductionTypeDet(lovService.getDetailsByCodeAndLovName(detail.getDeductionType(), "LUNCH_DEDUCTION_TYPE"));
             }
         }
     }

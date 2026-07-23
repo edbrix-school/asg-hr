@@ -99,19 +99,19 @@ class HrLunchDeductionMonthlyControllerTest {
         @Test
         void success_returnsOk() throws Exception {
             FilterRequestDto filters = new FilterRequestDto("AND", "N", List.of());
-            when(service.list(any(FilterRequestDto.class), any())).thenReturn(Map.of("total", 1));
+            when(service.list(any(FilterRequestDto.class), any(),any(),any())).thenReturn(Map.of("total", 1));
 
             mockMvc.perform(post(BASE_URL + "/list")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(filters)))
                     .andExpect(status().isOk());
 
-            verify(service).list(any(FilterRequestDto.class), any());
+            verify(service).list(any(FilterRequestDto.class), any(),any(),any());
         }
 
         @Test
         void noBody_returnsOk() throws Exception {
-            when(service.list(isNull(), any())).thenReturn(Map.of());
+            when(service.list(isNull(), any(),any(),any())).thenReturn(Map.of());
 
             mockMvc.perform(post(BASE_URL + "/list")
                             .contentType(MediaType.APPLICATION_JSON))
