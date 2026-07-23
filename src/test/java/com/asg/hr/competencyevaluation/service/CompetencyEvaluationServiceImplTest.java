@@ -703,7 +703,7 @@ class CompetencyEvaluationServiceImplTest {
                     .thenReturn(List.of(line1, line2))
                     .thenReturn(List.of(line1, line3));
             doNothing().when(loggingService).createLogSummaryEntry(anyString(), anyString(), anyString());
-            doNothing().when(loggingService).logChanges(any(), any(), any(), any(), any(), any(), any());
+            doNothing().when(loggingService).logDetails(any(), any(), any(), any(), any(), any());
             doNothing().when(loggingService).createLogBatch(any());
             doNothing().when(loggingService).logDelete(any(), anyString(), anyString());
             stubNativeLovQueries();
@@ -715,8 +715,8 @@ class CompetencyEvaluationServiceImplTest {
             verify(dtlRepository, atLeastOnce()).save(any(HrCompetencyEvaluationDtl.class));
             var logOrder = inOrder(loggingService);
             logOrder.verify(loggingService).createLogSummaryEntry("DOC800", txnId.toString(), "Modified CE-001");
-            logOrder.verify(loggingService).logChanges(any(), any(), eq(HrCompetencyEvaluationHdr.class),
-                    eq("DOC800"), eq(txnId.toString()), eq(LogDetailsEnum.MODIFIED), eq("TRANSACTION_POID"));
+            logOrder.verify(loggingService).logDetails(any(), any(), eq(HrCompetencyEvaluationHdr.class),
+                    eq("DOC800"), eq(txnId.toString()), eq("TRANSACTION_POID"));
             logOrder.verify(loggingService).createLogBatch(any());
             verify(loggingService).logDelete(any(HrCompetencyEvaluationDtl.class), eq("DOC800"), eq(txnId.toString()));
         }
