@@ -152,8 +152,8 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
                 docId,
                 docKeyPoid,
                 String.format("%s %s", LogDetailsEnum.MODIFIED.getDescription(), hdr.getDocRef()));
-        loggingService.logChanges(oldCopy, hdr, HrCompetencyEvaluationHdr.class,
-                docId, docKeyPoid, LogDetailsEnum.MODIFIED, PRIMARY_KEY);
+        loggingService.logDetails(oldCopy, hdr, HrCompetencyEvaluationHdr.class,
+                docId, docKeyPoid, PRIMARY_KEY);
         if (!detailLogRequests.isEmpty()) {
             loggingService.createLogBatch(detailLogRequests);
         }
