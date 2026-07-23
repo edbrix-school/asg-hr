@@ -151,6 +151,41 @@ class CompetencyEvaluationControllerTest {
     }
 
     @Test
+    void update_success_acceptsRoundTripGetPayloadFields() throws Exception {
+        when(competencyEvaluationService.update(anyLong(), any())).thenReturn(responseDto);
+
+        String body = """
+                {
+                  "transactionDate": "2026-07-14",
+                  "docRef": "HRCE8576",
+                  "transactionPoid": 8783,
+                  "employeePoid": 2524,
+                  "totalRating": 47,
+                  "avgRatingPercent": 97.92,
+                  "reviewedByPoid": 92,
+                  "compSchedulePoid": 204,
+                  "evaluationDate": "2026-07-17",
+                  "status": "COMPLETED",
+                  "details": [
+                    {
+                      "actionType": "isUpdated",
+                      "detRowId": 1,
+                      "competencyPoid": 23,
+                      "rating": "EXCELLENT"
+                    }
+                  ]
+                }
+                """;
+
+        mockMvc.perform(put("/v1/competency-evaluation/8783")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
+
+        verify(competencyEvaluationService).update(eq(8783L), any());
+    }
+
+    @Test
     void update_success() throws Exception {
         when(competencyEvaluationService.update(anyLong(), any())).thenReturn(responseDto);
 

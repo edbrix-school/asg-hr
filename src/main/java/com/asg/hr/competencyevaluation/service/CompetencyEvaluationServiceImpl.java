@@ -5,6 +5,7 @@ import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.dto.LovGetListDto;
 import com.asg.common.lib.dto.RawSearchResult;
+import com.asg.common.lib.dto.request.LogRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.ResourceNotFoundException;
 import com.asg.common.lib.exception.ValidationException;
@@ -65,6 +66,7 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
     private static final String COMPLETED = "COMPLETED";
     private static final String DELETED_NO = "N";
     private static final String ACTIVE_YES = "Y";
+    private static final String DETAIL_LOG_KEY_FORMAT = "KeyId = TRANSACTION_POID:%s DET_ROW_ID:%s";
 
     private final HrCompetencyEvaluationHdrRepository hdrRepository;
     private final HrCompetencyEvaluationDtlRepository dtlRepository;
@@ -139,16 +141,22 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
         hdr.setLastModifiedDate(LocalDateTime.now());
 
         hdrRepository.save(hdr);
-        reconcileDetailsOnUpdate(transactionPoid, hdr, request.getDetails());
+        List<LogRequestDto<HrCompetencyEvaluationDtl>> detailLogRequests =
+                reconcileDetailsOnUpdate(transactionPoid, hdr, request.getDetails());
         applyScoresToHeader(transactionPoid);
 
         hdr = hdrRepository.findActiveById(transactionPoid).orElse(hdr);
+        String docId = UserContext.getDocumentId();
+        String docKeyPoid = transactionPoid.toString();
         loggingService.createLogSummaryEntry(
-                UserContext.getDocumentId(),
-                transactionPoid.toString(),
+                docId,
+                docKeyPoid,
                 String.format("%s %s", LogDetailsEnum.MODIFIED.getDescription(), hdr.getDocRef()));
         loggingService.logChanges(oldCopy, hdr, HrCompetencyEvaluationHdr.class,
-                UserContext.getDocumentId(), transactionPoid.toString(), LogDetailsEnum.MODIFIED, PRIMARY_KEY);
+                docId, docKeyPoid, LogDetailsEnum.MODIFIED, PRIMARY_KEY);
+        if (!detailLogRequests.isEmpty()) {
+            loggingService.createLogBatch(detailLogRequests);
+        }
 
         return mapToResponse(hdr, dtlRepository.findByTransactionPoidOrderByDetRowId(transactionPoid));
     }
@@ -409,10 +417,12 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
         return actionType.trim();
     }
 
-    private void reconcileDetailsOnUpdate(Long transactionPoid, HrCompetencyEvaluationHdr hdr,
-                                          List<CompetencyEvaluationRequestDto.CompetencyEvaluationDetailRequestDto> detailDtos) {
+    private List<LogRequestDto<HrCompetencyEvaluationDtl>> reconcileDetailsOnUpdate(
+            Long transactionPoid,
+            HrCompetencyEvaluationHdr hdr,
+            List<CompetencyEvaluationRequestDto.CompetencyEvaluationDetailRequestDto> detailDtos) {
         if (detailDtos == null || detailDtos.isEmpty()) {
-            return;
+            return List.of();
         }
         List<HrCompetencyEvaluationDtl> existing = dtlRepository.findByTransactionPoidOrderByDetRowId(transactionPoid);
         Map<Long, HrCompetencyEvaluationDtl> byDetRowId = new HashMap<>();
@@ -424,6 +434,9 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
 
         String user = ASGHelperUtils.getCurrentUser();
         LocalDateTime now = LocalDateTime.now();
+        String docId = UserContext.getDocumentId();
+        String docKeyPoid = transactionPoid.toString();
+        List<LogRequestDto<HrCompetencyEvaluationDtl>> detailLogRequests = new ArrayList<>();
 
         for (int i = 0; i < detailDtos.size(); i++) {
             CompetencyEvaluationRequestDto.CompetencyEvaluationDetailRequestDto dto = detailDtos.get(i);
@@ -441,16 +454,22 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
                     line.setCreatedDate(now);
                     dtlRepository.save(line);
                     byDetRowId.put(maxDetRowId, line);
+                    loggingService.createLogSummaryEntry(docId, docKeyPoid,
+                            String.format("Row Created on Competency Evaluation Detail with detRowId: %s", maxDetRowId));
                 }
                 case CompetencyEvaluationConstants.ACTION_IS_UPDATED -> {
                     HrCompetencyEvaluationDtl line = byDetRowId.get(dto.getDetRowId());
                     if (line == null) {
                         throw new ValidationException("Detail row not found for detRowId=" + dto.getDetRowId() + " (row " + rowNum + ")");
                     }
+                    HrCompetencyEvaluationDtl oldLine = snapshotDetail(line);
                     applyDetailFromDto(line, hdr, dto);
                     line.setLastModifiedBy(user);
                     line.setLastModifiedDate(now);
                     dtlRepository.save(line);
+                    String logDetail = String.format(DETAIL_LOG_KEY_FORMAT, docKeyPoid, dto.getDetRowId());
+                    detailLogRequests.add(new LogRequestDto<>(
+                            oldLine, line, HrCompetencyEvaluationDtl.class, docId, docKeyPoid, logDetail));
                 }
                 case CompetencyEvaluationConstants.ACTION_IS_DELETED -> {
                     HrCompetencyEvaluationDtl line = byDetRowId.get(dto.getDetRowId());
@@ -458,6 +477,7 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
                         throw new ValidationException("Detail row not found for detRowId=" + dto.getDetRowId() + " (row " + rowNum + ")");
                     }
                     dtlRepository.delete(line);
+                    loggingService.logDelete(line, docId, docKeyPoid);
                     byDetRowId.remove(dto.getDetRowId());
                 }
                 case CompetencyEvaluationConstants.ACTION_NO_CHANGE -> {
@@ -468,6 +488,13 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
                 default -> throw new ValidationException("Unsupported actionType in row " + rowNum);
             }
         }
+        return detailLogRequests;
+    }
+
+    private static HrCompetencyEvaluationDtl snapshotDetail(HrCompetencyEvaluationDtl line) {
+        HrCompetencyEvaluationDtl copy = new HrCompetencyEvaluationDtl();
+        BeanUtils.copyProperties(line, copy);
+        return copy;
     }
 
     private static HrCompetencyEvaluationDtl buildDetailEntity(HrCompetencyEvaluationHdr hdr,

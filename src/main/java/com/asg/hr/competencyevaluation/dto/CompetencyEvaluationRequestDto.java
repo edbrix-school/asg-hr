@@ -1,5 +1,6 @@
 package com.asg.hr.competencyevaluation.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -15,6 +16,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CompetencyEvaluationRequestDto {
 
     private String docRef;
@@ -56,6 +58,7 @@ public class CompetencyEvaluationRequestDto {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class CompetencyEvaluationDetailRequestDto {
 
         private String actionType;
