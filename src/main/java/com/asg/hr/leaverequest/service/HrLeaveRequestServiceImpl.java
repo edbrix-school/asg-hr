@@ -402,6 +402,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         entity.setPlanedRejoinDate(req.getPlanedRejoinDate());
         entity.setUpdateRejoinDate(req.getUpdateRejoinDate() != null ? req.getUpdateRejoinDate() : "Y");
         entity.setEligibleLeaveDays(req.getEligibleLeaveDays());
+        entity.setBalanceLeaveDays(req.getBalanceLeaveDays());
         entity.setBalanceTillRejoin(req.getBalanceTillRejoin());
         entity.setCalendarDays(req.getCalendarDays());
         entity.setHolidays(req.getHolidays());
@@ -794,7 +795,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
             else if (lastRejoin instanceof java.sql.Date sd) dto.setLastRejoinDate(sd.toLocalDate());
 
             BigDecimal leaveDaysVal = dto.getLeaveDays() != null ? dto.getLeaveDays() : BigDecimal.ZERO;
-            if (dto.getEligibleLeaveDays() != null) {
+            if (dto.getEligibleLeaveDays() != null && dto.getBalanceTillRejoin() == null) {
                 dto.setBalanceTillRejoin(dto.getEligibleLeaveDays().subtract(leaveDaysVal));
             }
         }
