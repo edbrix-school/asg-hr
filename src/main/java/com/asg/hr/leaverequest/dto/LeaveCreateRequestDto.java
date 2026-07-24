@@ -58,6 +58,11 @@ public class LeaveCreateRequestDto {
     private BigDecimal hrTicketEncashment;
     private BigDecimal hrTicketsEarned;
     private LocalDate hrTicketTillDate;
+    private BigDecimal balanceLeaveDays;
+    private String designationName;
 
+    private String joinDate;
+    private String ticketBookBy;
+    private String deleted;
     private List<LeaveRequestDetailDto> details;
 }
