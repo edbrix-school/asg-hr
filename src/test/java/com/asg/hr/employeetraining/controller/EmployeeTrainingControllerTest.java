@@ -119,6 +119,29 @@ class EmployeeTrainingControllerTest {
     }
 
     @Test
+    void getById_WhenSoftDeleted_ReturnsSuccessResponse() {
+        EmployeeTrainingResponse deletedResponse = new EmployeeTrainingResponse();
+        deletedResponse.setTransactionPoid(1L);
+        deletedResponse.setCourseName("Safety Training");
+        deletedResponse.setActive("N");
+
+        when(employeeTrainingService.getTrainingById(1L)).thenReturn(deletedResponse);
+
+        try (MockedStatic<UserContext> userContext = org.mockito.Mockito.mockStatic(UserContext.class)) {
+            userContext.when(UserContext::getDocumentId).thenReturn("800-108");
+
+            doNothing().when(loggingService).createLogSummaryEntry(
+                    LogDetailsEnum.VIEWED, "800-108", "1");
+
+            ResponseEntity<?> entity = controller.getById(1L);
+
+            assertNotNull(entity);
+            assertEquals(200, entity.getStatusCode().value());
+            verify(employeeTrainingService).getTrainingById(1L);
+        }
+    }
+
+    @Test
     void createTraining_ReturnsSuccess() {
         when(employeeTrainingService.createTraining(request)).thenReturn(response);
 

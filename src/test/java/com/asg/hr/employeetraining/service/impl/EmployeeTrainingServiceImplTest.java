@@ -157,7 +157,7 @@ class EmployeeTrainingServiceImplTest {
 
     @Test
     void getTrainingById_WhenFound_ReturnsResponse() {
-        when(headerRepository.findByTransactionPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.of(header));
+        when(headerRepository.findByTransactionPoid(1L)).thenReturn(Optional.of(header));
         when(detailRepository.findByIdTransactionPoidOrderByIdDetRowIdAsc(1L)).thenReturn(detailEntities);
         when(procedureRepository.getEmployeeLovByIds(any()))
                 .thenReturn(List.of(new LovGetListDto(1L, "E001", "John", 1L, "John", 1, null)));
@@ -186,8 +186,31 @@ class EmployeeTrainingServiceImplTest {
     }
 
     @Test
+    void getTrainingById_WhenSoftDeleted_ReturnsResponse() {
+        EmployeeTrainingHeaderEntity deletedHeader = EmployeeTrainingHeaderEntity.builder()
+                .transactionPoid(1L)
+                .courseName("Safety Training")
+                .employeePoid("1001")
+                .trainingType("INHOUSE")
+                .deleted("Y")
+                .build();
+
+        when(headerRepository.findByTransactionPoid(1L)).thenReturn(Optional.of(deletedHeader));
+        when(detailRepository.findByIdTransactionPoidOrderByIdDetRowIdAsc(1L)).thenReturn(detailEntities);
+        when(procedureRepository.getEmployeeLovByIds(any())).thenReturn(List.of());
+        when(procedureRepository.getTrainingTypeByCode(anyString())).thenReturn(null);
+        when(procedureRepository.getTrainingStatusByCodes(any())).thenReturn(List.of());
+        when(mapper.toResponse(deletedHeader, detailEntities)).thenReturn(response);
+
+        EmployeeTrainingResponse result = service.getTrainingById(1L);
+
+        assertNotNull(result);
+        verify(mapper).toResponse(deletedHeader, detailEntities);
+    }
+
+    @Test
     void getTrainingById_WhenNotFound_ThrowsException() {
-        when(headerRepository.findByTransactionPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.empty());
+        when(headerRepository.findByTransactionPoid(1L)).thenReturn(Optional.empty());
         assertThrows(ResourceNotFoundException.class, () -> service.getTrainingById(1L));
     }
 

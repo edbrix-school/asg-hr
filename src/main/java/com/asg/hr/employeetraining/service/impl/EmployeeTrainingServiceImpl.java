@@ -102,7 +102,8 @@ public class EmployeeTrainingServiceImpl implements EmployeeTrainingService {
      * @return populated response DTO containing header and details
      */
     public EmployeeTrainingResponse getTrainingById(Long transactionPoid) {
-        EmployeeTrainingHeaderEntity header = fetchActiveTraining(transactionPoid);
+        EmployeeTrainingHeaderEntity header = headerRepository.findByTransactionPoid(transactionPoid)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee Training", "transactionPoid", transactionPoid));
         List<EmployeeTrainingDetailEntity> details = detailRepository.findByIdTransactionPoidOrderByIdDetRowIdAsc(transactionPoid);
         EmployeeTrainingResponse response = mapper.toResponse(header, details);
         appendLovData(response);
