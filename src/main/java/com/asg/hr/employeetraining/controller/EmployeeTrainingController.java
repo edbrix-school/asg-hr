@@ -6,6 +6,7 @@ import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.enums.UserRolesRightsEnum;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.employeetraining.dto.EmployeeTrainingRequest;
 import com.asg.hr.employeetraining.dto.EmployeeTrainingResponse;
@@ -24,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpHeaders;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -53,6 +54,7 @@ public class EmployeeTrainingController {
 
     private final EmployeeTrainingService employeeTrainingService;
     private final LoggingService loggingService;
+    private final DocumentDownloadHeaderService downloadHeaderService;
 
     @AllowedAction(UserRolesRightsEnum.VIEW)
     @Operation(
@@ -186,8 +188,11 @@ public class EmployeeTrainingController {
         try {
             byte[] pdf = employeeTrainingService.print(transactionPoid);
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=hr-employee-induction-rpt-" + transactionPoid + ".pdf")
+                    .headers(downloadHeaderService.buildAttachmentHeaders(
+                            UserContext.getDocumentId(),
+                            transactionPoid,
+                            "hr-employee-induction-rpt",
+                            "pdf"))
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
         } catch (Exception e) {

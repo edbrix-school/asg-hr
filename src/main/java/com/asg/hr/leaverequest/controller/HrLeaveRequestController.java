@@ -7,6 +7,7 @@ import com.asg.common.lib.dto.response.ApiResponse;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.enums.UserRolesRightsEnum;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.leaverequest.dto.LeaveCalculationResponseDto;
 import com.asg.hr.leaverequest.dto.LeaveCreateRequestDto;
@@ -23,7 +24,7 @@ import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpHeaders;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -48,6 +49,7 @@ public class HrLeaveRequestController {
 
     private final HrLeaveRequestService service;
     private final LoggingService loggingService;
+    private final DocumentDownloadHeaderService downloadHeaderService;
 
     @PostMapping("/create")
     @AllowedAction(UserRolesRightsEnum.CREATE)
@@ -300,8 +302,11 @@ public class HrLeaveRequestController {
         try {
             byte[] pdf = service.print(transactionPoid);
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=purchase-journal-" + transactionPoid + ".pdf")
+                    .headers(downloadHeaderService.buildAttachmentHeaders(
+                            UserContext.getDocumentId(),
+                            transactionPoid,
+                            "purchase-journal",
+                            "pdf"))
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
         } catch (Exception e) {

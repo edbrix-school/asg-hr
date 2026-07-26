@@ -6,6 +6,7 @@ import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.enums.UserRolesRightsEnum;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.personaldatasheet.dto.PersonalDataSheetRequestDto;
 import com.asg.hr.personaldatasheet.dto.PersonalDataSheetResponseDto;
@@ -22,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpHeaders;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -41,6 +42,7 @@ public class PersonalDataSheetController {
 
     private final PersonalDataSheetService personalDataSheetService;
     private final LoggingService loggingService;
+    private final DocumentDownloadHeaderService downloadHeaderService;
 
     @Operation(
             summary = "Create employee personal data sheet",
@@ -342,8 +344,11 @@ public class PersonalDataSheetController {
         try {
             byte[] pdf = personalDataSheetService.print(transactionPoid);
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=personal-data-sheet-" + transactionPoid + ".pdf")
+                    .headers(downloadHeaderService.buildAttachmentHeaders(
+                            UserContext.getDocumentId(),
+                            transactionPoid,
+                            "personal-data-sheet",
+                            "pdf"))
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
         } catch (Exception e) {

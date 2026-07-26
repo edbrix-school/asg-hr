@@ -7,6 +7,7 @@ import com.asg.common.lib.dto.response.ApiResponse;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.enums.UserRolesRightsEnum;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.leaverejoin.dto.EmployeeLeaveRejoinEmployeeDetailsResponse;
 import com.asg.hr.leaverejoin.dto.EmployeeLeaveRejoinLeaveDetailsResponse;
@@ -23,7 +24,7 @@ import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpHeaders;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -50,6 +51,7 @@ public class EmployeeLeaveRejoinController {
 
     private final EmployeeLeaveRejoinService service;
     private final LoggingService loggingService;
+    private final DocumentDownloadHeaderService downloadHeaderService;
 
     @AllowedAction(UserRolesRightsEnum.VIEW)
     @PostMapping("/list")
@@ -169,8 +171,11 @@ public class EmployeeLeaveRejoinController {
         try {
             byte[] pdf = service.print(transactionPoid);
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=employee-rejoining-form-" + transactionPoid + ".pdf")
+                    .headers(downloadHeaderService.buildAttachmentHeaders(
+                            UserContext.getDocumentId(),
+                            transactionPoid,
+                            "employee-rejoining-form",
+                            "pdf"))
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
         } catch (Exception e) {
