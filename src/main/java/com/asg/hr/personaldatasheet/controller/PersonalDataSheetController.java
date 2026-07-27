@@ -10,6 +10,7 @@ import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.personaldatasheet.dto.PersonalDataSheetRequestDto;
 import com.asg.hr.personaldatasheet.dto.PersonalDataSheetResponseDto;
+import com.asg.hr.personaldatasheet.entity.HrPersonalDataHdr;
 import com.asg.hr.personaldatasheet.service.PersonalDataSheetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -345,7 +346,7 @@ public class PersonalDataSheetController {
             byte[] pdf = personalDataSheetService.print(transactionPoid);
             return ResponseEntity.ok()
                     .headers(downloadHeaderService.buildAttachmentHeaders(
-                            UserContext.getDocumentId(),
+                            HrPersonalDataHdr.class,
                             transactionPoid,
                             "personal-data-sheet",
                             "pdf"))

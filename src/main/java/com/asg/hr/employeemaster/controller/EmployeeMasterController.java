@@ -9,6 +9,7 @@ import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.employeemaster.dto.*;
+import com.asg.hr.employeemaster.entity.HrEmployeeMaster;
 import com.asg.hr.employeemaster.service.EmployeeMasterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -148,7 +149,7 @@ public class EmployeeMasterController {
             byte[] pdf = employeeMasterService.print(transactionPoid);
             return ResponseEntity.ok()
                     .headers(downloadHeaderService.buildAttachmentHeaders(
-                            UserContext.getDocumentId(),
+                            HrEmployeeMaster.class, "EMPLOYEE_POID",
                             transactionPoid,
                             "employee-profile",
                             "pdf"))

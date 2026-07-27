@@ -14,6 +14,7 @@ import com.asg.hr.leaverequest.dto.LeaveCreateRequestDto;
 import com.asg.hr.leaverequest.dto.LeaveResponseDto;
 import com.asg.hr.leaverequest.dto.LeaveTicketUpdateRequestDto;
 import com.asg.hr.leaverequest.dto.LeaveUpdateRequestDto;
+import com.asg.hr.leaverequest.entity.HrLeaveRequestHdrEntity;
 import com.asg.hr.leaverequest.service.HrLeaveRequestService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -303,7 +304,7 @@ public class HrLeaveRequestController {
             byte[] pdf = service.print(transactionPoid);
             return ResponseEntity.ok()
                     .headers(downloadHeaderService.buildAttachmentHeaders(
-                            UserContext.getDocumentId(),
+                            HrLeaveRequestHdrEntity.class,
                             transactionPoid,
                             "purchase-journal",
                             "pdf"))

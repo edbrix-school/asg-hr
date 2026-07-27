@@ -13,6 +13,7 @@ import com.asg.hr.leaverejoin.dto.EmployeeLeaveRejoinEmployeeDetailsResponse;
 import com.asg.hr.leaverejoin.dto.EmployeeLeaveRejoinLeaveDetailsResponse;
 import com.asg.hr.leaverejoin.dto.EmployeeLeaveRejoinRequest;
 import com.asg.hr.leaverejoin.dto.EmployeeLeaveRejoinResponse;
+import com.asg.hr.leaverejoin.entity.HrEmployeeRejoinHdr;
 import com.asg.hr.leaverejoin.service.EmployeeLeaveRejoinService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -172,7 +173,7 @@ public class EmployeeLeaveRejoinController {
             byte[] pdf = service.print(transactionPoid);
             return ResponseEntity.ok()
                     .headers(downloadHeaderService.buildAttachmentHeaders(
-                            UserContext.getDocumentId(),
+                            HrEmployeeRejoinHdr.class,
                             transactionPoid,
                             "employee-rejoining-form",
                             "pdf"))

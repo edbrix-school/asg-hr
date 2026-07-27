@@ -4,6 +4,7 @@ import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.personaldatasheet.dto.PersonalDataSheetRequestDto;
 import com.asg.hr.personaldatasheet.dto.PersonalDataSheetResponseDto;
@@ -20,6 +21,7 @@ import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -32,7 +34,7 @@ class PersonalDataSheetControllerTest {
     void list_usesUserDocumentId_andReturnsSuccessResponse() {
         PersonalDataSheetService service = mock(PersonalDataSheetService.class);
         LoggingService loggingService = mock(LoggingService.class);
-        PersonalDataSheetController controller = new PersonalDataSheetController(service, loggingService);
+        PersonalDataSheetController controller = new PersonalDataSheetController(service, loggingService, new DocumentDownloadHeaderService(mock(JdbcTemplate.class)));
 
         Pageable pageable = mock(Pageable.class);
         FilterRequestDto filters = mock(FilterRequestDto.class);
@@ -53,7 +55,7 @@ class PersonalDataSheetControllerTest {
     void create_delegatesToService() {
         PersonalDataSheetService service = mock(PersonalDataSheetService.class);
         LoggingService loggingService = mock(LoggingService.class);
-        PersonalDataSheetController controller = new PersonalDataSheetController(service, loggingService);
+        PersonalDataSheetController controller = new PersonalDataSheetController(service, loggingService, new DocumentDownloadHeaderService(mock(JdbcTemplate.class)));
 
         PersonalDataSheetRequestDto req = createValidRequest();
         PersonalDataSheetResponseDto created = createValidResponse();
@@ -71,7 +73,7 @@ class PersonalDataSheetControllerTest {
     void update_delegatesToService() {
         PersonalDataSheetService service = mock(PersonalDataSheetService.class);
         LoggingService loggingService = mock(LoggingService.class);
-        PersonalDataSheetController controller = new PersonalDataSheetController(service, loggingService);
+        PersonalDataSheetController controller = new PersonalDataSheetController(service, loggingService, new DocumentDownloadHeaderService(mock(JdbcTemplate.class)));
 
         PersonalDataSheetRequestDto req = createValidRequest();
         PersonalDataSheetResponseDto updated = createValidResponse();
@@ -89,7 +91,7 @@ class PersonalDataSheetControllerTest {
     void getById_logsViewed_andDelegatesToService() {
         PersonalDataSheetService service = mock(PersonalDataSheetService.class);
         LoggingService loggingService = mock(LoggingService.class);
-        PersonalDataSheetController controller = new PersonalDataSheetController(service, loggingService);
+        PersonalDataSheetController controller = new PersonalDataSheetController(service, loggingService, new DocumentDownloadHeaderService(mock(JdbcTemplate.class)));
 
         PersonalDataSheetResponseDto dto = createValidResponse();
         when(service.getById(5L)).thenReturn(dto);
@@ -109,7 +111,7 @@ class PersonalDataSheetControllerTest {
     void delete_delegatesToService_andReturnsSuccessResponse() {
         PersonalDataSheetService service = mock(PersonalDataSheetService.class);
         LoggingService loggingService = mock(LoggingService.class);
-        PersonalDataSheetController controller = new PersonalDataSheetController(service, loggingService);
+        PersonalDataSheetController controller = new PersonalDataSheetController(service, loggingService, new DocumentDownloadHeaderService(mock(JdbcTemplate.class)));
 
         DeleteReasonDto reason = mock(DeleteReasonDto.class);
 
@@ -124,7 +126,7 @@ class PersonalDataSheetControllerTest {
     void getLoginUserEmployee_delegatesToService() {
         PersonalDataSheetService service = mock(PersonalDataSheetService.class);
         LoggingService loggingService = mock(LoggingService.class);
-        PersonalDataSheetController controller = new PersonalDataSheetController(service, loggingService);
+        PersonalDataSheetController controller = new PersonalDataSheetController(service, loggingService, new DocumentDownloadHeaderService(mock(JdbcTemplate.class)));
 
         Map<String, Object> mockResponse = Map.of("employeePoid", 123L, "employeeName", "John Doe");
         when(service.getLoginUserEmployee()).thenReturn(mockResponse);
@@ -140,7 +142,7 @@ class PersonalDataSheetControllerTest {
     void loadUserPolicies_delegatesToService() {
         PersonalDataSheetService service = mock(PersonalDataSheetService.class);
         LoggingService loggingService = mock(LoggingService.class);
-        PersonalDataSheetController controller = new PersonalDataSheetController(service, loggingService);
+        PersonalDataSheetController controller = new PersonalDataSheetController(service, loggingService, new DocumentDownloadHeaderService(mock(JdbcTemplate.class)));
 
         Long employeePoid = 123L;
         List<Map<String, Object>> mockPolicies = Arrays.asList(

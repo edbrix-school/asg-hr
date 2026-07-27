@@ -10,6 +10,7 @@ import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.employeetraining.dto.EmployeeTrainingRequest;
 import com.asg.hr.employeetraining.dto.EmployeeTrainingResponse;
+import com.asg.hr.employeetraining.entity.EmployeeTrainingHeaderEntity;
 import com.asg.hr.employeetraining.service.EmployeeTrainingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -189,7 +190,7 @@ public class EmployeeTrainingController {
             byte[] pdf = employeeTrainingService.print(transactionPoid);
             return ResponseEntity.ok()
                     .headers(downloadHeaderService.buildAttachmentHeaders(
-                            UserContext.getDocumentId(),
+                            EmployeeTrainingHeaderEntity.class,
                             transactionPoid,
                             "hr-employee-induction-rpt",
                             "pdf"))

@@ -11,6 +11,7 @@ import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.employeeinduction.dto.EmployeeInductionRequestDto;
 import com.asg.hr.employeeinduction.dto.EmployeeInductionResponseDto;
 import com.asg.hr.employeeinduction.dto.InductionCategoryDto;
+import com.asg.hr.employeeinduction.entity.HrEmployeeInductionHdr;
 import com.asg.hr.employeeinduction.service.EmployeeInductionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -302,7 +303,7 @@ public class EmployeeInductionController {
             byte[] pdf = employeeInductionService.print(poid);
             return ResponseEntity.ok()
                     .headers(downloadHeaderService.buildAttachmentHeaders(
-                            UserContext.getDocumentId(),
+                            HrEmployeeInductionHdr.class,
                             poid,
                             "employee-induction",
                             "pdf"))
