@@ -173,7 +173,7 @@ class HrLunchDeductionServiceImplTest {
         @Test
         void success_withDetailsCREATED_returnsResponse() {
             HrLunchDeductionDtlRequest dtlReq = HrLunchDeductionDtlRequest.builder()
-                    .actionType("CREATED")
+                    .actionType("isCreated")
                     .deductionType("LUNCH")
                     .leaveDays(2L)
                     .amount(new BigDecimal("500.00"))
@@ -208,7 +208,7 @@ class HrLunchDeductionServiceImplTest {
             HrMonthlyLunchDtl existingDtl = buildDtl(1L, 22L, 2L, new BigDecimal("0.500"));
             HrLunchDeductionDtlRequest dtlReq = HrLunchDeductionDtlRequest.builder()
                     .detRowId(1L)
-                    .actionType("UPDATED")
+                    .actionType("isUpdated")
                     .leaveDays(5L)
                     .amount(new BigDecimal("750.00"))
                     .build();
@@ -238,7 +238,7 @@ class HrLunchDeductionServiceImplTest {
             HrMonthlyLunchDtl existingDtl = buildDtl(1L, 22L, 2L, new BigDecimal("0.500"));
             HrLunchDeductionDtlRequest dtlReq = HrLunchDeductionDtlRequest.builder()
                     .detRowId(1L)
-                    .actionType("DELETED")
+                    .actionType("isDeleted")
                     .build();
             HrLunchDeductionRequest updateRequest = HrLunchDeductionRequest.builder()
                     .description("Updated")
@@ -311,7 +311,7 @@ class HrLunchDeductionServiceImplTest {
         void updateWithInvalidDetRowId_throwsException() {
             HrLunchDeductionDtlRequest dtlReq = HrLunchDeductionDtlRequest.builder()
                     .detRowId(99L)
-                    .actionType("UPDATED")
+                    .actionType("isUpdated")
                     .build();
             HrLunchDeductionRequest updateRequest = HrLunchDeductionRequest.builder()
                     .details(List.of(dtlReq))
