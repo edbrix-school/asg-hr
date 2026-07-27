@@ -4,6 +4,7 @@ import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.exceptions.GlobalExceptionHandler;
 import com.asg.hr.employeeinduction.dto.EmployeeInductionRequestDto;
@@ -20,6 +21,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -36,7 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(value = EmployeeInductionController.class,
         excludeFilters = @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.asg.hr.aspect.*"))
-@ContextConfiguration(classes = {EmployeeInductionController.class, GlobalExceptionHandler.class})
+@ContextConfiguration(classes = {EmployeeInductionController.class, GlobalExceptionHandler.class, DocumentDownloadHeaderService.class})
 class EmployeeInductionControllerTest {
 
     @Autowired
@@ -44,6 +46,11 @@ class EmployeeInductionControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockitoBean
+
+    private JdbcTemplate jdbcTemplate;
+
 
     @MockitoBean
     private EmployeeInductionService employeeInductionService;
@@ -294,7 +301,7 @@ class EmployeeInductionControllerTest {
                         .header("X-Document-id", "800-107")
                         .header("X-Action-Requested", "Print"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Content-Disposition", "attachment; filename=employee-induction-1.pdf"))
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"Employee-Induction-1.pdf\""))
                 .andExpect(content().contentType(MediaType.APPLICATION_PDF))
                 .andExpect(content().bytes(mockPdf));
 
