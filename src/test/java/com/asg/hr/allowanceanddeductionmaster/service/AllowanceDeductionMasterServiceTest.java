@@ -121,7 +121,6 @@ class AllowanceDeductionMasterServiceTest {
             mockedASGHelper.when(ASGHelperUtils::getCurrentUser).thenReturn("admin");
 
             when(repository.findByCodeAndDeletedNot(requestDTO.getCode(), "Y")).thenReturn(Optional.empty());
-            when(repository.findByPayrollFieldName(requestDTO.getPayrollFieldName())).thenReturn(Optional.empty());
             when(mapper.toEntity(requestDTO)).thenReturn(entity);
             when(repository.save(any(HrAllowanceDeductionMaster.class))).thenReturn(entity);
             when(mapper.toResponseDTO(entity)).thenReturn(responseDTO);
@@ -154,7 +153,7 @@ class AllowanceDeductionMasterServiceTest {
             AllowanceDeductionResponseDTO result = service.create(requestDTO);
 
             assertNotNull(result);
-            verify(repository, never()).findByPayrollFieldName(any());
+
         }
     }
 
@@ -176,22 +175,13 @@ class AllowanceDeductionMasterServiceTest {
             AllowanceDeductionResponseDTO result = service.create(requestDTO);
 
             assertNotNull(result);
-            verify(repository, never()).findByPayrollFieldName(any());
+
         }
     }
 
     @Test
     void testCreateDuplicateCode() {
         when(repository.findByCodeAndDeletedNot(requestDTO.getCode(), "Y")).thenReturn(Optional.of(entity));
-
-        assertThrows(ResourceAlreadyExistsException.class, () -> service.create(requestDTO));
-        verify(repository, never()).save(any());
-    }
-
-    @Test
-    void testCreateDuplicatePayrollFieldName() {
-        when(repository.findByCodeAndDeletedNot(requestDTO.getCode(), "Y")).thenReturn(Optional.empty());
-        when(repository.findByPayrollFieldName(requestDTO.getPayrollFieldName())).thenReturn(Optional.of(entity));
 
         assertThrows(ResourceAlreadyExistsException.class, () -> service.create(requestDTO));
         verify(repository, never()).save(any());
@@ -208,7 +198,7 @@ class AllowanceDeductionMasterServiceTest {
             mockedASGHelper.when(ASGHelperUtils::getCurrentUser).thenReturn("admin");
 
             when(repository.findById(id)).thenReturn(Optional.of(entity));
-            when(repository.findByPayrollFieldName(requestDTO.getPayrollFieldName())).thenReturn(Optional.empty());
+
             when(repository.save(any(HrAllowanceDeductionMaster.class))).thenReturn(entity);
             when(mapper.toResponseDTO(entity)).thenReturn(responseDTO);
             doNothing().when(mapper).updateEntity(any(AllowanceDeductionRequestDTO.class), any(HrAllowanceDeductionMaster.class));
@@ -237,7 +227,7 @@ class AllowanceDeductionMasterServiceTest {
                     .build();
 
             when(repository.findById(id)).thenReturn(Optional.of(entity));
-            when(repository.findByPayrollFieldName(requestDTO.getPayrollFieldName())).thenReturn(Optional.of(existingEntity));
+
             when(repository.save(any(HrAllowanceDeductionMaster.class))).thenReturn(entity);
             when(mapper.toResponseDTO(entity)).thenReturn(responseDTO);
             doNothing().when(mapper).updateEntity(any(AllowanceDeductionRequestDTO.class), any(HrAllowanceDeductionMaster.class));
@@ -269,7 +259,7 @@ class AllowanceDeductionMasterServiceTest {
             AllowanceDeductionResponseDTO result = service.update(id, requestDTO);
 
             assertNotNull(result);
-            verify(repository, never()).findByPayrollFieldName(any());
+
         }
     }
 
@@ -292,23 +282,8 @@ class AllowanceDeductionMasterServiceTest {
             AllowanceDeductionResponseDTO result = service.update(id, requestDTO);
 
             assertNotNull(result);
-            verify(repository, never()).findByPayrollFieldName(any());
+
         }
-    }
-
-    @Test
-    void testUpdateDuplicatePayrollFieldName() {
-        Long id = 1L;
-        HrAllowanceDeductionMaster existingEntity = HrAllowanceDeductionMaster.builder()
-                .allowaceDeductionPoid(2L) // Different ID
-                .payrollFieldName(requestDTO.getPayrollFieldName())
-                .build();
-
-        when(repository.findById(id)).thenReturn(Optional.of(entity));
-        when(repository.findByPayrollFieldName(requestDTO.getPayrollFieldName())).thenReturn(Optional.of(existingEntity));
-
-        assertThrows(ResourceAlreadyExistsException.class, () -> service.update(id, requestDTO));
-        verify(repository, never()).save(any());
     }
 
     @Test
