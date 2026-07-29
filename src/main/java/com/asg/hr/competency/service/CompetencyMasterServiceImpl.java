@@ -17,6 +17,7 @@ import com.asg.hr.competency.dto.CompetencyMasterResponseDto;
 import com.asg.hr.competency.entity.CompetencyMasterEntity;
 import com.asg.hr.competency.repository.CompetencyMasterRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -98,15 +99,8 @@ public class CompetencyMasterServiceImpl implements CompetencyMasterService {
             throw new ResourceAlreadyExistsException("Competency", requestDto.getCompetencyCode());
         }
 
-        CompetencyMasterEntity oldEntity = CompetencyMasterEntity.builder()
-                .competencyPoid(entity.getCompetencyPoid())
-                .groupPoid(entity.getGroupPoid())
-                .competencyCode(entity.getCompetencyCode())
-                .competencyDescription(entity.getCompetencyDescription())
-                .competencyNarration(entity.getCompetencyNarration())
-                .seqNo(entity.getSeqNo())
-                .build();
-        oldEntity.setActive(entity.getActive());
+        CompetencyMasterEntity oldEntity = new CompetencyMasterEntity();
+        BeanUtils.copyProperties(entity, oldEntity);
 
         entity.setCompetencyCode(requestDto.getCompetencyCode());
         entity.setCompetencyDescription(requestDto.getCompetencyDescription());
@@ -140,10 +134,14 @@ public class CompetencyMasterServiceImpl implements CompetencyMasterService {
     }
 
     private CompetencyMasterResponseDto toResponseDto(CompetencyMasterEntity entity) {
+        String poidStr = entity.getCompetencyPoid() != null ? entity.getCompetencyPoid().toString() : null;
         return CompetencyMasterResponseDto.builder()
                 .competencyPoid(entity.getCompetencyPoid())
                 .groupPoid(entity.getGroupPoid())
                 .competencyCode(entity.getCompetencyCode())
+                .docRef(entity.getCompetencyCode())
+                .docKeyPoid(poidStr)
+                .keyPoid(poidStr)
                 .competencyDescription(entity.getCompetencyDescription())
                 .competencyNarration(entity.getCompetencyNarration())
                 .active(entity.getActive())

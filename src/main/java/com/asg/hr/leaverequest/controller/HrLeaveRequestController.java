@@ -7,7 +7,9 @@ import com.asg.common.lib.dto.response.ApiResponse;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.enums.UserRolesRightsEnum;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.dto.LovGetListDto;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.common.lib.service.LovDataService;
 import com.asg.hr.leaverequest.dto.LeaveCalculationResponseDto;
 import com.asg.hr.leaverequest.dto.LeaveCreateRequestDto;
 import com.asg.hr.leaverequest.dto.LeaveResponseDto;
@@ -48,6 +50,7 @@ public class HrLeaveRequestController {
 
     private final HrLeaveRequestService service;
     private final LoggingService loggingService;
+    private final LovDataService lovService;
 
     @PostMapping("/create")
     @AllowedAction(UserRolesRightsEnum.CREATE)
@@ -245,10 +248,22 @@ public class HrLeaveRequestController {
             @RequestParam Long employeePoid,
             @RequestParam(required = false) String employeeCode) {
 
+        // Legacy showRptAttendance() resolved EmployeePoid -> employee code server-side via
+        // getLOVCodesFromPOID("EMPLOYEE_NAME", ...) before opening report 800-216. Report
+        // 800-216 filters on EMP_CODE, so passing the POID (or a blank) yields 0 rows and an
+        // endless spinner. Resolve the code from the POID here; fall back to any supplied code.
+        String empCode = "";
+        LovGetListDto empDtl = lovService.getDetailsByPoidAndLovNameFast(employeePoid, "EMPLOYEE_NAME");
+        if (empDtl != null && empDtl.getCode() != null && !empDtl.getCode().isBlank()) {
+            empCode = empDtl.getCode();
+        } else if (employeeCode != null) {
+            empCode = employeeCode;
+        }
+
         return ResponseEntity.ok(Map.of(
                 "reportId", "800-216",
                 "employeePoid", employeePoid,
-                "parameters", "EMP_CODE=" + (employeeCode != null ? employeeCode : "")
+                "parameters", "EMP_CODE=" + empCode
         ));
     }
 

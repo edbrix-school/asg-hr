@@ -38,6 +38,9 @@ class HrLeaveRequestControllerTest {
     @Mock
     private com.asg.common.lib.service.LoggingService loggingService;
 
+    @Mock
+    private com.asg.common.lib.service.LovDataService lovService;
+
     @InjectMocks
     private HrLeaveRequestController controller;
 
@@ -422,25 +425,33 @@ class HrLeaveRequestControllerTest {
     // -------------------------------------------------------------------------
 
     @Test
-    void attendanceReport_withEmployeeCode() {
+    void attendanceReport_resolvesEmpCodeFromPoid() {
+        // Primary fix: EMP_CODE is resolved from the employee POID server-side,
+        // ignoring any (stale) code the caller passes.
+        com.asg.common.lib.dto.LovGetListDto empDtl = mock(com.asg.common.lib.dto.LovGetListDto.class);
+        when(empDtl.getCode()).thenReturn("87");
+        when(lovService.getDetailsByPoidAndLovNameFast(162L, "EMPLOYEE_NAME")).thenReturn(empDtl);
+
+        ResponseEntity<Map<String, Object>> result =
+                controller.attendanceReport(162L, null);
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals("800-216", result.getBody().get("reportId"));
+        assertEquals("EMP_CODE=87", result.getBody().get("parameters"));
+    }
+
+    @Test
+    void attendanceReport_fallsBackToSuppliedCodeWhenLookupBlank() {
+        when(lovService.getDetailsByPoidAndLovNameFast(1L, "EMPLOYEE_NAME")).thenReturn(null);
+
         ResponseEntity<Map<String, Object>> result =
                 controller.attendanceReport(1L, "EMP001");
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals("800-216", result.getBody().get("reportId"));
-        assertTrue(result.getBody().get("parameters").toString().contains("EMP001"));
-    }
-
-    @Test
-    void attendanceReport_withoutEmployeeCode() {
-        ResponseEntity<Map<String, Object>> result =
-                controller.attendanceReport(1L, null);
-
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertNotNull(result.getBody());
-        assertEquals("800-216", result.getBody().get("reportId"));
-        assertTrue(result.getBody().get("parameters").toString().contains("EMP_CODE="));
+        assertEquals("EMP_CODE=EMP001", result.getBody().get("parameters"));
     }
 
     // -------------------------------------------------------------------------

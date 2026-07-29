@@ -14,6 +14,9 @@ public class CompetencyMasterResponseDto {
     private Long competencyPoid;
     private Long groupPoid;
     private String competencyCode;
+    private String docRef;
+    private String docKeyPoid;
+    private String keyPoid;
     private String competencyDescription;
     private String competencyNarration;
     private String active;

@@ -1,5 +1,6 @@
 package com.asg.hr.competency.entity;
 
+import com.asg.common.lib.annotation.AuditIgnore;
 import com.asg.common.lib.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -14,10 +15,12 @@ import lombok.*;
 public class CompetencyMasterEntity extends BaseEntity {
 
     @Id
+    @AuditIgnore
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "COMPETENCY_POID")
     private Long competencyPoid;
 
+    @AuditIgnore
     @Column(name = "GROUP_POID")
     private Long groupPoid;
 
@@ -36,6 +39,7 @@ public class CompetencyMasterEntity extends BaseEntity {
     @Column(name = "SEQNO")
     private Integer seqNo;
 
+    @AuditIgnore
     @Column(name = "DELETED")
     private String deleted;
 }
