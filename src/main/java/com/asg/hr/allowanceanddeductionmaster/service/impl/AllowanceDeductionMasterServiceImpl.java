@@ -49,6 +49,7 @@ public class AllowanceDeductionMasterServiceImpl implements AllowanceDeductionMa
     private static final String ERROR_RECORD_DELETED = "Record has been deleted";
     private static final String ERROR_ALREADY_DELETED = "Cannot delete. Record is already deleted.";
     private static final String ALLOWANCE_DEDUCTION_CODE = "Allowance/Deduction code";
+    private static final String ALLOWANCE_DEDUCTION_DESCRIPTION = "Allowance/Deduction description";
     private static final String ALLOWANCE_DEDUCTION = "Allowance/Deduction";
     private static final String ALLOWACE_DEDUCTION_POID_FIELD = "allowaceDeductionPoid";
 
@@ -65,6 +66,10 @@ public class AllowanceDeductionMasterServiceImpl implements AllowanceDeductionMa
 
         if (repository.findByCodeAndDeletedNot(request.getCode(), DELETED_FLAG).isPresent()) {
             throw new ResourceAlreadyExistsException(ALLOWANCE_DEDUCTION_CODE, request.getCode());
+        }
+
+        if (repository.findByDescriptionAndDeletedNot(request.getDescription(), DELETED_FLAG).isPresent()) {
+            throw new ResourceAlreadyExistsException(ALLOWANCE_DEDUCTION_DESCRIPTION, request.getDescription());
         }
 
         HrAllowanceDeductionMaster entity = mapper.toEntity(request);
@@ -90,6 +95,12 @@ public class AllowanceDeductionMasterServiceImpl implements AllowanceDeductionMa
         if (DELETED_FLAG.equals(entity.getDeleted())) {
             throw new CustomException(ERROR_CANNOT_UPDATE_DELETED);
         }
+
+        repository.findByDescriptionAndDeletedNot(request.getDescription(), DELETED_FLAG)
+                .filter(existing -> !existing.getAllowaceDeductionPoid().equals(allowaceDeductionPoid))
+                .ifPresent(existing -> {
+                    throw new ResourceAlreadyExistsException(ALLOWANCE_DEDUCTION_DESCRIPTION, request.getDescription());
+                });
 
         HrAllowanceDeductionMaster oldEntity = new HrAllowanceDeductionMaster();
         BeanUtils.copyProperties(entity, oldEntity);
