@@ -12,15 +12,25 @@ public class HrLunchDeductionDtlRequest {
 
     private Long detRowId;
 
-    private String actionType;
+    private String employeePoid;
 
-    private Long employeePoid;
+    private String employeeName;
 
     private String deductionType;
 
+    private Long lunchDays;
+
+    private Long monthDays;
+
     private Long leaveDays;
+
+    private Long totalDays;
+
+    private BigDecimal costPerDay;
 
     private BigDecimal amount;
 
     private String remarks;
+
+    private String actionType;
 }

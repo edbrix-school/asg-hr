@@ -15,6 +15,8 @@ public class HrLunchDeductionRequest {
     @NotNull(message = "Payroll month is mandatory")
     private LocalDate payrollMonth;
 
+    private LocalDate transactionDate;
+
     private String description;
 
     private String remarks;

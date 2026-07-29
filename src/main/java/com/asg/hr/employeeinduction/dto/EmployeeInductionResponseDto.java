@@ -30,7 +30,7 @@ public class EmployeeInductionResponseDto {
     @AllArgsConstructor
     @Builder
     public static class EmployeeInductionDetailResponseDto {
-        private Integer sn;
+        private Integer detRowId;
         private String inductionCategory;
         private LovGetListDto inductionCategoryDet;
         private Long assigneePoid;

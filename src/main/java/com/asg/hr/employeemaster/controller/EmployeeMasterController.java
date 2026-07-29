@@ -6,8 +6,10 @@ import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.enums.UserRolesRightsEnum;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.employeemaster.dto.*;
+import com.asg.hr.employeemaster.entity.HrEmployeeMaster;
 import com.asg.hr.employeemaster.service.EmployeeMasterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,11 +21,12 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpHeaders;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 import static com.asg.common.lib.dto.response.ApiResponse.error;
@@ -37,6 +40,7 @@ public class EmployeeMasterController {
 
     private final EmployeeMasterService employeeMasterService;
     private final LoggingService loggingService;
+    private final DocumentDownloadHeaderService downloadHeaderService;
 
     @AllowedAction(UserRolesRightsEnum.VIEW)
     @GetMapping("/dashboard-details")
@@ -53,8 +57,11 @@ public class EmployeeMasterController {
 
     @AllowedAction(UserRolesRightsEnum.VIEW)
     @PostMapping("/list")
-    public ResponseEntity<?> listEmployees(@ParameterObject Pageable pageable, @RequestBody(required = false) FilterRequestDto filters) {
-        Map<String, Object> result = employeeMasterService.listEmployees(UserContext.getDocumentId(), filters, pageable);
+    public ResponseEntity<?> listEmployees(@ParameterObject Pageable pageable, @RequestBody(required = false) FilterRequestDto filters,
+                                           @Parameter(description = "Start date (inclusive) for transaction date filter, format: yyyy-MM-dd")
+                                           @RequestParam(required = false) LocalDate fromDate,
+                                           @Parameter(description = "End date (inclusive) for transaction date filter, format: yyyy-MM-dd") @RequestParam(required = false) LocalDate toDate) {
+        Map<String, Object> result = employeeMasterService.listEmployees(UserContext.getDocumentId(), filters, pageable, fromDate, toDate);
         return success("Employee list fetched successfully", result);
     }
 
@@ -145,8 +152,11 @@ public class EmployeeMasterController {
         try {
             byte[] pdf = employeeMasterService.print(transactionPoid);
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=employee-profile-" + transactionPoid + ".pdf")
+                    .headers(downloadHeaderService.buildAttachmentHeaders(
+                            HrEmployeeMaster.class, "EMPLOYEE_POID",
+                            transactionPoid,
+                            "employee-profile",
+                            "pdf"))
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
         } catch (Exception e) {

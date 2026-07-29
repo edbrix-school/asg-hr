@@ -5,6 +5,7 @@ import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.ResourceNotFoundException;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.exceptions.GlobalExceptionHandler;
 import com.asg.hr.leaverejoin.dto.EmployeeLeaveRejoinEmployeeDetailsResponse;
@@ -20,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -46,7 +48,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(value = EmployeeLeaveRejoinController.class,
         excludeFilters = @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.asg.hr.aspect.*"))
-@ContextConfiguration(classes = {EmployeeLeaveRejoinController.class, GlobalExceptionHandler.class})
+@ContextConfiguration(classes = {EmployeeLeaveRejoinController.class, GlobalExceptionHandler.class, DocumentDownloadHeaderService.class})
 class EmployeeLeaveRejoinControllerTest {
 
     @Autowired
@@ -54,6 +56,11 @@ class EmployeeLeaveRejoinControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockitoBean
+
+    private JdbcTemplate jdbcTemplate;
+
 
     @MockitoBean
     private EmployeeLeaveRejoinService service;

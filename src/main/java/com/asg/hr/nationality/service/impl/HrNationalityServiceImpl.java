@@ -169,6 +169,11 @@ public class HrNationalityServiceImpl implements HrNationalityService {
     }
 
     private void validateUpdateRequest(HrNationalityUpdateRequest request, HrNationalityMaster existingEntity) {
+        if (request.getNationalityCode() != null
+                && !request.getNationalityCode().trim().equalsIgnoreCase(existingEntity.getNationalityCode())) {
+            throw new ValidationException("Nationality Code cannot be changed");
+        }
+
         if (request.getNationalityDescription() != null && !request.getNationalityDescription().trim().isEmpty()) {
             String desc = request.getNationalityDescription().trim();
             if (hrNationalityRepository.existsByNationalityDescriptionExcluding(desc, existingEntity.getNationPoid())) {

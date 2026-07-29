@@ -6,10 +6,12 @@ import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.enums.UserRolesRightsEnum;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.employeeinduction.dto.EmployeeInductionRequestDto;
 import com.asg.hr.employeeinduction.dto.EmployeeInductionResponseDto;
 import com.asg.hr.employeeinduction.dto.InductionCategoryDto;
+import com.asg.hr.employeeinduction.entity.HrEmployeeInductionHdr;
 import com.asg.hr.employeeinduction.service.EmployeeInductionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpHeaders;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,6 +44,7 @@ public class EmployeeInductionController {
 
     private final EmployeeInductionService employeeInductionService;
     private final LoggingService loggingService;
+    private final DocumentDownloadHeaderService downloadHeaderService;
 
     @Operation(
             summary = "Create Employee Induction",
@@ -299,8 +302,11 @@ public class EmployeeInductionController {
         try {
             byte[] pdf = employeeInductionService.print(poid);
             return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=employee-induction-" + poid + ".pdf")
+                    .headers(downloadHeaderService.buildAttachmentHeaders(
+                            HrEmployeeInductionHdr.class,
+                            poid,
+                            "employee-induction",
+                            "pdf"))
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
         } catch (Exception e) {

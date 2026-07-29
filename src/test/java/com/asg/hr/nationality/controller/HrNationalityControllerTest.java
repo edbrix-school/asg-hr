@@ -105,6 +105,88 @@ class HrNationalityControllerTest {
     }
 
     @Test
+    void update_WithFullUiPayload_Success() throws Exception {
+        HrNationalityResponse response = createMockResponse();
+
+        when(hrNationalityService.update(eq(1L), any(HrNationalityUpdateRequest.class))).thenReturn(response);
+
+        String payload = """
+                {
+                  "nationPoid": 1,
+                  "nationalityCode": "IND",
+                  "nationalityDescription": "India Updated",
+                  "active": true,
+                  "seqNo": 1,
+                  "ticketAmountNormal": 150.0,
+                  "ticketAmountBusiness": 250.0,
+                  "createdBy": "ADMIN",
+                  "createdDate": "2024-03-12T10:00:00",
+                  "lastModifiedBy": "ADMIN",
+                  "lastModifiedDate": "2024-03-12T10:00:00"
+                }
+                """;
+
+        mockMvc.perform(put("/v1/nationality-master/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        verify(hrNationalityService).update(eq(1L), any(HrNationalityUpdateRequest.class));
+    }
+
+    @Test
+    void update_WithDatabaseColumnNames_Success() throws Exception {
+        HrNationalityResponse response = createMockResponse();
+
+        when(hrNationalityService.update(eq(1L), any(HrNationalityUpdateRequest.class))).thenReturn(response);
+
+        String payload = """
+                {
+                  "NATIONALITY_CODE": "IND",
+                  "NATIONALITY_DESCRIPTION": "India Updated",
+                  "ACTIVE": true,
+                  "SEQNO": 1,
+                  "TICKET_AMOUNT_NORMAL": 150.0,
+                  "TICKET_AMOUNT_BUSINESS": 250.0
+                }
+                """;
+
+        mockMvc.perform(put("/v1/nationality-master/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        verify(hrNationalityService).update(eq(1L), any(HrNationalityUpdateRequest.class));
+    }
+
+    @Test
+    void create_WithExtraReadOnlyFields_Success() throws Exception {
+        HrNationalityResponse response = createMockResponse();
+
+        when(hrNationalityService.create(any(HrNationalityRequest.class))).thenReturn(response);
+
+        String payload = """
+                {
+                  "nationalityCode": "IND",
+                  "nationalityDescription": "India",
+                  "active": true,
+                  "seqNo": 1,
+                  "ticketAmountNormal": 100.0,
+                  "ticketAmountBusiness": 200.0,
+                  "nationPoid": 99,
+                  "createdBy": "ADMIN"
+                }
+                """;
+
+        mockMvc.perform(post("/v1/nationality-master")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        verify(hrNationalityService).create(any(HrNationalityRequest.class));
+    }
+
+    @Test
     void getById_Success() throws Exception {
         HrNationalityResponse response = createMockResponse();
 

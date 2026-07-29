@@ -10,6 +10,9 @@ import java.util.Optional;
 
 public interface EmployeeTrainingHeaderRepository extends JpaRepository<EmployeeTrainingHeaderEntity, Long> {
 
+    @Query("SELECT h FROM EmployeeTrainingHeaderEntity h WHERE h.transactionPoid = :poid")
+    Optional<EmployeeTrainingHeaderEntity> findByTransactionPoid(@Param("poid") Long poid);
+
     Optional<EmployeeTrainingHeaderEntity> findByTransactionPoidAndDeletedNot(Long transactionPoid, String deleted);
 
     boolean existsByCourseNameIgnoreCaseAndPeriodFromAndPeriodToAndDeletedNot(

@@ -5,7 +5,7 @@ import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.hr.lunchdeductionmonthly.dto.*;
 import org.springframework.data.domain.Pageable;
 
-import java.util.List;
+import java.time.LocalDate;
 import java.util.Map;
 
 public interface HrLunchDeductionService {
@@ -18,7 +18,7 @@ public interface HrLunchDeductionService {
 
     HrLunchDeductionLoadDto loadAndProcess(Long transactionPoid);
 
-    Map<String, Object> list(FilterRequestDto filterRequest, Pageable pageable);
+    Map<String, Object> list(FilterRequestDto filterRequest, LocalDate startDate, LocalDate endDate, Pageable pageable);
 
     void delete(Long transactionPoid, DeleteReasonDto deleteReasonDto);
 }

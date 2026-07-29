@@ -8,13 +8,13 @@ import com.asg.hr.designation.entity.HrDesignationMaster;
 
 public interface DesignationRepository extends JpaRepository<HrDesignationMaster, Long> {
 
-    boolean existsByDesignationCodeIgnoreCase(String designationCode);
+    boolean existsByDesignationCode(String designationCode);
 
-    boolean existsByDesignationNameIgnoreCase(String designationName);
+    boolean existsByDesignationName(String designationName);
 
-    boolean existsByDesignationCodeIgnoreCaseAndDesignationPoidNot(String designationCode, Long designationPoid);
+    boolean existsByDesignationCodeAndDesignationPoidNot(String designationCode, Long designationPoid);
 
-    boolean existsByDesignationNameIgnoreCaseAndDesignationPoidNot(String designationName, Long designationPoid);
+    boolean existsByDesignationNameAndDesignationPoidNot(String designationName, Long designationPoid);
 
     Optional<HrDesignationMaster> findByDesignationPoidAndDeleted(Long designationPoid, String deleted);
 }

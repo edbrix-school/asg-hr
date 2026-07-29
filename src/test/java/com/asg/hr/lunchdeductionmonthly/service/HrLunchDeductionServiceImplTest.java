@@ -133,7 +133,7 @@ class HrLunchDeductionServiceImplTest {
             assertThat(result).isNotNull();
             assertThat(result.getDetails()).hasSize(1);
             verify(dtlRepository).saveAll(List.of(dtlEntity));
-            verify(loggingService, times(2)).createLogSummaryEntry(anyString(), anyString(), anyString());
+            verify(loggingService).createLogSummaryEntry(anyString(), anyString(), anyString());
         }
 
         @Test
@@ -173,7 +173,7 @@ class HrLunchDeductionServiceImplTest {
         @Test
         void success_withDetailsCREATED_returnsResponse() {
             HrLunchDeductionDtlRequest dtlReq = HrLunchDeductionDtlRequest.builder()
-                    .actionType("CREATED")
+                    .actionType("isCreated")
                     .deductionType("LUNCH")
                     .leaveDays(2L)
                     .amount(new BigDecimal("500.00"))
@@ -208,7 +208,7 @@ class HrLunchDeductionServiceImplTest {
             HrMonthlyLunchDtl existingDtl = buildDtl(1L, 22L, 2L, new BigDecimal("0.500"));
             HrLunchDeductionDtlRequest dtlReq = HrLunchDeductionDtlRequest.builder()
                     .detRowId(1L)
-                    .actionType("UPDATED")
+                    .actionType("isUpdated")
                     .leaveDays(5L)
                     .amount(new BigDecimal("750.00"))
                     .build();
@@ -238,7 +238,7 @@ class HrLunchDeductionServiceImplTest {
             HrMonthlyLunchDtl existingDtl = buildDtl(1L, 22L, 2L, new BigDecimal("0.500"));
             HrLunchDeductionDtlRequest dtlReq = HrLunchDeductionDtlRequest.builder()
                     .detRowId(1L)
-                    .actionType("DELETED")
+                    .actionType("isDeleted")
                     .build();
             HrLunchDeductionRequest updateRequest = HrLunchDeductionRequest.builder()
                     .description("Updated")
@@ -311,7 +311,7 @@ class HrLunchDeductionServiceImplTest {
         void updateWithInvalidDetRowId_throwsException() {
             HrLunchDeductionDtlRequest dtlReq = HrLunchDeductionDtlRequest.builder()
                     .detRowId(99L)
-                    .actionType("UPDATED")
+                    .actionType("isUpdated")
                     .build();
             HrLunchDeductionRequest updateRequest = HrLunchDeductionRequest.builder()
                     .details(List.of(dtlReq))
@@ -418,6 +418,8 @@ class HrLunchDeductionServiceImplTest {
         @Test
         void success_returnsPaginatedResult() {
             FilterRequestDto filterRequest = new FilterRequestDto("AND", "N", List.of());
+            LocalDate startDate = LocalDate.of(2025, 9, 1);
+            LocalDate endDate = LocalDate.of(2025, 9, 30);
             Pageable pageable = PageRequest.of(0, 10);
             RawSearchResult rawResult = new RawSearchResult(
                     List.of(Map.of("DOC_REF", "LDM-001")),
@@ -427,12 +429,12 @@ class HrLunchDeductionServiceImplTest {
 
             when(documentSearchService.resolveOperator(filterRequest)).thenReturn("AND");
             when(documentSearchService.resolveIsDeleted(filterRequest)).thenReturn("N");
-            when(documentSearchService.resolveFilters(filterRequest)).thenReturn(List.of());
+            when(documentSearchService.resolveDateFilters(filterRequest, "PAYROLL_MONTH", startDate, endDate)).thenReturn(List.of());
             when(documentSearchService.search(eq(DOC_ID), any(), eq("AND"), eq(pageable),
                     eq("N"), eq("DESCRIPTION"), eq("TRANSACTION_POID")))
                     .thenReturn(rawResult);
 
-            Map<String, Object> result = service.list(filterRequest, pageable);
+            Map<String, Object> result = service.list(filterRequest, startDate, endDate, pageable);
 
             assertThat(result).isNotNull();
             verify(documentSearchService).search(eq(DOC_ID), any(), eq("AND"), eq(pageable),
@@ -441,16 +443,18 @@ class HrLunchDeductionServiceImplTest {
 
         @Test
         void nullFilterRequest_stillDelegatesToDocumentSearch() {
+            LocalDate startDate = LocalDate.of(2025, 9, 1);
+            LocalDate endDate = LocalDate.of(2025, 9, 30);
             Pageable pageable = PageRequest.of(0, 10);
             RawSearchResult rawResult = new RawSearchResult(List.of(), Map.of(), 0L);
 
             when(documentSearchService.resolveOperator(null)).thenReturn("AND");
             when(documentSearchService.resolveIsDeleted(null)).thenReturn("N");
-            when(documentSearchService.resolveFilters(null)).thenReturn(List.of());
+            when(documentSearchService.resolveDateFilters(null, "PAYROLL_MONTH", startDate, endDate)).thenReturn(List.of());
             when(documentSearchService.search(any(), any(), any(), any(), any(), any(), any()))
                     .thenReturn(rawResult);
 
-            Map<String, Object> result = service.list(null, pageable);
+            Map<String, Object> result = service.list(null, startDate, endDate, pageable);
 
             assertThat(result).isNotNull();
         }

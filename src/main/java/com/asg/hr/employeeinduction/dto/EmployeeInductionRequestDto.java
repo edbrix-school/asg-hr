@@ -23,7 +23,7 @@ public class EmployeeInductionRequestDto {
     @AllArgsConstructor
     @Builder
     public static class EmployeeInductionDetailRequestDto {
-        private Integer sn;
+        private Integer detRowId;
         private String inductionCategory;
         private Long assigneePoid;
         private LocalDate scheduledDate;

@@ -49,8 +49,8 @@ public class AllowanceDeductionMasterServiceImpl implements AllowanceDeductionMa
     private static final String ERROR_RECORD_DELETED = "Record has been deleted";
     private static final String ERROR_ALREADY_DELETED = "Cannot delete. Record is already deleted.";
     private static final String ALLOWANCE_DEDUCTION_CODE = "Allowance/Deduction code";
+    private static final String ALLOWANCE_DEDUCTION_DESCRIPTION = "Allowance/Deduction description";
     private static final String ALLOWANCE_DEDUCTION = "Allowance/Deduction";
-    private static final String PAYROLL_FIELD_NAME = "Payroll Field Name";
     private static final String ALLOWACE_DEDUCTION_POID_FIELD = "allowaceDeductionPoid";
 
     private final AllowanceDeductionMasterRepository repository;
@@ -68,7 +68,9 @@ public class AllowanceDeductionMasterServiceImpl implements AllowanceDeductionMa
             throw new ResourceAlreadyExistsException(ALLOWANCE_DEDUCTION_CODE, request.getCode());
         }
 
-        validatePayrollFieldName(request.getPayrollFieldName());
+        if (repository.findByDescriptionAndDeletedNot(request.getDescription(), DELETED_FLAG).isPresent()) {
+            throw new ResourceAlreadyExistsException(ALLOWANCE_DEDUCTION_DESCRIPTION, request.getDescription());
+        }
 
         HrAllowanceDeductionMaster entity = mapper.toEntity(request);
         entity.setCreatedBy(ASGHelperUtils.getCurrentUser());
@@ -94,7 +96,11 @@ public class AllowanceDeductionMasterServiceImpl implements AllowanceDeductionMa
             throw new CustomException(ERROR_CANNOT_UPDATE_DELETED);
         }
 
-        validatePayrollFieldNameForUpdate(request.getPayrollFieldName(), allowaceDeductionPoid);
+        repository.findByDescriptionAndDeletedNot(request.getDescription(), DELETED_FLAG)
+                .filter(existing -> !existing.getAllowaceDeductionPoid().equals(allowaceDeductionPoid))
+                .ifPresent(existing -> {
+                    throw new ResourceAlreadyExistsException(ALLOWANCE_DEDUCTION_DESCRIPTION, request.getDescription());
+                });
 
         HrAllowanceDeductionMaster oldEntity = new HrAllowanceDeductionMaster();
         BeanUtils.copyProperties(entity, oldEntity);
@@ -166,30 +172,6 @@ public class AllowanceDeductionMasterServiceImpl implements AllowanceDeductionMa
 
         Page<Map<String, Object>> page = new PageImpl<>(raw.records(), pageable, raw.totalRecords());
         return PaginationUtil.wrapPage(page, raw.displayFields());
-    }
-
-    private void validatePayrollFieldName(String payrollFieldName) {
-        if (payrollFieldName == null || payrollFieldName.isEmpty()) {
-            return;
-        }
-
-        repository.findByPayrollFieldName(payrollFieldName)
-                .ifPresent(existing -> {
-                    throw new ResourceAlreadyExistsException(PAYROLL_FIELD_NAME, payrollFieldName);
-                });
-    }
-
-    private void validatePayrollFieldNameForUpdate(String payrollFieldName, Long allowaceDeductionPoid) {
-        if (payrollFieldName == null || payrollFieldName.isEmpty()) {
-            return;
-        }
-
-        repository.findByPayrollFieldName(payrollFieldName)
-                .ifPresent(existing -> {
-                    if (!existing.getAllowaceDeductionPoid().equals(allowaceDeductionPoid)) {
-                        throw new ResourceAlreadyExistsException(PAYROLL_FIELD_NAME, payrollFieldName);
-                    }
-                });
     }
 
 }

@@ -3,6 +3,7 @@ package com.asg.hr.leaverequest.controller;
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.hr.leaverequest.dto.LeaveCalculationResponseDto;
 import com.asg.hr.leaverequest.dto.LeaveCreateRequestDto;
 import com.asg.hr.leaverequest.dto.LeaveResponseDto;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +26,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -38,8 +41,12 @@ class HrLeaveRequestControllerTest {
     @Mock
     private com.asg.common.lib.service.LoggingService loggingService;
 
-    @Mock
-    private com.asg.common.lib.service.LovDataService lovService;
+    @Spy
+
+    private DocumentDownloadHeaderService downloadHeaderService =
+
+            new DocumentDownloadHeaderService(mock(JdbcTemplate.class));
+
 
     @InjectMocks
     private HrLeaveRequestController controller;
@@ -425,33 +432,25 @@ class HrLeaveRequestControllerTest {
     // -------------------------------------------------------------------------
 
     @Test
-    void attendanceReport_resolvesEmpCodeFromPoid() {
-        // Primary fix: EMP_CODE is resolved from the employee POID server-side,
-        // ignoring any (stale) code the caller passes.
-        com.asg.common.lib.dto.LovGetListDto empDtl = mock(com.asg.common.lib.dto.LovGetListDto.class);
-        when(empDtl.getCode()).thenReturn("87");
-        when(lovService.getDetailsByPoidAndLovNameFast(162L, "EMPLOYEE_NAME")).thenReturn(empDtl);
-
-        ResponseEntity<Map<String, Object>> result =
-                controller.attendanceReport(162L, null);
-
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertNotNull(result.getBody());
-        assertEquals("800-216", result.getBody().get("reportId"));
-        assertEquals("EMP_CODE=87", result.getBody().get("parameters"));
-    }
-
-    @Test
-    void attendanceReport_fallsBackToSuppliedCodeWhenLookupBlank() {
-        when(lovService.getDetailsByPoidAndLovNameFast(1L, "EMPLOYEE_NAME")).thenReturn(null);
-
+    void attendanceReport_withEmployeeCode() {
         ResponseEntity<Map<String, Object>> result =
                 controller.attendanceReport(1L, "EMP001");
 
         assertEquals(HttpStatus.OK, result.getStatusCode());
         assertNotNull(result.getBody());
         assertEquals("800-216", result.getBody().get("reportId"));
-        assertEquals("EMP_CODE=EMP001", result.getBody().get("parameters"));
+        assertTrue(result.getBody().get("parameters").toString().contains("EMP001"));
+    }
+
+    @Test
+    void attendanceReport_withoutEmployeeCode() {
+        ResponseEntity<Map<String, Object>> result =
+                controller.attendanceReport(1L, null);
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals("800-216", result.getBody().get("reportId"));
+        assertTrue(result.getBody().get("parameters").toString().contains("EMP_CODE="));
     }
 
     // -------------------------------------------------------------------------

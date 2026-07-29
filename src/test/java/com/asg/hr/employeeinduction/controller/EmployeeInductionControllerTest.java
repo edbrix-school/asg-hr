@@ -4,6 +4,7 @@ import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.security.util.UserContext;
+import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.hr.exceptions.GlobalExceptionHandler;
 import com.asg.hr.employeeinduction.dto.EmployeeInductionRequestDto;
@@ -20,6 +21,7 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -36,7 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(value = EmployeeInductionController.class,
         excludeFilters = @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.asg.hr.aspect.*"))
-@ContextConfiguration(classes = {EmployeeInductionController.class, GlobalExceptionHandler.class})
+@ContextConfiguration(classes = {EmployeeInductionController.class, GlobalExceptionHandler.class, DocumentDownloadHeaderService.class})
 class EmployeeInductionControllerTest {
 
     @Autowired
@@ -44,6 +46,11 @@ class EmployeeInductionControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @MockitoBean
+
+    private JdbcTemplate jdbcTemplate;
+
 
     @MockitoBean
     private EmployeeInductionService employeeInductionService;
@@ -222,14 +229,10 @@ class EmployeeInductionControllerTest {
                 InductionCategoryDto.builder()
                         .inductionCatgPoid(1L)
                         .status("N")
-                        .description("Safety Training")
-                        .seqNo(1)
                         .build(),
                 InductionCategoryDto.builder()
                         .inductionCatgPoid(2L)
                         .status("N")
-                        .description("Company Policies")
-                        .seqNo(2)
                         .build()
         );
 
@@ -240,9 +243,9 @@ class EmployeeInductionControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.result.data").isArray())
                 .andExpect(jsonPath("$.result.data[0].inductionCatgPoid").value(1))
-                .andExpect(jsonPath("$.result.data[0].description").value("Safety Training"))
+                .andExpect(jsonPath("$.result.data[0].status").value("N"))
                 .andExpect(jsonPath("$.result.data[1].inductionCatgPoid").value(2))
-                .andExpect(jsonPath("$.result.data[1].description").value("Company Policies"));
+                .andExpect(jsonPath("$.result.data[1].status").value("N"));
 
         verify(employeeInductionService).getInductionCategories();
     }
@@ -264,7 +267,7 @@ class EmployeeInductionControllerTest {
     private List<EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto> createTestDetails() {
         return List.of(
                 EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto.builder()
-                        .sn(1)
+                        .detRowId(1)
                         .inductionCategory("Company Policies")
                         .assigneePoid(2L)
                         .scheduledDate(LocalDate.now().plusDays(1))
@@ -277,7 +280,7 @@ class EmployeeInductionControllerTest {
     private List<EmployeeInductionResponseDto.EmployeeInductionDetailResponseDto> createTestResponseDetails() {
         return List.of(
                 EmployeeInductionResponseDto.EmployeeInductionDetailResponseDto.builder()
-                        .sn(1)
+                        .detRowId(1)
                         .inductionCategory("Company Policies")
                         .assigneePoid(2L)
                         .scheduledDate(LocalDate.now().plusDays(1))
@@ -298,7 +301,7 @@ class EmployeeInductionControllerTest {
                         .header("X-Document-id", "800-107")
                         .header("X-Action-Requested", "Print"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Content-Disposition", "attachment; filename=employee-induction-1.pdf"))
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"Employee-Induction-1.pdf\""))
                 .andExpect(content().contentType(MediaType.APPLICATION_PDF))
                 .andExpect(content().bytes(mockPdf));
 
