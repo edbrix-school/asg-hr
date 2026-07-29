@@ -21,11 +21,13 @@ import com.asg.hr.attendancemonthly.repository.HrAttendanceMonthlyDtlRepository;
 import com.asg.hr.attendancemonthly.repository.HrAttendanceMonthlyHdrRepository;
 import com.asg.hr.attendancemonthly.repository.HrAttendanceMonthlyProcRepository;
 import com.asg.hr.attendancemonthly.service.HrAttendanceMonthlyService;
+import com.asg.common.lib.dto.request.LogRequestDto;
 import com.asg.hr.exceptions.ResourceAlreadyExistsException;
 import com.asg.hr.exceptions.ResourceNotFoundException;
 import com.asg.hr.exceptions.ValidationException;
 import com.asg.common.lib.service.GlobalParameterService;
 import com.asg.common.lib.service.LovDataService;
+import org.springframework.beans.BeanUtils;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -95,14 +97,17 @@ public class HrAttendanceMonthlyServiceImpl implements HrAttendanceMonthlyServic
     public HrAttendanceMonthlyResponse updateAttendance(Long transactionPoid, HrAttendanceMonthlyUpdateRequest request) {
         HrAttendanceMonthlyHdr hdr = getHrAttendanceMonthlyHdr(transactionPoid);
         String docId = UserContext.getDocumentId();
+        String docKeyPoid = transactionPoid.toString();
 
         if ("Y".equalsIgnoreCase(hdr.getLoadedPayroll())) {
             throw new ValidationException("Cannot update record because payroll has already been processed for this period.");
         }
 
+        HrAttendanceMonthlyHdr oldCopy = snapshot(hdr);
         mapper.updateEntity(hdr, request);
         final HrAttendanceMonthlyHdr savedHdr = hdrRepository.saveAndFlush(hdr);
 
+        List<LogRequestDto<HrAttendanceMonthlyDtl>> detailLogRequests = new ArrayList<>();
         if (request.getDetails() != null) {
             entityManager.flush();
             entityManager.clear();
@@ -118,14 +123,21 @@ public class HrAttendanceMonthlyServiceImpl implements HrAttendanceMonthlyServic
                 } else if ("ISUPDATED".equalsIgnoreCase(dtlReq.getActionType())) {
                     dtlRepository.findById(new HrAttendanceMonthlyDtlKey(dtlReq.getDetRowId(), transactionPoid))
                             .ifPresent(dtl -> {
+                                HrAttendanceMonthlyDtl oldDtl = snapshotDtl(dtl);
                                 mapper.updateDtlEntity(dtl, dtlReq);
                                 dtlRepository.saveAndFlush(dtl);
+                                String logDetail = String.format("KeyId = TRANSACTION_POID:%s DET_ROW_ID:%s", docKeyPoid, dtlReq.getDetRowId());
+                                detailLogRequests.add(new LogRequestDto<>(oldDtl, dtl, HrAttendanceMonthlyDtl.class, docId, docKeyPoid, logDetail));
                             });
                 }
             }
         }
 
-        loggingService.createLogSummaryEntry(LogDetailsEnum.MODIFIED, docId, transactionPoid.toString());
+        loggingService.createLogSummaryEntry(LogDetailsEnum.MODIFIED, docId, docKeyPoid);
+        loggingService.logDetails(oldCopy, savedHdr, HrAttendanceMonthlyHdr.class, docId, docKeyPoid, "TRANSACTION_POID");
+        if (!detailLogRequests.isEmpty()) {
+            loggingService.createLogBatch(detailLogRequests);
+        }
 
         List<HrAttendanceMonthlyDtl> updatedDetails = getHrAttendanceMonthlyDtls(transactionPoid);
         HrAttendanceMonthlyResponse response = mapper.toResponse(savedHdr);
@@ -254,6 +266,18 @@ public class HrAttendanceMonthlyServiceImpl implements HrAttendanceMonthlyServic
                 if (lov != null) dtl.setEmployeeName(lov.getDescription());
             }
         });
+    }
+
+    private HrAttendanceMonthlyHdr snapshot(HrAttendanceMonthlyHdr hdr) {
+        HrAttendanceMonthlyHdr copy = new HrAttendanceMonthlyHdr();
+        BeanUtils.copyProperties(hdr, copy);
+        return copy;
+    }
+
+    private HrAttendanceMonthlyDtl snapshotDtl(HrAttendanceMonthlyDtl dtl) {
+        HrAttendanceMonthlyDtl copy = new HrAttendanceMonthlyDtl();
+        BeanUtils.copyProperties(dtl, copy);
+        return copy;
     }
 
     private HrAttendanceMonthlyHdr getHrAttendanceMonthlyHdr(Long transactionPoid) {
