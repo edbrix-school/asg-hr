@@ -267,7 +267,7 @@ class EmployeeInductionControllerTest {
     private List<EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto> createTestDetails() {
         return List.of(
                 EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto.builder()
-                        .sn(1)
+                        .detRowId(1)
                         .inductionCategory("Company Policies")
                         .assigneePoid(2L)
                         .scheduledDate(LocalDate.now().plusDays(1))
@@ -280,7 +280,7 @@ class EmployeeInductionControllerTest {
     private List<EmployeeInductionResponseDto.EmployeeInductionDetailResponseDto> createTestResponseDetails() {
         return List.of(
                 EmployeeInductionResponseDto.EmployeeInductionDetailResponseDto.builder()
-                        .sn(1)
+                        .detRowId(1)
                         .inductionCategory("Company Policies")
                         .assigneePoid(2L)
                         .scheduledDate(LocalDate.now().plusDays(1))

@@ -269,7 +269,7 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
                                                       List<EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto> detailDtos) {
         return detailDtos.stream().map(detailDto -> {
             HrEmployeeInductionDtl detail = buildDetailEntity(header, detailDto,
-                    detailDto.getSn() != null ? detailDto.getSn().longValue() : null);
+                    detailDto.getDetRowId() != null ? detailDto.getDetRowId().longValue() : null);
             return dtlRepository.save(detail);
         }).collect(Collectors.toList());
     }
@@ -286,7 +286,7 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
         for (EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto detailDto : detailDtos) {
             String action = detailDto.getActionType() != null
                     ? detailDto.getActionType().trim().toUpperCase(java.util.Locale.ROOT)
-                    : (detailDto.getSn() != null ? "ISUPDATED" : "ISCREATED");
+                    : (detailDto.getDetRowId() != null ? "ISUPDATED" : "ISCREATED");
 
             switch (action) {
                 case "ISDELETED" -> deleteDetail(header, detailDto);
@@ -300,10 +300,10 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
 
     private void deleteDetail(HrEmployeeInductionHdr header,
                               EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto detailDto) {
-        if (detailDto.getSn() == null) {
+        if (detailDto.getDetRowId() == null) {
             return;
         }
-        HrEmployeeInductionDtlId id = new HrEmployeeInductionDtlId(header.getTransactionPoid(), detailDto.getSn().longValue());
+        HrEmployeeInductionDtlId id = new HrEmployeeInductionDtlId(header.getTransactionPoid(), detailDto.getDetRowId().longValue());
         dtlRepository.findById(id).ifPresent(existing -> {
             dtlRepository.delete(existing);
             loggingService.logDelete(existing, UserContext.getDocumentId(), header.getTransactionPoid().toString());
@@ -312,15 +312,15 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
 
     private void updateDetail(HrEmployeeInductionHdr header,
                               EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto detailDto) {
-        if (detailDto.getSn() == null) {
+        if (detailDto.getDetRowId() == null) {
             createDetail(header, detailDto, new long[]{dtlRepository.findMaxDetRowIdByHdrPoid(header.getTransactionPoid()) != null
                     ? dtlRepository.findMaxDetRowIdByHdrPoid(header.getTransactionPoid()) : 0L});
             return;
         }
 
-        HrEmployeeInductionDtlId id = new HrEmployeeInductionDtlId(header.getTransactionPoid(), detailDto.getSn().longValue());
+        HrEmployeeInductionDtlId id = new HrEmployeeInductionDtlId(header.getTransactionPoid(), detailDto.getDetRowId().longValue());
         HrEmployeeInductionDtl existing = dtlRepository.findById(id)
-                .orElseGet(() -> buildDetailEntity(header, detailDto, detailDto.getSn().longValue()));
+                .orElseGet(() -> buildDetailEntity(header, detailDto, detailDto.getDetRowId().longValue()));
 
         HrEmployeeInductionDtl oldEntity = new HrEmployeeInductionDtl();
         BeanUtils.copyProperties(existing, oldEntity);
@@ -338,7 +338,7 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
     private void createDetail(HrEmployeeInductionHdr header,
                               EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto detailDto,
                               long[] nextRowId) {
-        Long detRowId = detailDto.getSn() != null ? detailDto.getSn().longValue() : ++nextRowId[0];
+        Long detRowId = detailDto.getDetRowId() != null ? detailDto.getDetRowId().longValue() : ++nextRowId[0];
         HrEmployeeInductionDtl detail = buildDetailEntity(header, detailDto, detRowId);
         dtlRepository.save(detail);
         loggingService.createLogSummaryEntry(UserContext.getDocumentId(), header.getTransactionPoid().toString(),
@@ -403,7 +403,7 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
                             }
                             
                             return EmployeeInductionResponseDto.EmployeeInductionDetailResponseDto.builder()
-                                    .sn(detail.getDetRowId() != null ? detail.getDetRowId().intValue() : null)
+                                    .detRowId(detail.getDetRowId() != null ? detail.getDetRowId().intValue() : null)
                                     .inductionCategory(detail.getInductionCatgPoid() != null ? detail.getInductionCatgPoid().toString() : null)
                                     .inductionCategoryDet(inductionCategoryDet)
                                     .assigneePoid(detail.getAssigneePoid())

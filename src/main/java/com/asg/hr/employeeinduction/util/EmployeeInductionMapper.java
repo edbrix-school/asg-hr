@@ -46,7 +46,7 @@ public class EmployeeInductionMapper {
                                                EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto dto) {
         return HrEmployeeInductionDtl.builder()
                 .transactionPoid(header.getTransactionPoid())
-                .detRowId(dto.getSn().longValue())
+                .detRowId(dto.getDetRowId().longValue())
                 .header(header)
                 .inductionCatgPoid(dto.getInductionCategory() != null ? Long.parseLong(dto.getInductionCategory()) : null)
                 .assigneeEmpPoid(dto.getAssigneePoid())
@@ -59,7 +59,7 @@ public class EmployeeInductionMapper {
 
     public EmployeeInductionResponseDto.EmployeeInductionDetailResponseDto toDetailResponseDto(HrEmployeeInductionDtl entity) {
         return EmployeeInductionResponseDto.EmployeeInductionDetailResponseDto.builder()
-                .sn(entity.getDetRowId() != null ? entity.getDetRowId().intValue() : null)
+                .detRowId(entity.getDetRowId() != null ? entity.getDetRowId().intValue() : null)
                 .inductionCategory(entity.getInductionCatgPoid() != null ? entity.getInductionCatgPoid().toString() : null)
                 .assigneePoid(entity.getAssigneeEmpPoid())
                 .scheduledDate(entity.getSheduledDate())

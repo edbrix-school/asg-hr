@@ -286,7 +286,7 @@ class EmployeeInductionServiceImplTest {
         // Given
         EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto detail = 
                 EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto.builder()
-                        .sn(1)
+                        .detRowId(1)
                         .scheduledDate(LocalDate.now().plusDays(1))
                         .completedDate(LocalDate.now())
                         .build();
@@ -301,7 +301,7 @@ class EmployeeInductionServiceImplTest {
     private List<EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto> createTestDetails() {
         return List.of(
                 EmployeeInductionRequestDto.EmployeeInductionDetailRequestDto.builder()
-                        .sn(1)
+                        .detRowId(1)
                         .inductionCategory("1")
                         .assigneePoid(2L)
                         .scheduledDate(LocalDate.now().plusDays(1))
