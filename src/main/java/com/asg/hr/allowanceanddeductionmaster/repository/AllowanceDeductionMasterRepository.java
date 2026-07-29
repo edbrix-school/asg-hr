@@ -14,6 +14,8 @@ public interface   AllowanceDeductionMasterRepository extends JpaRepository<HrAl
 
     Optional<HrAllowanceDeductionMaster> findByCodeAndDeletedNot(String code, String deleted);
 
+    Optional<HrAllowanceDeductionMaster> findByDescriptionAndDeletedNot(String description, String deleted);
+
     @Query("SELECT h FROM HrAllowanceDeductionMaster h WHERE h.deleted != 'Y' ORDER BY h.seqno ASC, h.code ASC")
     List<HrAllowanceDeductionMaster> findAllActiveOrderBySeqNo();
 
