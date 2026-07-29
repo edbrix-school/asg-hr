@@ -113,10 +113,11 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> listEmployees(String docId, FilterRequestDto filters, Pageable pageable) {
+    public Map<String, Object> listEmployees(String docId, FilterRequestDto filters, Pageable pageable, LocalDate fromDate, LocalDate toDate) {
         String operator = documentSearchService.resolveOperator(filters);
         String isDeleted = documentSearchService.resolveIsDeleted(filters);
-        List<FilterDto> resolvedFilters = documentSearchService.resolveFilters(filters);
+        //List<FilterDto> resolvedFilters = documentSearchService.resolveFilters(filters);
+        List<FilterDto> resolvedFilters = documentSearchService.resolveDateFilters(filters, "JOIN_DATE", fromDate, toDate);
 
         RawSearchResult raw = documentSearchService.search(docId, resolvedFilters, operator, pageable, isDeleted, "DISPLAY_NAME", HR_EMPLOYEE_MASTER_POID_FIELD);
 

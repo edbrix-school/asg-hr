@@ -6,11 +6,12 @@ import com.asg.hr.employeemaster.dto.*;
 import net.sf.jasperreports.engine.JRException;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 public interface EmployeeMasterService {
 
-    Map<String, Object> listEmployees(String docId, FilterRequestDto filters, Pageable pageable);
+    Map<String, Object> listEmployees(String docId, FilterRequestDto filters, Pageable pageable, LocalDate fromDate, LocalDate toDate);
 
     EmployeeMasterResponseDto getEmployeeById(Long employeePoid);
 

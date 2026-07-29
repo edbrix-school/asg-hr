@@ -24,6 +24,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 import static com.asg.common.lib.dto.response.ApiResponse.error;
@@ -53,8 +54,11 @@ public class EmployeeMasterController {
 
     @AllowedAction(UserRolesRightsEnum.VIEW)
     @PostMapping("/list")
-    public ResponseEntity<?> listEmployees(@ParameterObject Pageable pageable, @RequestBody(required = false) FilterRequestDto filters) {
-        Map<String, Object> result = employeeMasterService.listEmployees(UserContext.getDocumentId(), filters, pageable);
+    public ResponseEntity<?> listEmployees(@ParameterObject Pageable pageable, @RequestBody(required = false) FilterRequestDto filters,
+                                           @Parameter(description = "Start date (inclusive) for transaction date filter, format: yyyy-MM-dd")
+                                           @RequestParam(required = false) LocalDate fromDate,
+                                           @Parameter(description = "End date (inclusive) for transaction date filter, format: yyyy-MM-dd") @RequestParam(required = false) LocalDate toDate) {
+        Map<String, Object> result = employeeMasterService.listEmployees(UserContext.getDocumentId(), filters, pageable, fromDate, toDate);
         return success("Employee list fetched successfully", result);
     }
 

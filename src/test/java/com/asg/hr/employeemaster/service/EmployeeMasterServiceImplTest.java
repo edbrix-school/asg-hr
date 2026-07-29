@@ -170,7 +170,7 @@ class EmployeeMasterServiceImplTest {
             when(raw.totalRecords()).thenReturn(1L);
             when(raw.displayFields()).thenReturn(Map.of("EMPLOYEE_POID", "EMPLOYEE_POID"));
 
-            Map<String, Object> result = service.listEmployees("X", filters, pageable);
+            Map<String, Object> result = service.listEmployees("X", filters, pageable, null, null);
 
             assertThat(result).isNotNull().containsKeys("content", "totalElements", "totalPages");
         }

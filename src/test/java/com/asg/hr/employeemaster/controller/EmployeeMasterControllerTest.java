@@ -73,7 +73,7 @@ class EmployeeMasterControllerTest {
 
     @Test
     void listEmployees_usesUserContextDocId() throws Exception {
-        when(employeeMasterService.listEmployees(eq("DOC"), any(), any())).thenReturn(Map.of("content", java.util.List.of()));
+        when(employeeMasterService.listEmployees(eq("DOC"), any(), any(), null, null)).thenReturn(Map.of("content", java.util.List.of()));
 
         mockMvc.perform(post("/v1/employee-master/list")
                         .contentType(MediaType.APPLICATION_JSON)
