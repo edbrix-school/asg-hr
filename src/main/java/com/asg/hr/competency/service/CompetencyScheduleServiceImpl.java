@@ -28,7 +28,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -69,7 +71,12 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
                 .evaluationDate(requestDto.getEvaluationDate())
                 .deleted(DELETED_NO)
                 .build();
-        
+
+        schedule.setCreatedBy(UserContext.getUserId());
+        schedule.setCreatedDate(LocalDateTime.now());
+        schedule.setLastModifiedBy(UserContext.getUserId());
+        schedule.setLastModifiedDate(LocalDateTime.now());
+
         schedule = scheduleRepository.save(schedule);
         log.info("Created competency schedule with ID: {}", schedule.getSchedulePoid());
         
@@ -98,7 +105,8 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
         schedule.setSeqNo(requestDto.getSeqNo());
         schedule.setActive(requestDto.getActive());
         schedule.setEvaluationDate(requestDto.getEvaluationDate());
-        
+        schedule.setLastModifiedBy(UserContext.getUserId());
+        schedule.setLastModifiedDate(LocalDateTime.now());
         schedule = scheduleRepository.save(schedule);
         log.info("Updated competency schedule with ID: {}", schedule.getSchedulePoid());
         
@@ -204,6 +212,10 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
                 .active(schedule.getActive())
                 .evaluationDate(schedule.getEvaluationDate())
                 .scheduleDtl(scheduleDtl)
+                .createdBy(schedule.getCreatedBy())
+                .createdDate(schedule.getCreatedDate())
+                .modifiedBy(schedule.getLastModifiedBy())
+                .modifiedDate(schedule.getLastModifiedDate())
                 .build();
     }
 
