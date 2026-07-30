@@ -103,6 +103,9 @@ class CompetencyMasterServiceImplTest {
             assertThat(resp.getCompetencyPoid()).isEqualTo(99L);
             assertThat(resp.getGroupPoid()).isEqualTo(10L);
             assertThat(resp.getCompetencyCode()).isEqualTo("C1");
+            assertThat(resp.getDocRef()).isEqualTo("C1");
+            assertThat(resp.getDocKeyPoid()).isEqualTo("99");
+            assertThat(resp.getKeyPoid()).isEqualTo("99");
             assertThat(resp.getSeqNo()).isEqualTo(7);
         }
     }
