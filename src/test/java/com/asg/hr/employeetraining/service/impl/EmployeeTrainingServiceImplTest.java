@@ -19,6 +19,7 @@ import com.asg.hr.employeetraining.repository.EmployeeTrainingHeaderRepository;
 import com.asg.hr.employeetraining.repository.EmployeeTrainingProcedureRepository;
 import com.asg.hr.employeetraining.util.EmployeeTrainingConstants;
 import com.asg.hr.employeetraining.util.EmployeeTrainingMapper;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -68,6 +69,9 @@ class EmployeeTrainingServiceImplTest {
 
     @Mock
     private DocumentDeleteService documentDeleteService;
+
+    @Mock
+    private EntityManager entityManager;
 
     @InjectMocks
     private EmployeeTrainingServiceImpl service;
@@ -234,7 +238,7 @@ class EmployeeTrainingServiceImplTest {
 
             assertNotNull(result);
             verify(headerRepository).save(header);
-            verify(loggingService).createLogSummaryEntry(LogDetailsEnum.CREATED, "800-108", "1");
+            verify(loggingService).createLogSummaryEntry(eq("800-108"), eq("1"), anyString());
         }
     }
 

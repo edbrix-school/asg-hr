@@ -23,6 +23,7 @@ import com.asg.hr.employeetraining.repository.EmployeeTrainingProcedureRepositor
 import com.asg.hr.employeetraining.service.EmployeeTrainingService;
 import com.asg.hr.employeetraining.util.EmployeeTrainingConstants;
 import com.asg.hr.employeetraining.util.EmployeeTrainingMapper;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.sf.jasperreports.engine.JasperReport;
@@ -60,6 +61,7 @@ public class EmployeeTrainingServiceImpl implements EmployeeTrainingService {
     private final DocumentDeleteService documentDeleteService;
     private final PrintService printService;
     private final DataSource dataSource;
+    private final EntityManager entityManager;
 
     @Override
     @Transactional(readOnly = true)
@@ -131,6 +133,14 @@ public class EmployeeTrainingServiceImpl implements EmployeeTrainingService {
 
         EmployeeTrainingHeaderEntity header = mapper.toHeaderEntity(request, companyPoid, groupPoid);
         EmployeeTrainingHeaderEntity savedHeader = headerRepository.save(header);
+        entityManager.flush();
+        entityManager.refresh(savedHeader);
+
+        loggingService.createLogSummaryEntry(
+                UserContext.getDocumentId(),
+                savedHeader.getTransactionPoid().toString(),
+                String.format("%s %s", LogDetailsEnum.CREATED, savedHeader.getDocRef())
+        );
 
         List<EmployeeTrainingDetailRequest> details = request.getDetails() == null ? List.of() : request.getDetails();
         List<EmployeeTrainingDetailEntity> detailEntities = mapper.toDetailEntities(
@@ -149,12 +159,6 @@ public class EmployeeTrainingServiceImpl implements EmployeeTrainingService {
                 loggingService.createLogSummaryEntry(docId, docKeyPoid, logDetail);
             }
         }
-
-        loggingService.createLogSummaryEntry(
-                LogDetailsEnum.CREATED,
-                UserContext.getDocumentId(),
-                savedHeader.getTransactionPoid().toString()
-        );
 
         return mapper.toResponse(savedHeader, detailEntities);
     }
