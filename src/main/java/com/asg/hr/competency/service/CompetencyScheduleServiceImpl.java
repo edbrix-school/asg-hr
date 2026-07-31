@@ -120,8 +120,13 @@ public class CompetencyScheduleServiceImpl implements CompetencyScheduleService 
     
     @Override
     public CompetencyScheduleResponseDto getScheduleById(Long schedulePoid) {
-        HrCompetencySchedule schedule = getAccessibleSchedule(schedulePoid);
-        
+        log.info("Getting schedule by id: {}", schedulePoid);
+
+        HrCompetencySchedule schedule = scheduleRepository.findBySchedulePoid(schedulePoid)
+                .orElseThrow(() -> new ResourceNotFoundException(SCHEDULE_FIELD, SCHEDULE_POID_FIELD, schedulePoid));
+
+        log.info("Successfully retrieved schedule with id: {}", schedulePoid);
+
         return mapToResponseDto(schedule);
     }
     

@@ -34,4 +34,6 @@ public interface HrCompetencyScheduleRepository extends JpaRepository<HrCompeten
                                    @Param("periodFrom") LocalDate periodFrom,
                                    @Param("periodTo") LocalDate periodTo,
                                    @Param("schedulePoid") Long schedulePoid);
+
+    Optional<HrCompetencySchedule> findBySchedulePoid(Long schedulePoid);
 }
