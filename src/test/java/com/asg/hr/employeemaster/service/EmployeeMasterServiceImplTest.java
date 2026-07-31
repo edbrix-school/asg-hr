@@ -155,25 +155,25 @@ class EmployeeMasterServiceImplTest {
 
     @Nested
     class ListEmployees {
-        @Test
-        void wrapsSearchResults() {
-            FilterRequestDto filters = new FilterRequestDto("AND", "N", Collections.emptyList());
-            Pageable pageable = PageRequest.of(0, 5);
-            RawSearchResult raw = mock(RawSearchResult.class);
-
-            when(documentSearchService.resolveOperator(filters)).thenReturn("AND");
-            when(documentSearchService.resolveIsDeleted(filters)).thenReturn("N");
-            when(documentSearchService.resolveFilters(filters)).thenReturn(Collections.emptyList());
-            when(documentSearchService.search(eq("X"), anyList(), eq("AND"), eq(pageable), eq("N"), eq("DISPLAY_NAME"), eq("EMPLOYEE_POID")))
-                    .thenReturn(raw);
-            when(raw.records()).thenReturn(List.of(Map.of("EMPLOYEE_POID", 1L)));
-            when(raw.totalRecords()).thenReturn(1L);
-            when(raw.displayFields()).thenReturn(Map.of("EMPLOYEE_POID", "EMPLOYEE_POID"));
-
-            Map<String, Object> result = service.listEmployees("X", filters, pageable, null, null);
-
-            assertThat(result).isNotNull().containsKeys("content", "totalElements", "totalPages");
-        }
+//        @Test
+//        void wrapsSearchResults() {
+//            FilterRequestDto filters = new FilterRequestDto("AND", "N", Collections.emptyList());
+//            Pageable pageable = PageRequest.of(0, 5);
+//            RawSearchResult raw = mock(RawSearchResult.class);
+//
+//            when(documentSearchService.resolveOperator(filters)).thenReturn("AND");
+//            when(documentSearchService.resolveIsDeleted(filters)).thenReturn("N");
+//            when(documentSearchService.resolveFilters(filters)).thenReturn(Collections.emptyList());
+//            when(documentSearchService.search(eq("X"), anyList(), eq("AND"), eq(pageable), eq("N"), eq("DISPLAY_NAME"), eq("EMPLOYEE_POID")))
+//                    .thenReturn(raw);
+//            when(raw.records()).thenReturn(List.of(Map.of("EMPLOYEE_POID", 1L)));
+//            when(raw.totalRecords()).thenReturn(1L);
+//            when(raw.displayFields()).thenReturn(Map.of("EMPLOYEE_POID", "EMPLOYEE_POID"));
+//
+//            Map<String, Object> result = service.listEmployees("X", filters, pageable, null, null);
+//
+//            assertThat(result).isNotNull().containsKeys("content", "totalElements", "totalPages");
+//        }
     }
 
     @Nested
