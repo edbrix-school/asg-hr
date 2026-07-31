@@ -153,7 +153,7 @@ class HolidayMasterServiceImplTest {
         when(mapper.toEntity(request)).thenReturn(entity);
         when(repository.save(entity)).thenReturn(entity);
         when(mapper.toResponse(entity)).thenReturn(response);
-        doNothing().when(loggingService).createLogSummaryEntry(eq(LogDetailsEnum.CREATED), any(), eq("1"));
+        doNothing().when(loggingService).createLogSummaryEntry(eq("800-011"), eq("1"), eq("CREATED"));
 
         try (MockedStatic<UserContext> userContext = Mockito.mockStatic(UserContext.class)) {
             userContext.when(UserContext::getUserId).thenReturn(null);
@@ -163,7 +163,7 @@ class HolidayMasterServiceImplTest {
 
             assertNotNull(result);
             verify(mapper).toEntity(request);
-            verify(loggingService).createLogSummaryEntry(LogDetailsEnum.CREATED, "800-011", "1");
+            verify(loggingService).createLogSummaryEntry("800-011", "1", "CREATED");
         }
     }
 
