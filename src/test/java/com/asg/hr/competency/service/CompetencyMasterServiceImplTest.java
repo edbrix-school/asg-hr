@@ -62,6 +62,25 @@ class CompetencyMasterServiceImplTest {
     }
 
     @Test
+    void create_whenReviewDescriptionAlreadyExists_throws() {
+        CompetencyMasterRequestDto req = CompetencyMasterRequestDto.builder()
+                .competencyCode("C1")
+                .competencyDescription("Desc")
+                .competencyNarration("Nar")
+                .seqNo(1)
+                .build();
+
+        try (MockedStatic<UserContext> uc = Mockito.mockStatic(UserContext.class)) {
+            uc.when(UserContext::getGroupPoid).thenReturn(10L);
+            when(repository.existsByCompetencyCodeAndGroupPoid("C1", 10L)).thenReturn(false);
+            when(repository.existsByCompetencyDescriptionAndGroupPoid("Desc", 10L)).thenReturn(true);
+
+            assertThatThrownBy(() -> service.create(req))
+                    .isInstanceOf(ResourceAlreadyExistsException.class);
+        }
+    }
+
+    @Test
     void create_success_savesEntity_setsFlags_andLogs() {
         CompetencyMasterRequestDto req = CompetencyMasterRequestDto.builder()
                 .competencyCode("C1")
@@ -86,6 +105,7 @@ class CompetencyMasterServiceImplTest {
             uc.when(UserContext::getDocumentId).thenReturn("DOC1");
 
             when(repository.existsByCompetencyCodeAndGroupPoid("C1", 10L)).thenReturn(false);
+            when(repository.existsByCompetencyDescriptionAndGroupPoid("Desc", 10L)).thenReturn(false);
             when(repository.save(any(CompetencyMasterEntity.class))).thenReturn(saved);
 
             var resp = service.create(req);
@@ -177,6 +197,31 @@ class CompetencyMasterServiceImplTest {
     }
 
     @Test
+    void update_whenDuplicateDescription_throws() {
+        CompetencyMasterRequestDto req = CompetencyMasterRequestDto.builder()
+                .competencyCode("C2")
+                .competencyDescription("D2")
+                .build();
+
+        CompetencyMasterEntity existing = CompetencyMasterEntity.builder()
+                .competencyPoid(5L)
+                .groupPoid(10L)
+                .competencyCode("C1")
+                .competencyDescription("D1")
+                .build();
+
+        try (MockedStatic<UserContext> uc = Mockito.mockStatic(UserContext.class)) {
+            uc.when(UserContext::getGroupPoid).thenReturn(10L);
+            when(repository.findByIdAndGroupPoidAndNotDeleted(5L, 10L)).thenReturn(Optional.of(existing));
+            when(repository.existsByCompetencyCodeAndGroupPoidAndIdNot("C2", 10L, 5L)).thenReturn(false);
+            when(repository.existsByCompetencyDescriptionAndGroupPoidAndIdNot("D2", 10L, 5L)).thenReturn(true);
+
+            assertThatThrownBy(() -> service.update(5L, req))
+                    .isInstanceOf(ResourceAlreadyExistsException.class);
+        }
+    }
+
+    @Test
     void update_success_savesAndLogsChanges() {
         CompetencyMasterRequestDto req = CompetencyMasterRequestDto.builder()
                 .competencyCode("C2")
@@ -211,6 +256,7 @@ class CompetencyMasterServiceImplTest {
 
             when(repository.findByIdAndGroupPoidAndNotDeleted(5L, 10L)).thenReturn(Optional.of(existing));
             when(repository.existsByCompetencyCodeAndGroupPoidAndIdNot("C2", 10L, 5L)).thenReturn(false);
+            when(repository.existsByCompetencyDescriptionAndGroupPoidAndIdNot("D2", 10L, 5L)).thenReturn(false);
             when(repository.save(any(CompetencyMasterEntity.class))).thenReturn(saved);
 
             var resp = service.update(5L, req);

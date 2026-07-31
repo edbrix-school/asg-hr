@@ -21,4 +21,12 @@ public interface CompetencyMasterRepository extends JpaRepository<CompetencyMast
     @Query("SELECT CASE WHEN COUNT(e) > 0 THEN true ELSE false END FROM CompetencyMasterEntity e " +
             "WHERE e.competencyCode = :code AND e.groupPoid = :groupPoid AND e.competencyPoid != :id AND (e.deleted IS NULL OR e.deleted = '' OR e.deleted = 'N')")
     boolean existsByCompetencyCodeAndGroupPoidAndIdNot(@Param("code") String code, @Param("groupPoid") Long groupPoid, @Param("id") Long id);
+
+    @Query("SELECT CASE WHEN COUNT(e) > 0 THEN true ELSE false END FROM CompetencyMasterEntity e " +
+            "WHERE e.competencyDescription = :description AND e.groupPoid = :groupPoid AND (e.deleted IS NULL OR e.deleted = '' OR e.deleted = 'N')")
+    boolean existsByCompetencyDescriptionAndGroupPoid(@Param("description") String description, @Param("groupPoid") Long groupPoid);
+
+    @Query("SELECT CASE WHEN COUNT(e) > 0 THEN true ELSE false END FROM CompetencyMasterEntity e " +
+            "WHERE e.competencyDescription = :description AND e.groupPoid = :groupPoid AND e.competencyPoid != :id AND (e.deleted IS NULL OR e.deleted = '' OR e.deleted = 'N')")
+    boolean existsByCompetencyDescriptionAndGroupPoidAndIdNot(@Param("description") String description, @Param("groupPoid") Long groupPoid, @Param("id") Long id);
 }

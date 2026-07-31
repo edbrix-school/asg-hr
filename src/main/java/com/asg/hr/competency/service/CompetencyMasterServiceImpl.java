@@ -42,7 +42,11 @@ public class CompetencyMasterServiceImpl implements CompetencyMasterService {
         Long groupPoid = UserContext.getGroupPoid();
 
         if (repository.existsByCompetencyCodeAndGroupPoid(requestDto.getCompetencyCode(), groupPoid)) {
-            throw new ResourceAlreadyExistsException("Competency", requestDto.getCompetencyCode());
+            throw new ResourceAlreadyExistsException("Competency Code", requestDto.getCompetencyCode());
+        }
+
+        if (repository.existsByCompetencyDescriptionAndGroupPoid(requestDto.getCompetencyDescription(), groupPoid)) {
+            throw new ResourceAlreadyExistsException("Review Description", requestDto.getCompetencyDescription());
         }
 
         CompetencyMasterEntity entity = CompetencyMasterEntity.builder()
@@ -96,7 +100,11 @@ public class CompetencyMasterServiceImpl implements CompetencyMasterService {
                 .orElseThrow(() -> new ResourceNotFoundException("Competency", "id", competencyPoid));
 
         if (repository.existsByCompetencyCodeAndGroupPoidAndIdNot(requestDto.getCompetencyCode(), groupPoid, competencyPoid)) {
-            throw new ResourceAlreadyExistsException("Competency", requestDto.getCompetencyCode());
+            throw new ResourceAlreadyExistsException("Competency Code", requestDto.getCompetencyCode());
+        }
+
+        if (repository.existsByCompetencyDescriptionAndGroupPoidAndIdNot(requestDto.getCompetencyDescription(), groupPoid, competencyPoid)) {
+            throw new ResourceAlreadyExistsException("Review Description", requestDto.getCompetencyDescription());
         }
 
         CompetencyMasterEntity oldEntity = new CompetencyMasterEntity();
