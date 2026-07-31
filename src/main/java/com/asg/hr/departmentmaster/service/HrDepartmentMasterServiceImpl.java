@@ -90,7 +90,7 @@ public class HrDepartmentMasterServiceImpl implements HrDepartmentMasterService 
         entity.setDeleted("N");
 
         entity = repository.save(entity);
-        loggingService.createLogSummaryEntry(LogDetailsEnum.CREATED, UserContext.getDocumentId(), entity.getDeptPoid().toString());
+        loggingService.createLogSummaryEntry(UserContext.getDocumentId(), entity.getDeptPoid().toString(), LogDetailsEnum.CREATED.name());
         return mapToResponse(entity);
     }
 

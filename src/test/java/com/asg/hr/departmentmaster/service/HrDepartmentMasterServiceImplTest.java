@@ -220,7 +220,7 @@ class HrDepartmentMasterServiceImplTest {
             assertThat(response).isNotNull();
             assertThat(response.getDeptName()).isEqualTo("Engineering");
             verify(repository).save(any(HrDepartmentMaster.class));
-            verify(loggingService).createLogSummaryEntry(any(com.asg.common.lib.enums.LogDetailsEnum.class), eq(DOCUMENT_ID), anyString());
+            verify(loggingService).createLogSummaryEntry(eq(DOCUMENT_ID), anyString(), anyString());
         }
 
         @Test
