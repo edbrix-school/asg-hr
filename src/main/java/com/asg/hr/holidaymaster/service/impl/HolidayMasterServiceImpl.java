@@ -105,8 +105,7 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
         HolidayMasterEntity entity = mapper.toEntity(request);
         HolidayMasterEntity saved = repository.save(entity);
 
-        String key = saved.getHolidayPoid().toString();
-        loggingService.createLogSummaryEntry(LogDetailsEnum.CREATED, UserContext.getDocumentId(), key);
+        loggingService.createLogSummaryEntry(UserContext.getDocumentId(), saved.getHolidayPoid().toString(), LogDetailsEnum.CREATED.name());
 
         return mapper.toResponse(saved);
     }

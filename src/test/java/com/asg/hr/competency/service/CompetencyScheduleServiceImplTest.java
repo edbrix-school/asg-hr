@@ -119,30 +119,23 @@ class CompetencyScheduleServiceImplTest {
 
     @Test
     void testGetById_Success() {
-        try (var mockedUserContext = mockStatic(UserContext.class)) {
-            mockedUserContext.when(UserContext::getGroupPoid).thenReturn(100L);
+        when(scheduleRepository.findBySchedulePoid(1L)).thenReturn(Optional.of(entity));
+        when(lovDataService.getDetailsByPoidAndLovNameFast(1L, "HR_COMPETENCY_SCHEDULES"))
+                .thenReturn(new LovGetListDto(1L, "1", "Annual Review 2024", 1L, "Annual Review 2024", 1, null));
 
-            when(scheduleRepository.findByIdAndGroupPoidAndNotDeleted(1L, 100L)).thenReturn(Optional.of(entity));
-            when(lovDataService.getDetailsByPoidAndLovNameFast(1L, "HR_COMPETENCY_SCHEDULES"))
-                    .thenReturn(new LovGetListDto(1L, "1", "Annual Review 2024", 1L, "Annual Review 2024", 1, null));
+        CompetencyScheduleResponseDto result = service.getScheduleById(1L);
 
-            CompetencyScheduleResponseDto result = service.getScheduleById(1L);
-
-            assertNotNull(result);
-            assertEquals(1L, result.getSchedulePoid());
-            assertEquals("Annual Review 2024", result.getScheduleDescription());
-            assertNotNull(result.getScheduleDtl());
-        }
+        assertNotNull(result);
+        assertEquals(1L, result.getSchedulePoid());
+        assertEquals("Annual Review 2024", result.getScheduleDescription());
+        assertNotNull(result.getScheduleDtl());
     }
 
     @Test
     void testGetById_NotFound() {
-        try (var mockedUserContext = mockStatic(UserContext.class)) {
-            mockedUserContext.when(UserContext::getGroupPoid).thenReturn(100L);
-            when(scheduleRepository.findByIdAndGroupPoidAndNotDeleted(1L, 100L)).thenReturn(Optional.empty());
+        when(scheduleRepository.findBySchedulePoid(1L)).thenReturn(Optional.empty());
 
-            assertThrows(ResourceNotFoundException.class, () -> service.getScheduleById(1L));
-        }
+        assertThrows(ResourceNotFoundException.class, () -> service.getScheduleById(1L));
     }
 
     @Test
