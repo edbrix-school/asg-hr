@@ -261,48 +261,48 @@ class EmployeeTrainingServiceImplTest {
         assertEquals("Training already exists for this course and period", ex.getMessage());
     }
 
-//    @Test
-//    void updateTraining_WhenSuccess_ReplacesDetailsAndLogs() {
-//        // update detail action is handled via detailRepository.findByIdTransactionPoidOrderByIdDetRowIdAsc
-//        EmployeeTrainingDetailEntity existingDetail = EmployeeTrainingDetailEntity.builder()
-//                .id(new com.asg.hr.employeetraining.entity.EmployeeTrainingDetailId(1L, 1))
-//                .empPoid(1001L)
-//                .trainingStatus("COMPLETED")
-//                .completedOn(LocalDate.of(2030, 1, 2))
-//                .otherRemarks("Done")
-//                .build();
-//
-//        when(headerRepository.findByTransactionPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.of(header));
-//        when(headerRepository.existsDuplicateOnUpdate(anyString(), any(), any(), anyString(), eq(1L))).thenReturn(false);
-//        when(headerRepository.save(any(EmployeeTrainingHeaderEntity.class))).thenReturn(header);
-//        when(detailRepository.findByIdTransactionPoidOrderByIdDetRowIdAsc(1L)).thenReturn(List.of(existingDetail));
-//        // mapper response will be returned with detail list built in service
-//        when(mapper.toResponse(any(), any())).thenReturn(response);
-//
-//        try (MockedStatic<UserContext> userContext = Mockito.mockStatic(UserContext.class);
-//             MockedStatic<ASGHelperUtils> helperUtils = Mockito.mockStatic(ASGHelperUtils.class)) {
-//            userContext.when(UserContext::getUserId).thenReturn("user1");
-//            userContext.when(UserContext::getGroupPoid).thenReturn(10L);
-//            userContext.when(UserContext::getDocumentId).thenReturn("800-108");
-//            helperUtils.when(ASGHelperUtils::getCompanyId).thenReturn(1L);
-//
-//            EmployeeTrainingDetailRequest updatedDetail = new EmployeeTrainingDetailRequest(
-//                    1,
-//                    "isUpdated",
-//                    1001L,
-//                    "COMPLETED",
-//                    LocalDate.of(2030, 1, 2),
-//                    "Done"
-//            );
-//            request.setDetails(List.of(updatedDetail));
-//
-//            EmployeeTrainingResponse result = service.updateTraining(1L, request);
-//
-//            assertNotNull(result);
-//            verify(loggingService.logChanges_v2(any(), eq(header), eq(EmployeeTrainingHeaderEntity.class),
-//                    eq("800-108"), eq("1"), eq(LogDetailsEnum.MODIFIED), eq("TRN-001"), eq("TRANSACTION_POID"));
-//        }
-//    }
+    @Test
+    void updateTraining_WhenSuccess_ReplacesDetailsAndLogs() {
+        // update detail action is handled via detailRepository.findByIdTransactionPoidOrderByIdDetRowIdAsc
+        EmployeeTrainingDetailEntity existingDetail = EmployeeTrainingDetailEntity.builder()
+                .id(new com.asg.hr.employeetraining.entity.EmployeeTrainingDetailId(1L, 1))
+                .empPoid(1001L)
+                .trainingStatus("COMPLETED")
+                .completedOn(LocalDate.of(2030, 1, 2))
+                .otherRemarks("Done")
+                .build();
+
+        when(headerRepository.findByTransactionPoidAndDeletedNot(1L, "Y")).thenReturn(Optional.of(header));
+        when(headerRepository.existsDuplicateOnUpdate(anyString(), any(), any(), anyString(), eq(1L))).thenReturn(false);
+        when(headerRepository.save(any(EmployeeTrainingHeaderEntity.class))).thenReturn(header);
+        when(detailRepository.findByIdTransactionPoidOrderByIdDetRowIdAsc(1L)).thenReturn(List.of(existingDetail));
+        // mapper response will be returned with detail list built in service
+        when(mapper.toResponse(any(), any())).thenReturn(response);
+
+        try (MockedStatic<UserContext> userContext = Mockito.mockStatic(UserContext.class);
+             MockedStatic<ASGHelperUtils> helperUtils = Mockito.mockStatic(ASGHelperUtils.class)) {
+            userContext.when(UserContext::getUserId).thenReturn("user1");
+            userContext.when(UserContext::getGroupPoid).thenReturn(10L);
+            userContext.when(UserContext::getDocumentId).thenReturn("800-108");
+            helperUtils.when(ASGHelperUtils::getCompanyId).thenReturn(1L);
+
+            EmployeeTrainingDetailRequest updatedDetail = new EmployeeTrainingDetailRequest(
+                    1,
+                    "isUpdated",
+                    1001L,
+                    "COMPLETED",
+                    LocalDate.of(2030, 1, 2),
+                    "Done"
+            );
+            request.setDetails(List.of(updatedDetail));
+
+            EmployeeTrainingResponse result = service.updateTraining(1L, request);
+
+            assertNotNull(result);
+            verify(loggingService).logchange_v2(any(), eq(header), eq(EmployeeTrainingHeaderEntity.class),
+                    eq("800-108"), eq("1"), eq(LogDetailsEnum.MODIFIED), eq("TRN-001"), eq("TRANSACTION_POID"));
+        }
+    }
 
     @Test
     void updateTraining_WhenNotFound_ThrowsException() {
