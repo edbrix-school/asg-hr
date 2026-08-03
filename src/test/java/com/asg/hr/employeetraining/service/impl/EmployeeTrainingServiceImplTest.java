@@ -120,6 +120,7 @@ class EmployeeTrainingServiceImplTest {
                 .transactionDate(LocalDate.of(2030, 1, 1))
                 .employeePoid("1001")
                 .deleted("N")
+                .docRef("TRN-001")
                 .build();
 
         detailEntities = List.of();
@@ -298,8 +299,8 @@ class EmployeeTrainingServiceImplTest {
             EmployeeTrainingResponse result = service.updateTraining(1L, request);
 
             assertNotNull(result);
-            verify(loggingService).logChanges(any(), eq(header), eq(EmployeeTrainingHeaderEntity.class),
-                    eq("800-108"), eq("1"), eq(LogDetailsEnum.MODIFIED), eq("TRANSACTION_POID"));
+            verify(loggingService).logchange_v2(any(), eq(header), eq(EmployeeTrainingHeaderEntity.class),
+                    eq("800-108"), eq("1"), eq(LogDetailsEnum.MODIFIED), eq("TRN-001"), eq("TRANSACTION_POID"));
         }
     }
 

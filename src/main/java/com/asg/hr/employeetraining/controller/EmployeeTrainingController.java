@@ -114,7 +114,11 @@ public class EmployeeTrainingController {
     ) {
         log.info("Get Employee Training request | poid={}", transactionPoid);
         EmployeeTrainingResponse response = employeeTrainingService.getTrainingById(transactionPoid);
-        loggingService.createLogSummaryEntry(LogDetailsEnum.VIEWED, UserContext.getDocumentId(), transactionPoid.toString());
+        loggingService.createLogSummaryEntry(
+                UserContext.getDocumentId(),
+                transactionPoid.toString(),
+                String.format("%s %s", LogDetailsEnum.VIEWED, response.getDocRef())
+        );
         return success("Employee training fetched successfully", response);
     }
 

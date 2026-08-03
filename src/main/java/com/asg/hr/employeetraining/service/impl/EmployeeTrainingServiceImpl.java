@@ -190,13 +190,14 @@ public class EmployeeTrainingServiceImpl implements EmployeeTrainingService {
         List<EmployeeTrainingDetailEntity> detailEntities =
                 updateEmployeeTrainingDetailsDiff(transactionPoid, request.getDetails());
 
-        loggingService.logChanges(
+        loggingService.logchange_v2(
                 oldEntity,
                 saved,
                 EmployeeTrainingHeaderEntity.class,
                 UserContext.getDocumentId(),
                 transactionPoid.toString(),
                 LogDetailsEnum.MODIFIED,
+                saved.getDocRef(),
                 EmployeeTrainingConstants.KEY_FIELD
         );
 
