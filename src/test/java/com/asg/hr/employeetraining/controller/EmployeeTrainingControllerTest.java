@@ -3,7 +3,6 @@ package com.asg.hr.employeetraining.controller;
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
-import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.common.lib.service.LoggingService;
@@ -72,6 +71,7 @@ class EmployeeTrainingControllerTest {
         response.setTransactionPoid(1L);
         response.setCourseName("Safety Training");
         response.setActive("Y");
+        response.setDocRef("TRN-001");
     }
 
     @Test
@@ -115,9 +115,9 @@ class EmployeeTrainingControllerTest {
             userContext.when(UserContext::getDocumentId).thenReturn("800-108");
 
             doNothing().when(loggingService).createLogSummaryEntry(
-                    LogDetailsEnum.VIEWED,
                     "800-108",
-                    "1"
+                    "1",
+                    "VIEWED TRN-001"
             );
 
             ResponseEntity<?> entity = controller.getById(1L);
@@ -125,7 +125,7 @@ class EmployeeTrainingControllerTest {
             assertNotNull(entity);
             assertEquals(200, entity.getStatusCode().value());
             verify(employeeTrainingService).getTrainingById(1L);
-            verify(loggingService).createLogSummaryEntry(LogDetailsEnum.VIEWED, "800-108", "1");
+            verify(loggingService).createLogSummaryEntry("800-108", "1", "VIEWED TRN-001");
         }
     }
 
@@ -135,6 +135,7 @@ class EmployeeTrainingControllerTest {
         deletedResponse.setTransactionPoid(1L);
         deletedResponse.setCourseName("Safety Training");
         deletedResponse.setActive("N");
+        deletedResponse.setDocRef("TRN-001");
 
         when(employeeTrainingService.getTrainingById(1L)).thenReturn(deletedResponse);
 
@@ -142,7 +143,7 @@ class EmployeeTrainingControllerTest {
             userContext.when(UserContext::getDocumentId).thenReturn("800-108");
 
             doNothing().when(loggingService).createLogSummaryEntry(
-                    LogDetailsEnum.VIEWED, "800-108", "1");
+                    "800-108", "1", "VIEWED TRN-001");
 
             ResponseEntity<?> entity = controller.getById(1L);
 

@@ -197,6 +197,7 @@ public class EmployeeTrainingServiceImpl implements EmployeeTrainingService {
                 UserContext.getDocumentId(),
                 transactionPoid.toString(),
                 LogDetailsEnum.MODIFIED,
+                saved.getDocRef(),
                 EmployeeTrainingConstants.KEY_FIELD
         );
 
