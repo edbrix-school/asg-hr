@@ -755,6 +755,11 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         dto.setSettlementDtl(lovService.getDetailsByPoidAndLovNameFast(entity.getSettlementPoid(), "LEAVE_SETTLEMENT_TICKET_TYPE"));
         dto.setTicketBookByDtl(lovService.getLovItemByCodeFast(entity.getTicketBookBy(), "HR_TICKET_BOOKEDBY"));
 
+        // Call the procedure ONLY to fetch supplemental computed fields that are NOT stored
+        // in the HR_LEAVE_REQUEST_HDR table. Fields that the legacy bean saves to the table
+        // during create/update (ticketEarned, ticketEligiblity, ticketPeriod, paidLeaves,
+        // medicalTaken, medicalEligible, lastLeaveDetails, lastTicketDetails) must NOT be
+        // overwritten here — they are already correctly populated from the entity above.
         Map<String, Object> eligible =
                 repository.getEligibleLeaveDays(
                         entity.getCompanyPoid(),
@@ -769,14 +774,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         if (data != null && !data.isEmpty()) {
             Map<String, Object> row = data.get(0);
 
-            dto.setTicketEarned(toBigDecimal(row.get("earnedTicket")));
-            dto.setTicketEligiblity(toBigDecimal(row.get("eligibleTicket")));
-            dto.setTicketPeriod(toBigDecimal(row.get("ticketPeriod")));
-            dto.setPaidLeaves(toBigDecimal(row.get("paidLeavesTaken")));
-            dto.setMedicalTaken(toBigDecimal(row.get("medicalTaken")));
-            dto.setMedicalEligible(toBigDecimal(row.get("medicalEligible")));
-            dto.setLastLeaveDetails(row.get("lastLeaveDetails") != null ? row.get("lastLeaveDetails").toString() : null);
-            dto.setLastTicketDetails(row.get("lastTicketDetails") != null ? row.get("lastTicketDetails").toString() : null);
+            // --- Supplemental computed fields (NOT stored in the table) ---
             dto.setWorkedDays(toBigDecimal(row.get("workedDays")));
             dto.setLeaveSalary(toBigDecimal(row.get("leaveSalary")));
             dto.setWorkdaysFromLastLeave(toBigDecimal(row.get("workdaysFromLastLeave")));
@@ -794,10 +792,11 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
             if (lastRejoin instanceof java.sql.Timestamp ts) dto.setLastRejoinDate(ts.toLocalDateTime().toLocalDate());
             else if (lastRejoin instanceof java.sql.Date sd) dto.setLastRejoinDate(sd.toLocalDate());
 
-            BigDecimal leaveDaysVal = dto.getLeaveDays() != null ? dto.getLeaveDays() : BigDecimal.ZERO;
-            if (dto.getEligibleLeaveDays() != null && dto.getBalanceTillRejoin() == null) {
-                dto.setBalanceTillRejoin(dto.getEligibleLeaveDays().subtract(leaveDaysVal));
-            }
+            // NOTE: ticketEarned, ticketEligiblity, ticketPeriod, paidLeaves,
+            //       medicalTaken, medicalEligible, lastLeaveDetails, lastTicketDetails
+            //       are intentionally NOT set here — they were already loaded from the
+            //       entity (saved to table by the legacy PROC_HR_ELIGIBLELEAVE_DAYS call
+            //       during create/update: RefreshEligibleDaysLeaves in HrLeaveRequestBean).
         }
 
         return dto;
