@@ -202,7 +202,7 @@ public class EmployeeMasterMapper {
         entity.setProbation(requestDto.getProbation());
         entity.setNoticePeriod(requestDto.getNoticePeriod());
         entity.setDirectSupervisorPoid(requestDto.getHod());
-        entity.setLoginUserPoid(UserContext.getUserPoid());
+        entity.setLoginUserPoid(requestDto.getLoginUserPoid());
         entity.setJobDescription(requestDto.getJobDescription());
         entity.setAirSectorPoid(requestDto.getAirSectorPoid());
         entity.setTicketPeriod(requestDto.getTicketPeriod());
