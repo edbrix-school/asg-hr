@@ -254,9 +254,8 @@ public class EmployeeLeaveRejoinServiceImpl implements EmployeeLeaveRejoinServic
     }
 
     private HrEmployeeRejoinHdr getAccessibleEntity(Long transactionPoid) {
-        HrEmployeeRejoinHdr entity = repository.findByTransactionPoidAndDeletedNot(
-                        transactionPoid,
-                        EmployeeLeaveRejoinConstants.DELETED_YES
+        HrEmployeeRejoinHdr entity = repository.findByTransactionPoid(
+                        transactionPoid
                 )
                 .orElseThrow(() -> new ResourceNotFoundException(
                         EmployeeLeaveRejoinConstants.RESOURCE_NAME,
