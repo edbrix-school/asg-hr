@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -325,6 +326,59 @@ public class PersonalDataSheetController {
         
         log.info("loadUserPolicies completed for employeePoid={}", employeePoid);
         return success("User policies loaded successfully", response);
+    }
+
+    @Operation(
+            summary = "View policy details (Policies tab - View Details link)",
+            description = "Called when user clicks the 'View Details' eye icon on a policy row. " +
+                    "Returns drilldown info parsed from DrilldownLinkInfo: either a REPORT (reportFileName) or a DOCUMENT (targetDocId).",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Policy view details retrieved successfully",
+                            content = @Content(mediaType = "application/json",
+                                    schema = @Schema(implementation = PersonalDataSheetResponseDto.PolicyViewDetailsResponseDto.class))),
+                    @ApiResponse(responseCode = "404", description = "Policy row not found")
+            }
+    )
+    @GetMapping("/policies/{transactionPoid}/{detRowId}/view-details")
+    @AllowedAction(UserRolesRightsEnum.VIEW)
+    public ResponseEntity<?> getPolicyViewDetails(
+            @Parameter(description = "Transaction POID", required = true) @PathVariable Long transactionPoid,
+            @Parameter(description = "Detail row ID of the policy", required = true) @PathVariable Long detRowId) {
+
+        log.info("getPolicyViewDetails | transactionPoid={} detRowId={}", transactionPoid, detRowId);
+        PersonalDataSheetResponseDto.PolicyViewDetailsResponseDto response =
+                personalDataSheetService.getPolicyViewDetails(transactionPoid, detRowId);
+        return success("Policy view details fetched successfully", response);
+    }
+
+    @Operation(
+            summary = "Print policy document as PDF (Policies tab - View Details)",
+            description = "Generates a PDF using the jrxml from the policy's DrilldownLinkInfo REPORT_FILE_NAME.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "PDF generated successfully",
+                            content = @Content(mediaType = "application/pdf")),
+                    @ApiResponse(responseCode = "404", description = "Policy row not found"),
+                    @ApiResponse(responseCode = "400", description = "Policy has no report file configured"),
+                    @ApiResponse(responseCode = "500", description = "Failed to generate PDF")
+            }
+    )
+    @GetMapping("/policies/{transactionPoid}/{detRowId}/print")
+    @AllowedAction(UserRolesRightsEnum.PRINT)
+    public ResponseEntity<?> printPolicy(
+            @Parameter(description = "Transaction POID", required = true) @PathVariable Long transactionPoid,
+            @Parameter(description = "Detail row ID of the policy", required = true) @PathVariable Long detRowId) {
+        try {
+            log.info("printPolicy | transactionPoid={} detRowId={}", transactionPoid, detRowId);
+            byte[] pdf = personalDataSheetService.printPolicy(transactionPoid, detRowId);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=policy-" + transactionPoid + "-" + detRowId + ".pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdf);
+        } catch (Exception e) {
+            log.error("Failed to generate PDF for policy detRowId={}", detRowId, e);
+            return error("Failed to generate PDF: " + e.getMessage(), 500);
+        }
     }
 
     @Operation(
