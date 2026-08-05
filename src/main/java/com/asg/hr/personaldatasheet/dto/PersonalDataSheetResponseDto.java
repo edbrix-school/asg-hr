@@ -131,4 +131,18 @@ public class PersonalDataSheetResponseDto {
         @JsonFormat(pattern = "yyyy-MM-dd")
         private LocalDate policyAcceptedOn;
     }
+
+    @Data
+    public static class PolicyViewDetailsResponseDto {
+        private Long detRowId;
+        private Long docPoid;
+        private String docName;
+        private String drilldownLinkInfo;
+        /** "REPORT" or "DOCUMENT" */
+        private String drilldownType;
+        /** Populated when drilldownType is REPORT */
+        private String reportFileName;
+        /** Populated when drilldownType is DOCUMENT */
+        private String targetDocId;
+    }
 }

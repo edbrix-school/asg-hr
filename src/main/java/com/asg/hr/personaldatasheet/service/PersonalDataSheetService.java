@@ -25,5 +25,9 @@ public interface PersonalDataSheetService {
 
     List<Map<String, Object>> loadUserPolicies(Long employeePoid);
 
+    PersonalDataSheetResponseDto.PolicyViewDetailsResponseDto getPolicyViewDetails(Long transactionPoid, Long detRowId);
+
+    byte[] printPolicy(Long transactionPoid, Long detRowId);
+
     byte[] print(Long transactionPoid);
 }

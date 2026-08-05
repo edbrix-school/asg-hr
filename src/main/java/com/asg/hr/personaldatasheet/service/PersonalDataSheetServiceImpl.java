@@ -293,6 +293,70 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
     }
 
     @Override
+    public PersonalDataSheetResponseDto.PolicyViewDetailsResponseDto getPolicyViewDetails(Long transactionPoid, Long detRowId) {
+        log.info("getPolicyViewDetails for transactionPoid={} detRowId={}", transactionPoid, detRowId);
+
+        HrPersonalDataPolicies policy = policiesRepository
+                .findByTransactionPoidAndDetRowId(transactionPoid, detRowId)
+                .orElseThrow(() -> new AsgException("Policy not found for transactionPoid=" + transactionPoid + " detRowId=" + detRowId));
+
+        PersonalDataSheetResponseDto.PolicyViewDetailsResponseDto dto = new PersonalDataSheetResponseDto.PolicyViewDetailsResponseDto();
+        dto.setDetRowId(policy.getDetRowId());
+        dto.setDocPoid(policy.getDocPoid());
+        dto.setDocName(policy.getDocName());
+        dto.setDrilldownLinkInfo(policy.getDrilldownLinkInfo());
+
+        String linkInfo = policy.getDrilldownLinkInfo();
+        if (linkInfo != null) {
+            String reportFileName = extractParam(linkInfo, "REPORT_FILE_NAME");
+            String targetDocId = extractParam(linkInfo, "TARGET_DOC_ID");
+            if (reportFileName != null) {
+                dto.setDrilldownType("REPORT");
+                dto.setReportFileName(reportFileName);
+            } else if (targetDocId != null) {
+                dto.setDrilldownType("DOCUMENT");
+                dto.setTargetDocId(targetDocId);
+            }
+        }
+
+        return dto;
+    }
+
+    private String extractParam(String linkInfo, String paramName) {
+        if (linkInfo == null) return null;
+        for (String part : linkInfo.split(";")) {
+            String trimmed = part.trim();
+            if (trimmed.startsWith(paramName + "=")) {
+                return trimmed.substring(paramName.length() + 1).trim();
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public byte[] printPolicy(Long transactionPoid, Long detRowId) {
+        log.info("Generating PDF for policy | transactionPoid={} detRowId={}", transactionPoid, detRowId);
+
+        HrPersonalDataPolicies policy = policiesRepository
+                .findByTransactionPoidAndDetRowId(transactionPoid, detRowId)
+                .orElseThrow(() -> new AsgException("Policy not found for transactionPoid=" + transactionPoid + " detRowId=" + detRowId));
+
+        String reportFileName = extractParam(policy.getDrilldownLinkInfo(), "REPORT_FILE_NAME");
+        if (reportFileName == null) {
+            throw new AsgException("No REPORT_FILE_NAME found in drilldown link info for detRowId=" + detRowId);
+        }
+
+        try {
+            Map<String, Object> params = printService.buildBaseParams(transactionPoid, UserContext.getDocumentId());
+            JasperReport report = printService.load(reportFileName);
+            return printService.fillReportToPdf(report, params, dataSource);
+        } catch (Exception e) {
+            log.error("Failed to generate PDF for policy detRowId={}", detRowId, e);
+            throw new AsgException("Failed to generate PDF report", e);
+        }
+    }
+
+    @Override
     public byte[] print(Long transactionPoid) {
         log.info("Generating PDF for Personal Data Sheet: {}", transactionPoid);
         
