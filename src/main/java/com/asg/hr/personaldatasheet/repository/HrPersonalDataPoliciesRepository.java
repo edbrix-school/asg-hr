@@ -14,4 +14,9 @@ public interface HrPersonalDataPoliciesRepository extends JpaRepository<HrPerson
 
     @Query("SELECT p FROM HrPersonalDataPolicies p WHERE p.transactionPoid = :transactionPoid")
     List<HrPersonalDataPolicies> findByTransactionPoid(@Param("transactionPoid") Long transactionPoid);
+
+    @Query("SELECT p FROM HrPersonalDataPolicies p WHERE p.transactionPoid = :transactionPoid AND p.detRowId = :detRowId")
+    java.util.Optional<HrPersonalDataPolicies> findByTransactionPoidAndDetRowId(
+            @Param("transactionPoid") Long transactionPoid,
+            @Param("detRowId") Long detRowId);
 }
