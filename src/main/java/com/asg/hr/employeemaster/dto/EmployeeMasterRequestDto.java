@@ -310,6 +310,8 @@ public class EmployeeMasterRequestDto {
     @NotNull(message = "Actual Date of Birth Is Required")
     private LocalDate actualDob;
 
+    private Long loginUserPoid;
+
     // Child tables (frontend drives changes via actionType).
     @Valid
     private List<EmployeeDependentsDtlRequestDto> dependentsDetails;
