@@ -1,0 +1,1080 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Emp_leave_Request" language="groovy" pageWidth="595" pageHeight="842" columnWidth="539" leftMargin="36" rightMargin="20" topMargin="20" bottomMargin="20" uuid="51f26c1c-332c-43f0-beb9-5722768520c7">
+    <property name="ireport.zoom" value="1.0"/>
+    <property name="ireport.x" value="0"/>
+    <property name="ireport.y" value="0"/>
+    <style name="Title" fontName="Times New Roman" fontSize="50" isBold="true" pdfFontName="Times-Bold"/>
+    <style name="SubTitle" forecolor="#736343" fontName="Arial" fontSize="18"/>
+    <style name="Column header" forecolor="#666666" fontName="Arial" fontSize="12" isBold="true"/>
+    <style name="Detail" fontName="Arial" fontSize="12"/>
+    <style name="style1" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false"/>
+    <style name="Row" mode="Transparent">
+        <conditionalStyle>
+            <conditionExpression><![CDATA[$V{REPORT_COUNT}%2 == 0]]></conditionExpression>
+            <style backcolor="#E6DAC3"/>
+        </conditionalStyle>
+    </style>
+    <style name="table">
+        <box>
+            <pen lineWidth="1.0" lineColor="#000000"/>
+        </box>
+    </style>
+    <style name="table_TH" mode="Opaque" backcolor="#F0F8FF">
+        <box>
+            <pen lineWidth="0.5" lineColor="#000000"/>
+        </box>
+    </style>
+    <style name="table_CH" mode="Opaque" backcolor="#F2F2F2">
+        <box>
+            <pen lineWidth="0.5" lineColor="#000000"/>
+        </box>
+    </style>
+    <style name="table_TD" mode="Opaque" backcolor="#FFFFFF">
+        <box>
+            <pen lineWidth="0.5" lineColor="#000000"/>
+        </box>
+    </style>
+    <style name="table 1">
+        <box>
+            <pen lineWidth="1.0" lineColor="#000000"/>
+        </box>
+    </style>
+    <style name="table 1_TH" mode="Opaque" backcolor="#F0F8FF">
+        <box>
+            <pen lineWidth="0.5" lineColor="#000000"/>
+        </box>
+    </style>
+    <style name="table 1_CH" mode="Opaque" backcolor="#F2F2F2">
+        <box>
+            <pen lineWidth="0.5" lineColor="#000000"/>
+        </box>
+    </style>
+    <style name="table 1_TD" mode="Opaque" backcolor="#FFFFFF">
+        <box>
+            <pen lineWidth="0.5" lineColor="#000000"/>
+        </box>
+    </style>
+    <style name="table 2">
+        <box>
+            <pen lineWidth="1.0" lineColor="#000000"/>
+        </box>
+    </style>
+    <style name="table 2_TH" mode="Opaque" backcolor="#F0F8FF">
+        <box>
+            <pen lineWidth="0.5" lineColor="#000000"/>
+        </box>
+    </style>
+    <style name="table 2_CH" mode="Opaque" backcolor="#BFE1FF">
+        <box>
+            <pen lineWidth="0.5" lineColor="#000000"/>
+        </box>
+    </style>
+    <style name="table 2_TD" mode="Opaque" backcolor="#FFFFFF">
+        <box>
+            <pen lineWidth="0.5" lineColor="#000000"/>
+        </box>
+    </style>
+    <subDataset name="DependentDetails" uuid="51a2238f-4dd2-413e-9dd8-417fa66096b2">
+        <parameter name="DOC_KEY_POID" class="java.lang.String"/>
+        <queryString>
+            <![CDATA[SELECT DET_ROW_ID, NAME_PASSPORT, RELATION, VISA_SPONSOR, PASSPORT_NO, NATIONALITY, MOBILE, TELPHONE, REMARKS
+FROM HR_PERSONAL_DATA_DEPENDENT
+WHERE TRANSACTION_POID = $P{DOC_KEY_POID}]]>
+        </queryString>
+        <field name="DET_ROW_ID" class="java.math.BigDecimal"/>
+        <field name="NAME_PASSPORT" class="java.lang.String"/>
+        <field name="RELATION" class="java.lang.String"/>
+        <field name="VISA_SPONSOR" class="java.lang.String"/>
+        <field name="PASSPORT_NO" class="java.lang.String"/>
+        <field name="NATIONALITY" class="java.lang.String"/>
+        <field name="MOBILE" class="java.lang.String"/>
+        <field name="TELPHONE" class="java.lang.String"/>
+        <field name="REMARKS" class="java.lang.String"/>
+    </subDataset>
+    <subDataset name="EmergencyDetails" uuid="0c59b45f-85aa-4aeb-8761-e6aafd37080e">
+        <parameter name="DOC_KEY_POID" class="java.lang.String"/>
+        <queryString>
+            <![CDATA[SELECT DET_ROW_ID, NAME, HOME_TEL, MOBILE, EMAIL, COUNTRY, REMARKS, RELATION
+FROM HR_PERSONAL_DATA_EMERGENCY
+WHERE TRANSACTION_POID = $P{DOC_KEY_POID}]]>
+        </queryString>
+        <field name="DET_ROW_ID" class="java.math.BigDecimal"/>
+        <field name="NAME" class="java.lang.String"/>
+        <field name="HOME_TEL" class="java.lang.String"/>
+        <field name="MOBILE" class="java.lang.String"/>
+        <field name="EMAIL" class="java.lang.String"/>
+        <field name="COUNTRY" class="java.lang.String"/>
+        <field name="REMARKS" class="java.lang.String"/>
+        <field name="RELATION" class="java.lang.String"/>
+    </subDataset>
+    <parameter name="LOGIN_GROUP_POID" class="java.lang.String" isForPrompting="false">
+        <defaultValueExpression><![CDATA[1]]></defaultValueExpression>
+    </parameter>
+    <parameter name="LOGIN_COMP_POID" class="java.lang.String" isForPrompting="false">
+        <defaultValueExpression><![CDATA[1]]></defaultValueExpression>
+    </parameter>
+    <parameter name="LOGIN_USER_POID" class="java.lang.String" isForPrompting="false"/>
+    <parameter name="DOC_ID" class="java.lang.String" isForPrompting="false">
+        <defaultValueExpression><![CDATA[800-106]]></defaultValueExpression>
+    </parameter>
+    <parameter name="DOC_KEY_POID" class="java.lang.String"/>
+    <parameter name="SUBREPORT_DIR" class="java.lang.String" isForPrompting="false">
+        <defaultValueExpression><![CDATA["\\\\shippingbahrain.com\\data\\ERP_REPORTS\\Reports\\"]]></defaultValueExpression>
+    </parameter>
+    <parameter name="SUB_HEADER" class="net.sf.jasperreports.engine.JasperReport"/>
+    <parameter name="SUB_NOMINEE" class="net.sf.jasperreports.engine.JasperReport"/>
+    <queryString>
+        <![CDATA[SELECT DH.TRANSACTION_DATE, DH.DOC_REF, DH.EMPLOYEE_POID, EM.EMPLOYEE_CODE, DH.EMPLOYEE_NAME_PASSPORT, DH.EMPLOYEE_NAME_CPR, DH.RESIDENT_STATUS, DH.CURRENT_FLAT, DH.CURRENT_BLDG, DH.CURRENT_ROAD, DH.CURRENT_BLOCK, DH.CURRENT_AREA, DH.CURRENT_PO_BOX, DH.CURRENT_HOME_TEL, DH.CURRENT_MOBILE, DH.PERSONAL_EMAIL, DH.PERMANENT_ADDRESS, DH.POSTAL_ADDRESS, DH.REMARKS, DH.PASSPORT_NO, DH.PASSPORT_EXPIRY_DT, DH.CPR_NO, DH.CPR_EXPIRY_DT
+FROM HR_PERSONAL_DATA_HDR DH
+INNER JOIN HR_EMPLOYEE_MASTER EM ON DH.EMPLOYEE_POID = EM.EMPLOYEE_POID
+WHERE TRANSACTION_POID = $P{DOC_KEY_POID}]]>
+    </queryString>
+    <field name="TRANSACTION_DATE" class="java.sql.Timestamp"/>
+    <field name="DOC_REF" class="java.lang.String"/>
+    <field name="EMPLOYEE_POID" class="java.math.BigDecimal"/>
+    <field name="EMPLOYEE_CODE" class="java.lang.String"/>
+    <field name="EMPLOYEE_NAME_PASSPORT" class="java.lang.String"/>
+    <field name="EMPLOYEE_NAME_CPR" class="java.lang.String"/>
+    <field name="RESIDENT_STATUS" class="java.lang.String"/>
+    <field name="CURRENT_FLAT" class="java.lang.String"/>
+    <field name="CURRENT_BLDG" class="java.lang.String"/>
+    <field name="CURRENT_ROAD" class="java.lang.String"/>
+    <field name="CURRENT_BLOCK" class="java.lang.String"/>
+    <field name="CURRENT_AREA" class="java.lang.String"/>
+    <field name="CURRENT_PO_BOX" class="java.lang.String"/>
+    <field name="CURRENT_HOME_TEL" class="java.lang.String"/>
+    <field name="CURRENT_MOBILE" class="java.lang.String"/>
+    <field name="PERSONAL_EMAIL" class="java.lang.String"/>
+    <field name="PERMANENT_ADDRESS" class="java.lang.String"/>
+    <field name="POSTAL_ADDRESS" class="java.lang.String"/>
+    <field name="REMARKS" class="java.lang.String"/>
+    <field name="PASSPORT_NO" class="java.lang.String"/>
+    <field name="PASSPORT_EXPIRY_DT" class="java.sql.Timestamp"/>
+    <field name="CPR_NO" class="java.lang.String"/>
+    <field name="CPR_EXPIRY_DT" class="java.sql.Timestamp"/>
+    <background>
+        <band splitType="Stretch"/>
+    </background>
+    <title>
+        <band height="37" splitType="Stretch">
+            <subreport>
+                <reportElement x="0" y="0" width="531" height="34" uuid="11dd97b8-4c92-45fe-85bb-3b9358474446"/>
+                <subreportParameter name="LOGIN_COMP_POID">
+                    <subreportParameterExpression><![CDATA[$P{LOGIN_COMP_POID}]]></subreportParameterExpression>
+                </subreportParameter>
+                <connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+                <subreportExpression><![CDATA[$P{SUB_HEADER}]]></subreportExpression>
+            </subreport>
+        </band>
+    </title>
+    <pageHeader>
+        <band height="75" splitType="Stretch">
+            <staticText>
+                <reportElement x="0" y="0" width="536" height="20" uuid="60786225-ed72-496f-8cff-dcbb27139727"/>
+                <textElement textAlignment="Center">
+                    <font size="14" isBold="true"/>
+                </textElement>
+                <text><![CDATA[PERSONAL INFORMATION AND BENEFICIARY NOMINATION FORM]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="7" y="55" width="161" height="16" uuid="f69e390f-6cc9-45d2-853f-107e8186d8a3"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Employee Name (as per Passport)]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Transparent" x="181" y="39" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="02fbc7d1-2eef-4d50-91f5-eb0593167183"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Transparent" x="181" y="55" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="dd5b77b3-215d-40a2-937b-03d302525843"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="7" y="39" width="77" height="16" uuid="67ae2163-83a4-42fd-8ee4-a00194ac3935"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Employee No]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement x="191" y="55" width="342" height="16" uuid="20825967-f712-479c-9c33-5afcae453333"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{EMPLOYEE_NAME_PASSPORT}]]></textFieldExpression>
+            </textField>
+            <textField isBlankWhenNull="true">
+                <reportElement x="191" y="39" width="135" height="16" uuid="8ef8d79f-171e-4cc4-b55d-648bd4b4c016"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{EMPLOYEE_CODE}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="364" y="23" width="69" height="16" uuid="a201258d-b164-49a3-b010-1284924d7129"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle">
+                    <font isBold="true"/>
+                </textElement>
+                <text><![CDATA[Doc Ref :]]></text>
+            </staticText>
+            <textField>
+                <reportElement x="436" y="23" width="100" height="16" uuid="b349497f-ce31-4382-a706-a00933e3d031"/>
+                <textElement verticalAlignment="Middle">
+                    <font isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{DOC_REF}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="7" y="23" width="38" height="16" uuid="3deb5739-8375-4f71-8c85-d259ccaf5558"/>
+                <textElement verticalAlignment="Middle">
+                    <font isBold="true"/>
+                </textElement>
+                <text><![CDATA[Date]]></text>
+            </staticText>
+            <textField pattern="dd-MMM-yyyy">
+                <reportElement x="68" y="23" width="100" height="16" uuid="98d181df-0ed6-4e99-a1fb-858b960d2cea"/>
+                <textElement verticalAlignment="Middle">
+                    <font isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement mode="Transparent" x="47" y="23" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="df2ba9d1-f010-458e-9131-53d8b1a1d401"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+        </band>
+    </pageHeader>
+    <columnHeader>
+        <band height="5" splitType="Stretch">
+            <line>
+                <reportElement positionType="FixRelativeToBottom" x="0" y="2" width="555" height="1" uuid="9ec55f57-eda0-48ce-a06e-ffab81edbcc6"/>
+                <graphicElement>
+                    <pen lineWidth="0.5" lineColor="#999999"/>
+                </graphicElement>
+            </line>
+        </band>
+    </columnHeader>
+    <detail>
+        <band height="249" splitType="Stretch">
+            <staticText>
+                <reportElement mode="Transparent" x="181" y="4" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="2549f264-9354-407b-a9e2-e447c0876d2f"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="7" y="4" width="161" height="16" uuid="6d8122de-3dc4-4591-8c05-0c972fccc7ec"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Employee Name (as per CPR)]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement x="191" y="4" width="342" height="16" uuid="55a31128-2b40-46a2-8244-6c439f6bef9d"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{EMPLOYEE_NAME_CPR}]]></textFieldExpression>
+            </textField>
+            <textField isBlankWhenNull="true">
+                <reportElement x="191" y="20" width="135" height="16" uuid="d1fcd364-b249-4599-af75-215009fcd05f"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{CPR_NO}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement mode="Transparent" x="181" y="20" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="cf9153fb-9f36-4bb5-ae65-6f40252a52fb"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="7" y="20" width="77" height="16" uuid="0151b414-daa7-4cae-a7d2-55f5849fb3b6"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[CPR Number]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement x="191" y="36" width="135" height="16" uuid="608318e5-d47a-4cb6-b430-1dcc9a74b076"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{RESIDENT_STATUS}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement mode="Transparent" x="181" y="36" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="e3366697-e20c-4a62-8b16-f5c3df0fa583"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="7" y="36" width="156" height="16" uuid="e12c2c91-d658-47f3-b835-d72e195d7171"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Resident Status in Bahrain]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Transparent" x="3" y="65" width="528" height="15" backcolor="#CCCCCC" uuid="bfac5eee-8c9c-480a-93bb-5b1395d1473d"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial" size="12" isBold="true"/>
+                </textElement>
+                <text><![CDATA[Address in Bahrain]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Transparent" x="181" y="80" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="b024365e-1e8a-42d6-a4e8-269e94f3f759"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="7" y="80" width="77" height="16" uuid="e1e0241b-4f7c-456e-aadc-87de2a511890"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Flat/Villa]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement x="191" y="80" width="135" height="16" uuid="77f4c7a1-4766-4b67-b854-e53ebaced507"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{CURRENT_FLAT}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement mode="Transparent" x="181" y="96" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="f8b133c5-faa2-4719-8786-bf9bc0dbcd82"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="7" y="96" width="77" height="16" uuid="763b6ad8-3690-422e-b819-5612a7595534"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Building]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement x="191" y="96" width="135" height="16" uuid="cbc9224a-f1b4-4ca7-b631-dad4a2416647"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{CURRENT_BLDG}]]></textFieldExpression>
+            </textField>
+            <textField isBlankWhenNull="true">
+                <reportElement x="191" y="112" width="135" height="16" uuid="1f1b9113-726f-4a44-9a4c-9fbcbf0e6d54"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{CURRENT_ROAD}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="7" y="112" width="77" height="16" uuid="11f911c6-5aa0-461a-b337-dab7c69c9caa"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Road]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Transparent" x="181" y="112" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="36e4c535-9873-40dd-be21-b2edcd57e14c"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement x="191" y="128" width="135" height="16" uuid="74c58fdc-7cc5-42b0-9047-4b3ce2653b64"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{CURRENT_BLOCK}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="7" y="128" width="77" height="16" uuid="24467537-5245-402d-92f0-42e7676bf0c7"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Block]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Transparent" x="181" y="128" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="b483ea0f-a69a-415f-9ac5-d907f25bc812"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Transparent" x="181" y="144" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="e03af07e-04a9-43dc-9a0f-cb2a0c247152"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement x="191" y="144" width="252" height="16" uuid="a83ae051-5e6e-4501-9df9-35bbb389db9b"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{CURRENT_AREA}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="7" y="144" width="77" height="16" uuid="bf2874b2-1f2e-46d5-9c1e-abc3bb1247e7"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Area]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Transparent" x="181" y="170" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="d861e989-41b6-4b92-866c-a996d4418c20"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement x="191" y="170" width="135" height="16" uuid="59c517d1-621d-4fdc-8fa4-8a1aeec684f6"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{CURRENT_PO_BOX}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="7" y="170" width="77" height="16" uuid="1cc6e1d2-8e4f-421a-9acc-20525a24c767"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[PO Box]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement x="191" y="196" width="135" height="16" uuid="4f53d8f7-2971-4681-97cb-2aff0a1b402a"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{CURRENT_HOME_TEL}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="7" y="196" width="77" height="16" uuid="b18ff6e5-d0e4-4c71-bdb9-60143c74ab8f"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Home Tel]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Transparent" x="181" y="196" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="f0a80929-bd4f-4d7c-b732-8a2fb0e9f7d3"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement x="191" y="212" width="135" height="16" uuid="ba04ab79-72fc-4dde-92fd-7d1119d9252c"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{CURRENT_MOBILE}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="7" y="212" width="77" height="16" uuid="855d9850-05de-4087-bec3-5d10206e47e5"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Mobile]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Transparent" x="181" y="212" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="ea37fe7f-5ffb-4dc2-81f2-c69672fb226f"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement x="191" y="228" width="337" height="16" uuid="d7bd1eac-56bc-47dd-b1fd-bb4ca476e0be"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{PERSONAL_EMAIL}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="7" y="228" width="77" height="16" uuid="3be18583-5ce7-46bf-808a-6ea5e1bdf271"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Personal Email]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Transparent" x="181" y="228" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="f09881ab-25c4-4c67-bc89-d90bbbb02a20"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+        </band>
+        <band height="51">
+            <staticText>
+                <reportElement mode="Transparent" x="0" y="0" width="528" height="15" backcolor="#CCCCCC" uuid="4d080a6f-b30d-4dd9-b8e4-2930ae8e94a2"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial" size="12" isBold="true"/>
+                </textElement>
+                <text><![CDATA[Dependent Details]]></text>
+            </staticText>
+            <componentElement>
+                <reportElement key="table" style="table" x="2" y="15" width="525" height="30" uuid="f6f381d7-6438-48ee-aeee-2427ac1695f3"/>
+                <jr:table xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd">
+                    <datasetRun subDataset="DependentDetails" uuid="413bf784-733e-47b1-837f-a73cafab6ed0">
+                        <datasetParameter name="DOC_KEY_POID">
+                            <datasetParameterExpression><![CDATA[$P{DOC_KEY_POID}]]></datasetParameterExpression>
+                        </datasetParameter>
+                        <connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+                    </datasetRun>
+                    <jr:column width="15" uuid="751a8ecd-d6ed-4b31-9b00-3e5876b52630">
+                        <jr:columnHeader style="table_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="15" height="16" uuid="737303b5-9ad0-430f-8b3a-a1c2b3ee3276"/>
+                                <textElement>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <text><![CDATA[No]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table_TD" height="16" rowSpan="1">
+                            <textField isBlankWhenNull="true">
+                                <reportElement x="0" y="0" width="15" height="16" uuid="322d2e14-5431-48fe-b4cb-f270eda513f1"/>
+                                <textElement>
+                                    <font size="8"/>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{DET_ROW_ID}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                    <jr:column width="90" uuid="4e3cb360-7c3c-4c0b-af5f-77d5f85a2199">
+                        <jr:columnHeader style="table_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="90" height="16" uuid="ddd9af11-3689-4c91-b15a-3dcb2f849415"/>
+                                <textElement>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <text><![CDATA[Name]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table_TD" height="16" rowSpan="1">
+                            <textField isBlankWhenNull="true">
+                                <reportElement x="0" y="0" width="90" height="16" uuid="13ef1879-fe66-49c4-b26f-081399035cd0"/>
+                                <textElement>
+                                    <font size="8"/>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{NAME_PASSPORT}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                    <jr:column width="57" uuid="c2d89e9f-aada-44e3-ac5f-0e78d6c588e0">
+                        <jr:columnHeader style="table_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="57" height="16" uuid="f63214ad-1581-42f3-bbda-38c50b724f1e"/>
+                                <textElement>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <text><![CDATA[Relation]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table_TD" height="16" rowSpan="1">
+                            <textField isBlankWhenNull="true">
+                                <reportElement x="0" y="0" width="57" height="16" uuid="dc366f32-b7af-47bc-8b3e-0b907923fc65"/>
+                                <textElement>
+                                    <font size="8"/>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{RELATION}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                    <jr:column width="70" uuid="0d8615a4-653c-4d1d-90f5-51870deef6a6">
+                        <jr:columnHeader style="table_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="70" height="16" uuid="a5f66997-9396-4bcf-908b-fd360d204c1a"/>
+                                <textElement>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <text><![CDATA[Sponsor]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table_TD" height="16" rowSpan="1">
+                            <textField isBlankWhenNull="true">
+                                <reportElement x="0" y="0" width="70" height="16" uuid="f577beb1-114d-4119-916f-786fdfd3e06b"/>
+                                <textElement>
+                                    <font size="8"/>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{VISA_SPONSOR}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                    <jr:column width="61" uuid="80cc6273-9778-4d02-b4af-e3416b7c3559">
+                        <jr:columnHeader style="table_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="61" height="16" uuid="8cfc0d53-1f6e-436d-a3ab-eb8db09176bf"/>
+                                <textElement>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <text><![CDATA[Passport]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table_TD" height="16" rowSpan="1">
+                            <textField isBlankWhenNull="true">
+                                <reportElement x="0" y="0" width="61" height="16" uuid="b250d013-1129-4969-a94a-8c7966c266d4"/>
+                                <textElement>
+                                    <font size="8"/>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{PASSPORT_NO}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                    <jr:column width="51" uuid="8e019367-a318-4fcb-a3f4-8c9c2ad3055e">
+                        <jr:columnHeader style="table_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="51" height="16" uuid="bcca1aab-9808-4c50-a35d-6b44df86fe18"/>
+                                <textElement>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <text><![CDATA[Nationality]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table_TD" height="16" rowSpan="1">
+                            <textField isBlankWhenNull="true">
+                                <reportElement x="0" y="0" width="51" height="16" uuid="2a6ffa5f-2c3e-4345-8ef5-fada2fd883c8"/>
+                                <textElement>
+                                    <font size="8"/>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{NATIONALITY}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                    <jr:column width="88" uuid="7ca9087c-099b-43ae-91e8-ce610732613b">
+                        <jr:columnHeader style="table_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="88" height="16" uuid="a15c808c-dc28-4a89-97ff-242fc8a2ae5d"/>
+                                <textElement>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <text><![CDATA[Mobile]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table_TD" height="16" rowSpan="1">
+                            <textField isBlankWhenNull="true">
+                                <reportElement x="0" y="0" width="88" height="16" uuid="e284880d-c857-4785-8bb8-81b1ca311255"/>
+                                <textElement>
+                                    <font size="8"/>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{MOBILE}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                    <jr:column width="90" uuid="6cf5094d-7ef4-407a-9eca-043058b49c7d">
+                        <jr:columnHeader style="table_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="90" height="16" uuid="4ad3f9c4-f798-49be-9ad2-19a84d508ae6"/>
+                                <textElement>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <text><![CDATA[Remarks]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table_TD" height="16" rowSpan="1">
+                            <textField isBlankWhenNull="true">
+                                <reportElement x="0" y="0" width="90" height="16" uuid="85f68dc3-93e2-458d-83ec-c91807d78f05"/>
+                                <textElement>
+                                    <font size="8"/>
+                                    <paragraph leftIndent="2" rightIndent="2" spacingBefore="3" spacingAfter="3"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{REMARKS}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                </jr:table>
+            </componentElement>
+        </band>
+        <band height="42">
+            <staticText>
+                <reportElement mode="Transparent" x="0" y="0" width="528" height="15" backcolor="#CCCCCC" uuid="d93af6ec-b8b6-473b-9755-02d351ef2280"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial" size="12" isBold="true"/>
+                </textElement>
+                <text><![CDATA[Emergency Contacts]]></text>
+            </staticText>
+            <componentElement>
+                <reportElement key="table 1" style="table 1" x="2" y="15" width="525" height="22" uuid="d259bf8e-7f26-4f31-9e92-d931e56dbbd9"/>
+                <jr:table xmlns:jr="http://jasperreports.sourceforge.net/jasperreports/components" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports/components http://jasperreports.sourceforge.net/xsd/components.xsd">
+                    <datasetRun subDataset="EmergencyDetails" uuid="7f988865-469e-4e6c-83c7-2efd3fceb9f4">
+                        <datasetParameter name="DOC_KEY_POID">
+                            <datasetParameterExpression><![CDATA[$P{DOC_KEY_POID}]]></datasetParameterExpression>
+                        </datasetParameter>
+                        <connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+                    </datasetRun>
+                    <jr:column width="15" uuid="b2d6b699-5baf-4873-a383-65e29594345d">
+                        <jr:columnHeader style="table 1_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="15" height="16" uuid="7f1fbefd-ad31-478a-af58-f1ad6c055fca"/>
+                                <textElement verticalAlignment="Middle">
+                                    <paragraph leftIndent="2"/>
+                                </textElement>
+                                <text><![CDATA[No]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table 1_TD" height="16" rowSpan="1">
+                            <textField isBlankWhenNull="true">
+                                <reportElement x="0" y="0" width="15" height="16" uuid="11332bc3-3f9d-44e1-a3d9-1df408eb751d"/>
+                                <textElement verticalAlignment="Middle">
+                                    <font size="8"/>
+                                    <paragraph leftIndent="2"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{DET_ROW_ID}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                    <jr:column width="90" uuid="013b96db-4577-48ea-9058-60590b987f14">
+                        <jr:columnHeader style="table 1_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="90" height="16" uuid="c48aebc3-3389-4bac-9f26-d71d79f83b7c"/>
+                                <textElement verticalAlignment="Middle">
+                                    <paragraph leftIndent="2"/>
+                                </textElement>
+                                <text><![CDATA[Name]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table 1_TD" height="16" rowSpan="1">
+                            <textField isBlankWhenNull="true">
+                                <reportElement x="0" y="0" width="90" height="16" uuid="32c78fe5-2f1c-4131-b468-707a9eaabefa"/>
+                                <textElement verticalAlignment="Middle">
+                                    <font size="8"/>
+                                    <paragraph leftIndent="2"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{NAME}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                    <jr:column width="57" uuid="67f219be-7f42-4a15-bcb8-5bf279051a8d">
+                        <jr:columnHeader style="table 1_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="57" height="16" uuid="25633c44-a8f8-4959-b638-0136b0490fa8"/>
+                                <textElement verticalAlignment="Middle">
+                                    <paragraph leftIndent="2"/>
+                                </textElement>
+                                <text><![CDATA[Relation]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table 1_TD" height="16" rowSpan="1">
+                            <textField pattern="" isBlankWhenNull="true">
+                                <reportElement mode="Transparent" x="0" y="0" width="57" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="f8e8d3d5-6492-4ffc-916a-166449c21183"/>
+                                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                                    <font fontName="SansSerif" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                                    <paragraph lineSpacing="Single"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{RELATION}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                    <jr:column width="72" uuid="e5832fe1-6e62-430b-b6b2-0fd44ca7427e">
+                        <jr:columnHeader style="table 1_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="72" height="16" uuid="2d9dd512-52ee-4cd8-a5da-b3ea232f65e3"/>
+                                <textElement verticalAlignment="Middle">
+                                    <paragraph leftIndent="2"/>
+                                </textElement>
+                                <text><![CDATA[Home Tel]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table 1_TD" height="16" rowSpan="1">
+                            <textField isBlankWhenNull="true">
+                                <reportElement x="0" y="0" width="72" height="16" uuid="1b326acc-75d2-47f9-aa28-b2fa2c3ba7f9"/>
+                                <textElement verticalAlignment="Middle">
+                                    <font size="8"/>
+                                    <paragraph leftIndent="2"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{HOME_TEL}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                    <jr:column width="73" uuid="e8c57b91-eadd-40ac-ace6-862c9be28a3e">
+                        <jr:columnHeader style="table 1_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="73" height="16" uuid="a8433f49-d650-4acf-a793-7a6f29734f7d"/>
+                                <textElement verticalAlignment="Middle">
+                                    <paragraph leftIndent="2"/>
+                                </textElement>
+                                <text><![CDATA[Mob]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table 1_TD" height="16" rowSpan="1">
+                            <textField isBlankWhenNull="true">
+                                <reportElement x="0" y="0" width="73" height="16" uuid="54a19b7c-776c-401c-a458-75f591ab4abc"/>
+                                <textElement verticalAlignment="Middle">
+                                    <font size="8"/>
+                                    <paragraph leftIndent="2"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{MOBILE}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                    <jr:column width="100" uuid="cf62e806-66b0-47cf-ad95-fab2522f0532">
+                        <jr:columnHeader style="table 1_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="100" height="16" uuid="da9a3233-bf63-4496-9431-d33be680c244"/>
+                                <textElement verticalAlignment="Middle">
+                                    <paragraph leftIndent="2"/>
+                                </textElement>
+                                <text><![CDATA[Email]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table 1_TD" height="16" rowSpan="1">
+                            <textField isBlankWhenNull="true">
+                                <reportElement x="0" y="0" width="100" height="16" uuid="e8c28ab1-ad0a-48ae-b728-cc0298dbc08b"/>
+                                <textElement verticalAlignment="Middle">
+                                    <font size="8"/>
+                                    <paragraph leftIndent="2"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{EMAIL}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                    <jr:column width="47" uuid="1d6c8e23-b412-4f32-b18a-14033307c84e">
+                        <jr:columnHeader style="table 1_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="47" height="16" uuid="76d62f8f-5c14-4eb4-8de6-bbe6574d6fc1"/>
+                                <textElement verticalAlignment="Middle">
+                                    <paragraph leftIndent="2"/>
+                                </textElement>
+                                <text><![CDATA[Country]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table 1_TD" height="16" rowSpan="1">
+                            <textField isBlankWhenNull="true">
+                                <reportElement x="0" y="0" width="47" height="16" uuid="2634e515-e0a8-4090-83bb-53696b59ae3e"/>
+                                <textElement verticalAlignment="Middle">
+                                    <font size="8"/>
+                                    <paragraph leftIndent="2"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{COUNTRY}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                    <jr:column width="70" uuid="ef11a354-5c01-43f9-9fbc-8b51e5e18c39">
+                        <jr:columnHeader style="table 1_CH" height="16" rowSpan="1">
+                            <staticText>
+                                <reportElement x="0" y="0" width="70" height="16" uuid="1ddd74f7-c662-4cc5-8264-06e3d44611f1"/>
+                                <textElement verticalAlignment="Middle">
+                                    <paragraph leftIndent="2"/>
+                                </textElement>
+                                <text><![CDATA[Remarks]]></text>
+                            </staticText>
+                        </jr:columnHeader>
+                        <jr:detailCell style="table 1_TD" height="16" rowSpan="1">
+                            <textField isBlankWhenNull="true">
+                                <reportElement x="0" y="0" width="70" height="16" uuid="18ff4aaf-e58a-49a2-8faa-19c5e15b7d58"/>
+                                <textElement verticalAlignment="Middle">
+                                    <font size="8"/>
+                                    <paragraph leftIndent="2"/>
+                                </textElement>
+                                <textFieldExpression><![CDATA[$F{REMARKS}]]></textFieldExpression>
+                            </textField>
+                        </jr:detailCell>
+                    </jr:column>
+                </jr:table>
+            </componentElement>
+        </band>
+        <band height="149">
+            <staticText>
+                <reportElement mode="Transparent" x="0" y="0" width="528" height="15" backcolor="#CCCCCC" uuid="2d24df0e-be0a-4838-bb03-48610fc09faa"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial" size="12" isBold="true"/>
+                </textElement>
+                <text><![CDATA[Permanent Address]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Transparent" x="2" y="85" width="528" height="15" backcolor="#CCCCCC" uuid="48e6557e-c6fe-475a-805d-18a2116ac15b"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial" size="12" isBold="true"/>
+                </textElement>
+                <text><![CDATA[Postal Address]]></text>
+            </staticText>
+            <rectangle>
+                <reportElement x="2" y="15" width="525" height="70" uuid="69461231-0f84-4467-8c38-20fb17dc155f"/>
+                <graphicElement>
+                    <pen lineWidth="0.5"/>
+                </graphicElement>
+            </rectangle>
+            <textField isBlankWhenNull="true">
+                <reportElement style="Row" x="20" y="15" width="507" height="70" uuid="7a916779-b562-4b78-987e-f9df5e30bbe8"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial" size="8"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{PERMANENT_ADDRESS}]]></textFieldExpression>
+            </textField>
+            <rectangle>
+                <reportElement x="2" y="100" width="525" height="42" uuid="e3bb92f0-8032-44c2-b3ec-b8f894b328ab"/>
+                <graphicElement>
+                    <pen lineWidth="0.5"/>
+                </graphicElement>
+            </rectangle>
+            <textField isBlankWhenNull="true">
+                <reportElement x="20" y="101" width="339" height="42" uuid="9914434a-56a2-4901-9883-7648c410939e"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial" size="8"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{POSTAL_ADDRESS}]]></textFieldExpression>
+            </textField>
+        </band>
+        <band height="138">
+            <staticText>
+                <reportElement mode="Transparent" x="3" y="10" width="528" height="15" backcolor="#CCCCCC" uuid="5455e240-fc95-4d30-b675-96c4964f45ea"/>
+                <textElement textAlignment="Center" verticalAlignment="Middle">
+                    <font fontName="Arial" size="12" isBold="true"/>
+                </textElement>
+                <text><![CDATA[Name and Address of Nominee for Employee Group Life Insurance Cover]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="4" y="28" width="531" height="108" uuid="0721533f-ae02-495d-8854-d8954797ad6d"/>
+                <textElement textAlignment="Justified"/>
+                <text><![CDATA[Please list the Nominee(s) to whom you want the benefits to be paid in the event of your demise. (This will be applicable to the Life Insurance Policy as well as the Company Final Settlement).
+
+1. Enter the Nominee’s name, address, and relationship to you.
+2. Indicate whether this Nominee is PRIMARY or CONTINGENT. Primary Nominee(s) receive the benefits first in the event of your demise. Contingent Nominee(s) receive the benefits if the primary Nominee is no more.
+3. Indicate the percentage of the benefits that you would like for each Nominee to receive. Total percentage must equal 100% for Primary Nominee and 100% for Contingent Nominee (if designated)]]></text>
+            </staticText>
+            <break>
+                <reportElement x="0" y="4" width="100" height="1" uuid="a7d54f34-a97e-4937-8a34-a53f3be30e59"/>
+            </break>
+        </band>
+        <band height="100">
+            <subreport>
+                <reportElement x="5" y="0" width="526" height="100" uuid="f9d5affc-d164-4d16-ac11-40325d350fbc">
+                    <propertyExpression name="DOC_KEY_POID"><![CDATA[$P{DOC_KEY_POID}]]></propertyExpression>
+                </reportElement>
+                <subreportParameter name="DOC_KEY_POID">
+                    <subreportParameterExpression><![CDATA[$P{DOC_KEY_POID}]]></subreportParameterExpression>
+                </subreportParameter>
+                <connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+                <subreportExpression><![CDATA[$P{SUB_NOMINEE}]]></subreportExpression>
+            </subreport>
+        </band>
+        <band height="4"/>
+    </detail>
+    <columnFooter>
+        <band height="8" splitType="Stretch">
+            <line>
+                <reportElement positionType="FixRelativeToBottom" x="0" y="3" width="555" height="1" uuid="d289b3ef-2b1e-48fd-b978-d9a4aded8371"/>
+                <graphicElement>
+                    <pen lineWidth="0.5" lineColor="#999999"/>
+                </graphicElement>
+            </line>
+        </band>
+    </columnFooter>
+    <pageFooter>
+        <band height="15">
+            <textField isBlankWhenNull="true">
+                <reportElement style="style1" x="401" y="0" width="100" height="15" forecolor="#666666" uuid="d2404443-ffe9-4908-afcf-ed5ef7d3d9a5"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle">
+                    <font size="8" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Page-"+$V{PAGE_NUMBER}+" of"]]></textFieldExpression>
+            </textField>
+            <textField evaluationTime="Report" isBlankWhenNull="true">
+                <reportElement style="style1" x="501" y="0" width="32" height="15" forecolor="#666666" uuid="0017d112-e615-4291-8b20-3b615a301841"/>
+                <textElement verticalAlignment="Middle">
+                    <font size="8" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[" "+$V{PAGE_NUMBER}]]></textFieldExpression>
+            </textField>
+            <textField pattern="EEE, d MMM yyyy HH:mm" isBlankWhenNull="true">
+                <reportElement style="style1" x="7" y="0" width="187" height="15" isPrintInFirstWholeBand="true" forecolor="#666666" uuid="74e2bf5e-f62e-431c-b76c-870b1ba0c3e7"/>
+                <textElement>
+                    <font size="8" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+            </textField>
+        </band>
+    </pageFooter>
+    <lastPageFooter>
+        <band height="166">
+            <staticText>
+                <reportElement x="7" y="6" width="526" height="121" uuid="34586b02-d422-4f3f-9449-5ccffcfddce8"/>
+                <text><![CDATA[Employee Declaration:
+
+I ---------------------- , hereby declare that the details furnished above are true and correct to the best of my knowledge and belief and I undertake to inform you of any changes therein, immediately.
+
+
+Place:
+Date:
+Signature:
+]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="7" y="126" width="526" height="21" uuid="51103b4e-e21c-4ee7-be01-9cb124ef022b"/>
+                <textElement>
+                    <font size="8"/>
+                </textElement>
+                <text><![CDATA[Note: Should there be any changes in your marital status and/or if you wish to change your nomination at any time you must notify Personnel Department / HR on your proposed changes.]]></text>
+            </staticText>
+            <textField pattern="EEE, d MMM yyyy HH:mm" isBlankWhenNull="true">
+                <reportElement style="style1" x="7" y="150" width="187" height="15" isPrintInFirstWholeBand="true" forecolor="#666666" uuid="75c27212-c772-4487-a03a-f9472a4bd096"/>
+                <textElement>
+                    <font size="8" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[new java.util.Date()]]></textFieldExpression>
+            </textField>
+            <textField isBlankWhenNull="true">
+                <reportElement style="style1" x="399" y="149" width="100" height="15" forecolor="#666666" uuid="cefe7eb5-2e76-4126-a02a-e00b9b5857e5"/>
+                <textElement textAlignment="Right" verticalAlignment="Middle">
+                    <font size="8" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Page-"+$V{PAGE_NUMBER}+" of"]]></textFieldExpression>
+            </textField>
+            <textField evaluationTime="Report" isBlankWhenNull="true">
+                <reportElement style="style1" x="499" y="149" width="32" height="15" forecolor="#666666" uuid="c5908784-3ac7-48e2-9d98-ae668af443b4"/>
+                <textElement verticalAlignment="Middle">
+                    <font size="8" isBold="true"/>
+                </textElement>
+                <textFieldExpression><![CDATA[" "+$V{PAGE_NUMBER}]]></textFieldExpression>
+            </textField>
+        </band>
+    </lastPageFooter>
+    <summary>
+        <band splitType="Stretch"/>
+    </summary>
+</jasperReport>

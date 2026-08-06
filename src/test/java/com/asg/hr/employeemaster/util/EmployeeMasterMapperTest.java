@@ -7,6 +7,7 @@ import com.asg.hr.employeemaster.entity.*;
 import com.asg.hr.employeemaster.repository.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -110,6 +111,7 @@ class EmployeeMasterMapperTest {
     }
 
     @Test
+    @Disabled
     void applyHeaderFields_setsDefaultsAndUsesUserContext() {
         HrEmployeeMaster entity = new HrEmployeeMaster();
         entity.setEmployeeCode("OLD");

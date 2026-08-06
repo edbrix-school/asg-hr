@@ -365,8 +365,8 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
 
         try {
             Map<String, Object> params = printService.buildBaseParams(entity.getTransactionPoid(), UserContext.getDocumentId());
-            
-            JasperReport mainReport = printService.load("HR_JRXML/Emp_Personal_Data.jrxml");
+            params.put("SUB_NOMINEE", printService.load("HR/Emp_Personal_Data_Nominee.jrxml"));
+            JasperReport mainReport = printService.load("/HR/Emp_Personal_Data.jrxml");
             return printService.fillReportToPdf(mainReport, params, dataSource);
         } catch (Exception e) {
             log.error("Failed to generate PDF for Personal Data Sheet: {}", transactionPoid, e);
