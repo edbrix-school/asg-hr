@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Emp_Personal_Data_Nominee" language="groovy" pageWidth="555" pageHeight="802" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="b8360c9f-aa1b-4775-8371-34e1d594c51a">
+    <property name="ireport.zoom" value="2.853116706110003"/>
+    <property name="ireport.x" value="0"/>
+    <property name="ireport.y" value="0"/>
+    <parameter name="DOC_KEY_POID" class="java.lang.String"/>
+    <queryString>
+        <![CDATA[SELECT DET_ROW_ID, NOMINEE_TYPE, NOMINEE_NAME, RELATION, MOBILE, BANK_DETIALS, PERCENTAGE, REMARKS, TRANSLATE (ADDRESS, 'x'||CHR(10)||CHR(13), 'x') as ADDRESS
+FROM HR_PERSONAL_DATA_NOMINEE
+WHERE TRANSACTION_POID = $P{DOC_KEY_POID}]]>
+    </queryString>
+    <field name="DET_ROW_ID" class="java.math.BigDecimal"/>
+    <field name="NOMINEE_TYPE" class="java.lang.String"/>
+    <field name="NOMINEE_NAME" class="java.lang.String"/>
+    <field name="RELATION" class="java.lang.String"/>
+    <field name="MOBILE" class="java.lang.String"/>
+    <field name="BANK_DETIALS" class="java.lang.String"/>
+    <field name="PERCENTAGE" class="java.math.BigDecimal"/>
+    <field name="REMARKS" class="java.lang.String"/>
+    <field name="ADDRESS" class="java.lang.String"/>
+    <background>
+        <band splitType="Stretch"/>
+    </background>
+    <detail>
+        <band height="145" splitType="Stretch">
+            <staticText>
+                <reportElement mode="Transparent" x="102" y="26" width="10" height="12" forecolor="#000000" backcolor="#FFFFFF" uuid="48bcb3a9-d84d-4227-8362-bcf0ffb7542d"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="14" y="26" width="77" height="12" uuid="83595e7b-3a17-4ec0-8a60-c81c9d92cf49"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Nominee Type]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement x="122" y="26" width="135" height="12" uuid="6cfd6016-336e-42d8-b5c2-2b4e713a38b2"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{NOMINEE_TYPE}]]></textFieldExpression>
+            </textField>
+            <textField isBlankWhenNull="true">
+                <reportElement x="122" y="38" width="135" height="12" uuid="0caff977-e866-455d-a9b7-6f6be9bf6b98"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{NOMINEE_NAME}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="14" y="38" width="77" height="12" uuid="c6ca8995-8d6c-4d6f-a39e-4c6970b49256"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Name]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Transparent" x="102" y="38" width="10" height="12" forecolor="#000000" backcolor="#FFFFFF" uuid="d39eb1af-287c-460f-8369-6e170b63c8fb"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="14" y="50" width="77" height="12" uuid="fb84dcd7-984a-4386-84cd-16aca117a2df"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Relation]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement x="122" y="50" width="135" height="12" uuid="80500226-a213-4e00-b43b-9ac471e3cb6c"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{RELATION}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement mode="Transparent" x="102" y="50" width="10" height="12" forecolor="#000000" backcolor="#FFFFFF" uuid="d2c45189-0b86-4e7e-b5ec-823dbfc28792"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="14" y="62" width="77" height="12" uuid="4aa2be3e-8c3a-4fcb-bdba-5eb8c9169ad4"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Mobile]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement x="122" y="62" width="135" height="12" uuid="c481c27b-5f82-444a-8ea1-334311040e13"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{MOBILE}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement mode="Transparent" x="102" y="62" width="10" height="12" forecolor="#000000" backcolor="#FFFFFF" uuid="b0571524-9cbe-4c43-91d9-06f95c51fd2a"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement mode="Transparent" x="102" y="74" width="10" height="12" forecolor="#000000" backcolor="#FFFFFF" uuid="3ddf916b-3100-47ce-9165-1615081a3094"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="14" y="74" width="77" height="12" uuid="277888f0-dd1e-4ddc-b668-507eb0c60d4c"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Address]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement positionType="Float" stretchType="RelativeToTallestObject" x="122" y="74" width="421" height="12" uuid="c4516f59-0c66-4c3f-829c-a16e12e96ee8"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial" size="8"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{ADDRESS}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement mode="Transparent" x="102" y="86" width="10" height="12" forecolor="#000000" backcolor="#FFFFFF" uuid="c2682b8f-690f-44f1-bb8d-026e3f6205f1"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="14" y="86" width="77" height="12" uuid="f86dc7a4-3087-49c1-b027-2854e035d5c9"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Bank Details]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement positionType="Float" stretchType="RelativeToTallestObject" x="122" y="86" width="421" height="12" uuid="4b6d6bc7-5f3a-4369-8772-cd019628ee5d"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial" size="8"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{BANK_DETIALS}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement mode="Transparent" x="102" y="98" width="10" height="12" forecolor="#000000" backcolor="#FFFFFF" uuid="4d9e1b51-ac82-46bc-bdbe-c15b698311ce"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="14" y="98" width="77" height="12" uuid="940076c1-56de-47ec-a268-ed4fbb182f47"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Remarks]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement positionType="Float" stretchType="RelativeToTallestObject" x="122" y="98" width="135" height="12" uuid="0af258d4-af08-4231-a8ea-d93a7119689f"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{REMARKS}]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement mode="Transparent" x="102" y="113" width="10" height="16" forecolor="#000000" backcolor="#FFFFFF" uuid="9442cea0-5358-45dd-aeeb-443dbf70466f"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="10" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <text><![CDATA[:]]></text>
+            </staticText>
+            <textField isBlankWhenNull="true">
+                <reportElement positionType="Float" stretchType="RelativeToTallestObject" x="122" y="113" width="135" height="16" uuid="bf52fefd-37c6-4de5-ab86-ee67f83e978b"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <textFieldExpression><![CDATA[$F{PERCENTAGE} + "%"]]></textFieldExpression>
+            </textField>
+            <staticText>
+                <reportElement x="14" y="113" width="77" height="16" uuid="822ebbc6-d9af-48fb-9a06-0fa0af368247"/>
+                <textElement verticalAlignment="Middle">
+                    <font fontName="Arial"/>
+                </textElement>
+                <text><![CDATA[Percentage]]></text>
+            </staticText>
+            <line>
+                <reportElement x="14" y="139" width="530" height="1" uuid="013ef28b-8717-40f5-9625-b605312ab94c"/>
+                <graphicElement>
+                    <pen lineWidth="0.5"/>
+                </graphicElement>
+            </line>
+            <textField>
+                <reportElement mode="Transparent" x="14" y="6" width="529" height="20" forecolor="#000000" backcolor="#CCCCCC" uuid="d3e8364a-1adb-46d3-a3a8-9e850d24b03c"/>
+                <textElement textAlignment="Left" verticalAlignment="Middle" rotation="None" markup="none">
+                    <font fontName="Arial" size="12" isBold="true" isItalic="false" isUnderline="false" isStrikeThrough="false" pdfEncoding="Cp1252" isPdfEmbedded="false"/>
+                    <paragraph lineSpacing="Single"/>
+                </textElement>
+                <textFieldExpression><![CDATA["Nominee : " + $F{DET_ROW_ID}]]></textFieldExpression>
+            </textField>
+        </band>
+    </detail>
+</jasperReport>
