@@ -9,6 +9,7 @@ import com.asg.common.lib.enums.UserRolesRightsEnum;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDownloadHeaderService;
 import com.asg.common.lib.service.LoggingService;
+import com.asg.hr.leaverequest.dto.EarlierPendingLeaveCheckDto;
 import com.asg.hr.leaverequest.dto.LeaveCalculationResponseDto;
 import com.asg.hr.leaverequest.dto.LeaveCreateRequestDto;
 import com.asg.hr.leaverequest.dto.LeaveResponseDto;
@@ -229,6 +230,26 @@ public class HrLeaveRequestController {
         );
 
         return ApiResponse.success("Calculate leave days for employee successfully", response);
+    }
+
+    @AllowedAction(UserRolesRightsEnum.VIEW)
+    @Operation(
+            summary = "Check for earlier pending leave requests",
+            description = "Checks whether the employee has an earlier leave request that is still pending. "
+                    + "Call this before Save so the warning can be shown up front; the same check is "
+                    + "re-applied on create and update, where it rejects the save with HTTP 400."
+    )
+    @GetMapping("/earlier-pending-check")
+    public ResponseEntity<?> checkEarlierPendingLeaveRequests(
+            @RequestParam Long employeePoid,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate leaveStartDate,
+            @Parameter(description = "Transaction POID of the record being edited, so it is not checked against itself")
+            @RequestParam(required = false) Long transactionPoid) {
+
+        EarlierPendingLeaveCheckDto response =
+                service.checkEarlierPendingLeaveRequests(transactionPoid, employeePoid, leaveStartDate);
+
+        return ApiResponse.success("Earlier pending leave request check completed successfully", response);
     }
 
     @AllowedAction(UserRolesRightsEnum.VIEW)
