@@ -4,6 +4,7 @@ import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.DocumentDownloadHeaderService;
+import com.asg.hr.leaverequest.dto.EarlierPendingLeaveCheckDto;
 import com.asg.hr.leaverequest.dto.LeaveCalculationResponseDto;
 import com.asg.hr.leaverequest.dto.LeaveCreateRequestDto;
 import com.asg.hr.leaverequest.dto.LeaveResponseDto;
@@ -396,6 +397,42 @@ class HrLeaveRequestControllerTest {
         verify(service).calculateLeaveDays(
                 eq(10L), eq(2L), eq("EMERGENCY"), isNull(), eq("EMERGENCY_PAID"), isNull(),
                 eq(startDate), eq(rejoinDate), isNull(), isNull());
+    }
+
+    // -------------------------------------------------------------------------
+    // checkEarlierPendingLeaveRequests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void checkEarlierPendingLeaveRequests_success() {
+        LocalDate leaveStartDate = LocalDate.of(2026, 9, 1);
+        EarlierPendingLeaveCheckDto response = new EarlierPendingLeaveCheckDto();
+        response.setEarlierPendingLeaveExists(true);
+        response.setCanSave(false);
+
+        when(service.checkEarlierPendingLeaveRequests(null, 3L, leaveStartDate)).thenReturn(response);
+
+        ResponseEntity<?> result =
+                controller.checkEarlierPendingLeaveRequests(3L, leaveStartDate, null);
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertEquals(response, extractData(result));
+        verify(service).checkEarlierPendingLeaveRequests(null, 3L, leaveStartDate);
+    }
+
+    @Test
+    void checkEarlierPendingLeaveRequests_withTransactionPoid() {
+        LocalDate leaveStartDate = LocalDate.of(2026, 9, 1);
+        EarlierPendingLeaveCheckDto response = new EarlierPendingLeaveCheckDto();
+        response.setCanSave(true);
+
+        when(service.checkEarlierPendingLeaveRequests(10L, 3L, leaveStartDate)).thenReturn(response);
+
+        ResponseEntity<?> result =
+                controller.checkEarlierPendingLeaveRequests(3L, leaveStartDate, 10L);
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        verify(service).checkEarlierPendingLeaveRequests(10L, 3L, leaveStartDate);
     }
 
     // -------------------------------------------------------------------------

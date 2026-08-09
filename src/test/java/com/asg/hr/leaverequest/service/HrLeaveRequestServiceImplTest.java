@@ -12,6 +12,7 @@ import com.asg.common.lib.service.LovDataService;
 import com.asg.common.lib.service.PrintService;
 import com.asg.hr.exceptions.ResourceNotFoundException;
 import com.asg.hr.exceptions.ValidationException;
+import com.asg.hr.leaverequest.dto.EarlierPendingLeaveCheckDto;
 import com.asg.hr.leaverequest.dto.LeaveCalculationResponseDto;
 import com.asg.hr.leaverequest.dto.LeaveCreateRequestDto;
 import com.asg.hr.leaverequest.dto.LeaveHistoryUpdateRequestDto;
@@ -73,6 +74,10 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class HrLeaveRequestServiceImplTest {
+
+    private static final String EARLIER_PENDING_LEAVE_MESSAGE =
+            "An earlier leave request is still pending. Please complete the pending leave request "
+                    + "before creating or saving a future leave request.";
 
     @Mock
     private HrLeaveRequestHdrRepository hdrRepo;
@@ -267,6 +272,112 @@ class HrLeaveRequestServiceImplTest {
         ValidationException ex = assertThrows(ValidationException.class, () -> service.update(request));
 
         assertEquals("Leave request overlaps with an existing leave request", ex.getMessage());
+    }
+
+    @Test
+    void create_WhenEarlierLeaveRequestIsPending_ThrowsValidationExceptionAndDoesNotSave() {
+        LeaveCreateRequestDto request = createRequest();
+        when(hdrRepo.findEarlierPendingLeaveRequests(3L, null, request.getLeaveStartDate()))
+                .thenReturn(List.of(pendingLeaveRequest(9L, LocalDate.of(2026, 3, 1))));
+
+        try (MockedStatic<UserContext> userContext = Mockito.mockStatic(UserContext.class)) {
+            userContext.when(UserContext::getDocumentId).thenReturn("800-100");
+
+            ValidationException ex = assertThrows(ValidationException.class, () -> service.create(request));
+
+            assertEquals(EARLIER_PENDING_LEAVE_MESSAGE, ex.getMessage());
+        }
+
+        verify(hdrRepo, never()).save(any(HrLeaveRequestHdrEntity.class));
+        verify(repository, never()).validateLeave(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void update_WhenEarlierLeaveRequestIsPending_ThrowsValidationExceptionAndDoesNotSave() {
+        LeaveUpdateRequestDto request = updateRequest();
+        when(hdrRepo.findById(10L)).thenReturn(Optional.of(entity));
+        when(hdrRepo.findEarlierPendingLeaveRequests(3L, 10L, request.getLeaveStartDate()))
+                .thenReturn(List.of(pendingLeaveRequest(9L, LocalDate.of(2026, 3, 1))));
+
+        try (MockedStatic<UserContext> userContext = Mockito.mockStatic(UserContext.class)) {
+            userContext.when(UserContext::getDocumentId).thenReturn("800-100");
+
+            ValidationException ex = assertThrows(ValidationException.class, () -> service.update(request));
+
+            assertEquals(EARLIER_PENDING_LEAVE_MESSAGE, ex.getMessage());
+        }
+
+        verify(hdrRepo, never()).save(any(HrLeaveRequestHdrEntity.class));
+        verify(repository, never()).validateLeave(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void create_WhenNoEarlierPendingLeaveRequest_SavesRecord() {
+        LeaveCreateRequestDto request = createRequest();
+        when(hdrRepo.findEarlierPendingLeaveRequests(3L, null, request.getLeaveStartDate()))
+                .thenReturn(List.of());
+        when(repository.validateLeave(eq(null), eq(request.getLeaveStartDate()), eq(request.getPlanedRejoinDate()),
+                eq(3L), eq("SPECIAL_LEAVE"), eq("MARRIAGE"), eq(99L)))
+                .thenReturn(Map.of("status", "SUCCESS", "leaveDays", "3"));
+        when(hdrRepo.save(any(HrLeaveRequestHdrEntity.class))).thenAnswer(invocation -> {
+            HrLeaveRequestHdrEntity saved = invocation.getArgument(0);
+            saved.setTransactionPoid(10L);
+            return saved;
+        });
+        stubGetById();
+
+        try (MockedStatic<UserContext> userContext = Mockito.mockStatic(UserContext.class)) {
+            userContext.when(UserContext::getGroupPoid).thenReturn(1L);
+            userContext.when(UserContext::getUserPoid).thenReturn(99L);
+            userContext.when(UserContext::getDocumentId).thenReturn("800-100");
+
+            LeaveResponseDto response = service.create(request);
+
+            assertEquals(10L, response.getTransactionPoid());
+        }
+
+        verify(hdrRepo).save(any(HrLeaveRequestHdrEntity.class));
+    }
+
+    @Test
+    void checkEarlierPendingLeaveRequests_WhenPendingExists_ReturnsWarningAndDetails() {
+        LocalDate september = LocalDate.of(2026, 9, 1);
+        when(hdrRepo.findEarlierPendingLeaveRequests(3L, null, september))
+                .thenReturn(List.of(pendingLeaveRequest(9L, LocalDate.of(2026, 7, 1))));
+
+        EarlierPendingLeaveCheckDto response = service.checkEarlierPendingLeaveRequests(null, 3L, september);
+
+        assertTrue(response.isEarlierPendingLeaveExists());
+        assertFalse(response.isCanSave());
+        assertEquals(EARLIER_PENDING_LEAVE_MESSAGE, response.getMessage());
+        assertEquals(1, response.getPendingLeaveRequests().size());
+        assertEquals(9L, response.getPendingLeaveRequests().get(0).getTransactionPoid());
+        assertEquals("LR-9", response.getPendingLeaveRequests().get(0).getDocRef());
+        assertEquals(LocalDate.of(2026, 7, 1), response.getPendingLeaveRequests().get(0).getLeaveStartDate());
+        assertEquals("SUBMIT_FOR_APPROVAL", response.getPendingLeaveRequests().get(0).getStatus());
+    }
+
+    @Test
+    void checkEarlierPendingLeaveRequests_WhenNonePending_AllowsSave() {
+        LocalDate september = LocalDate.of(2026, 9, 1);
+        when(hdrRepo.findEarlierPendingLeaveRequests(3L, 10L, september)).thenReturn(List.of());
+
+        EarlierPendingLeaveCheckDto response = service.checkEarlierPendingLeaveRequests(10L, 3L, september);
+
+        assertFalse(response.isEarlierPendingLeaveExists());
+        assertTrue(response.isCanSave());
+        assertNull(response.getMessage());
+        assertTrue(response.getPendingLeaveRequests().isEmpty());
+    }
+
+    @Test
+    void checkEarlierPendingLeaveRequests_WhenMandatoryParamsMissing_ThrowsValidationException() {
+        LocalDate september = LocalDate.of(2026, 9, 1);
+
+        assertEquals("Employee not selected", assertThrows(ValidationException.class,
+                () -> service.checkEarlierPendingLeaveRequests(null, null, september)).getMessage());
+        assertEquals("Leave start date required", assertThrows(ValidationException.class,
+                () -> service.checkEarlierPendingLeaveRequests(null, 3L, null)).getMessage());
     }
 
     @Test
@@ -949,6 +1060,19 @@ class HrLeaveRequestServiceImplTest {
         assertNull(invoke("toBigDecimal", new Class<?>[] {Object.class}, "null"));
         assertNull(invoke("toBigDecimal", new Class<?>[] {Object.class}, "bad"));
         assertEquals(new BigDecimal("12.5"), invoke("toBigDecimal", new Class<?>[] {Object.class}, "12.5"));
+    }
+
+    private HrLeaveRequestHdrEntity pendingLeaveRequest(Long transactionPoid, LocalDate leaveStartDate) {
+        HrLeaveRequestHdrEntity pending = new HrLeaveRequestHdrEntity();
+        pending.setTransactionPoid(transactionPoid);
+        pending.setDocRef("LR-" + transactionPoid);
+        pending.setEmployeePoid(3L);
+        pending.setLeaveType("ANNUAL");
+        pending.setLeaveStartDate(leaveStartDate);
+        pending.setPlanedRejoinDate(leaveStartDate.plusDays(10));
+        pending.setStatus("SUBMIT_FOR_APPROVAL");
+        pending.setDeleted("N");
+        return pending;
     }
 
     private LeaveCreateRequestDto createRequest() {

@@ -15,12 +15,14 @@ import com.asg.common.lib.service.PrintService;
 import com.asg.common.lib.utility.PaginationUtil;
 import com.asg.hr.exceptions.ResourceNotFoundException;
 import com.asg.hr.exceptions.ValidationException;
+import com.asg.hr.leaverequest.dto.EarlierPendingLeaveCheckDto;
 import com.asg.hr.leaverequest.dto.LeaveCalculationResponseDto;
 import com.asg.hr.leaverequest.dto.LeaveCreateRequestDto;
 import com.asg.hr.leaverequest.dto.LeaveHistoryUpdateRequestDto;
 import com.asg.hr.leaverequest.dto.LeaveRequestDetailDto;
 import com.asg.hr.leaverequest.dto.LeaveResponseDto;
 import com.asg.hr.leaverequest.dto.LeaveTicketUpdateRequestDto;
+import com.asg.hr.leaverequest.dto.PendingLeaveRequestDto;
 import com.asg.hr.leaverequest.dto.LeaveUpdateRequestDto;
 import com.asg.hr.leaverequest.entity.HrLeaveRequestDtl;
 import com.asg.hr.leaverequest.entity.HrLeaveRequestDtlId;
@@ -73,6 +75,9 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
     private static final String LEAVE_TYPE= "Leavetype";
     private static final String ANNUAL_LEAVE_TYPE = "annualLeaveType";
     private static final String TRANSACTION_POID = "TRANSACTION_POID";
+    private static final String EARLIER_PENDING_LEAVE_MESSAGE =
+            "An earlier leave request is still pending. Please complete the pending leave request "
+                    + "before creating or saving a future leave request.";
 
     private final HrLeaveRequestHdrRepository hdrRepo;
     private final HrLeaveRequestDtlRepository dtlRepo;
@@ -94,6 +99,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         //validateAgainstAccumLeave(req);
         validateAnnualProbation(req);
         validateNoDateOverlap(null, req.getEmployeePoid(), req.getLeaveStartDate(), req.getPlanedRejoinDate());
+        validateNoEarlierPendingLeaveRequest(null, req.getEmployeePoid(), req.getLeaveStartDate());
 
         Map<String, Object> validationResult =
                 repository.validateLeave(
@@ -265,6 +271,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         //validateAgainstAccumLeave(createRequest);
         validateAnnualProbation(createRequest);
         validateNoDateOverlap(req.getTransactionPoid(), entity.getEmployeePoid(), req.getLeaveStartDate(), req.getPlanedRejoinDate());
+        validateNoEarlierPendingLeaveRequest(req.getTransactionPoid(), entity.getEmployeePoid(), req.getLeaveStartDate());
 
         Map<String, Object> validationResult =
                 repository.validateLeave(
@@ -601,6 +608,50 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
 
         if (historyOverlaps > 0) {
             throw new ValidationException("Leave request overlaps with employee leave history");
+        }
+    }
+
+    @Override
+    public EarlierPendingLeaveCheckDto checkEarlierPendingLeaveRequests(
+            Long transactionPoid,
+            Long employeePoid,
+            LocalDate leaveStartDate) {
+
+        if (employeePoid == null) {
+            throw new ValidationException("Employee not selected");
+        }
+        if (leaveStartDate == null) {
+            throw new ValidationException("Leave start date required");
+        }
+
+        List<HrLeaveRequestHdrEntity> pending =
+                hdrRepo.findEarlierPendingLeaveRequests(employeePoid, transactionPoid, leaveStartDate);
+
+        EarlierPendingLeaveCheckDto response = new EarlierPendingLeaveCheckDto();
+        response.setEarlierPendingLeaveExists(!pending.isEmpty());
+        response.setCanSave(pending.isEmpty());
+        response.setMessage(pending.isEmpty() ? null : EARLIER_PENDING_LEAVE_MESSAGE);
+        response.setPendingLeaveRequests(pending.stream().map(p -> {
+            PendingLeaveRequestDto dto = new PendingLeaveRequestDto();
+            dto.setTransactionPoid(p.getTransactionPoid());
+            dto.setDocRef(p.getDocRef());
+            dto.setLeaveType(p.getLeaveType());
+            dto.setLeaveStartDate(p.getLeaveStartDate());
+            dto.setPlanedRejoinDate(p.getPlanedRejoinDate());
+            dto.setStatus(p.getStatus());
+            return dto;
+        }).toList());
+
+        return response;
+    }
+
+    private void validateNoEarlierPendingLeaveRequest(Long transactionPoid, Long employeePoid, LocalDate leaveStartDate) {
+        if (employeePoid == null || leaveStartDate == null) {
+            return;
+        }
+
+        if (!hdrRepo.findEarlierPendingLeaveRequests(employeePoid, transactionPoid, leaveStartDate).isEmpty()) {
+            throw new ValidationException(EARLIER_PENDING_LEAVE_MESSAGE);
         }
     }
 

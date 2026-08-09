@@ -35,6 +35,22 @@ public interface HrLeaveRequestHdrRepository extends JpaRepository<HrLeaveReques
             @Param("planedRejoinDate") LocalDate planedRejoinDate
     );
 
+    @Query("""
+            select h from HrLeaveRequestHdrEntity h
+            where h.employeePoid = :employeePoid
+              and (:transactionPoid is null or h.transactionPoid <> :transactionPoid)
+              and (h.status is null or upper(h.status) not in
+                   ('APPROVED', 'REJECTED', 'DELETED', 'CANCELLED', 'CLOSED', 'COMPLETED', 'APPROVAL_NOT_APPLICABLE'))
+              and (h.deleted is null or upper(h.deleted) <> 'Y')
+              and h.leaveStartDate < :leaveStartDate
+            order by h.leaveStartDate asc, h.transactionPoid asc
+            """)
+    List<HrLeaveRequestHdrEntity> findEarlierPendingLeaveRequests(
+            @Param("employeePoid") Long employeePoid,
+            @Param("transactionPoid") Long transactionPoid,
+            @Param("leaveStartDate") LocalDate leaveStartDate
+    );
+
     @Query(value = """
             select count(*)
               from HR_EMPLOYEE_LEAVE_HISTORY h

@@ -2,6 +2,7 @@ package com.asg.hr.leaverequest.service;
 
 import com.asg.common.lib.dto.DeleteReasonDto;
 import com.asg.common.lib.dto.FilterRequestDto;
+import com.asg.hr.leaverequest.dto.EarlierPendingLeaveCheckDto;
 import com.asg.hr.leaverequest.dto.LeaveCreateRequestDto;
 import com.asg.hr.leaverequest.dto.LeaveCalculationResponseDto;
 import com.asg.hr.leaverequest.dto.LeaveHistoryUpdateRequestDto;
@@ -66,6 +67,12 @@ public interface HrLeaveRequestService {
     );
 
     Map<String, Object> handleLeaveTypeChange(String leaveType, String leaveDaysMethod);
+
+    EarlierPendingLeaveCheckDto checkEarlierPendingLeaveRequests(
+            Long transactionPoid,
+            Long employeePoid,
+            LocalDate leaveStartDate
+    );
 
     byte[] print(Long transactionPoid) throws JRException;
 }
