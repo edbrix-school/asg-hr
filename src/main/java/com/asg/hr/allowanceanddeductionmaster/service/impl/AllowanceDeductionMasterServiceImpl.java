@@ -46,7 +46,6 @@ public class AllowanceDeductionMasterServiceImpl implements AllowanceDeductionMa
     private static final String PRIMARY_KEY = "ALLOWACE_DEDUCTION_POID";
     private static final String DESCRIPTION_FIELD = "DESCRIPTION";
     private static final String ERROR_CANNOT_UPDATE_DELETED = "Cannot update deleted record";
-    private static final String ERROR_RECORD_DELETED = "Record has been deleted";
     private static final String ERROR_ALREADY_DELETED = "Cannot delete. Record is already deleted.";
     private static final String ALLOWANCE_DEDUCTION_CODE = "Allowance/Deduction code";
     private static final String ALLOWANCE_DEDUCTION_DESCRIPTION = "Allowance/Deduction description";
@@ -124,10 +123,6 @@ public class AllowanceDeductionMasterServiceImpl implements AllowanceDeductionMa
 
         HrAllowanceDeductionMaster entity = repository.findById(allowaceDeductionPoid)
                 .orElseThrow(() -> new ResourceNotFoundException(ALLOWANCE_DEDUCTION, ALLOWACE_DEDUCTION_POID_FIELD, allowaceDeductionPoid));
-
-        if (DELETED_FLAG.equals(entity.getDeleted())) {
-            throw new CustomException(ERROR_RECORD_DELETED);
-        }
 
         log.info("Successfully retrieved allowance/deduction with id: {}", allowaceDeductionPoid);
         return mapper.toResponseDTO(entity);
