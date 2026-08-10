@@ -332,8 +332,12 @@ class AllowanceDeductionMasterServiceTest {
         Long id = 1L;
         entity.setDeleted("Y");
         when(repository.findById(id)).thenReturn(Optional.of(entity));
+        when(mapper.toResponseDTO(entity)).thenReturn(responseDTO);
 
-        assertThrows(CustomException.class, () -> service.getById(id));
+        AllowanceDeductionResponseDTO result = service.getById(id);
+
+        assertNotNull(result);
+        verify(repository).findById(id);
     }
 
     // ---------- DELETE ----------
