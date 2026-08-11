@@ -584,9 +584,9 @@ class EmployeeMasterServiceImplTest {
         @Test
         void returnsPdfBytes() throws Exception {
             JasperReport report = mock(JasperReport.class);
-            when(printService.buildBaseParams(5L, DOC_ID)).thenReturn(Map.of("x", 1));
-            when(printService.load("EmployeeDetailsReportWithSalary.jrxml")).thenReturn(report);
-            when(printService.fillReportToPdf(report, Map.of("x", 1), dataSource)).thenReturn(new byte[]{1, 2});
+            when(printService.buildBaseParams(5L, DOC_ID)).thenReturn(new java.util.HashMap<>(Map.of("x", 1)));
+            when(printService.load("EmployeeDetailsReport.jrxml")).thenReturn(report);
+            when(printService.fillReportToPdf(report, Map.of("x", 1, "IS_ADMIN", false), dataSource)).thenReturn(new byte[]{1, 2});
 
             assertThat(service.print(5L)).containsExactly(1, 2);
         }
@@ -594,8 +594,8 @@ class EmployeeMasterServiceImplTest {
         @Test
         void rethrowsJRException() throws Exception {
             JasperReport report = mock(JasperReport.class);
-            when(printService.buildBaseParams(5L, DOC_ID)).thenReturn(Map.of("x", 1));
-            when(printService.load("EmployeeDetailsReportWithSalary.jrxml")).thenReturn(report);
+            when(printService.buildBaseParams(5L, DOC_ID)).thenReturn(new java.util.HashMap<>(Map.of("x", 1)));
+            when(printService.load("EmployeeDetailsReport.jrxml")).thenReturn(report);
             net.sf.jasperreports.engine.JRException jre = new net.sf.jasperreports.engine.JRException("fill error");
             when(printService.fillReportToPdf(any(), any(), any())).thenThrow(jre);
 
@@ -607,8 +607,8 @@ class EmployeeMasterServiceImplTest {
         @Test
         void wrapsNonJRExceptionIntoJRException() throws Exception {
             JasperReport report = mock(JasperReport.class);
-            when(printService.buildBaseParams(5L, DOC_ID)).thenReturn(Map.of("x", 1));
-            when(printService.load("EmployeeDetailsReportWithSalary.jrxml")).thenReturn(report);
+            when(printService.buildBaseParams(5L, DOC_ID)).thenReturn(new java.util.HashMap<>(Map.of("x", 1)));
+            when(printService.load("EmployeeDetailsReport.jrxml")).thenReturn(report);
             when(printService.fillReportToPdf(any(), any(), any())).thenThrow(new RuntimeException("unexpected"));
 
             assertThatThrownBy(() -> service.print(5L))
