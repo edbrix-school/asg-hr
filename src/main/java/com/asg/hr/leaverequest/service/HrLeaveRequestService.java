@@ -66,6 +66,16 @@ public interface HrLeaveRequestService {
             String leaveDaysMethod
     );
 
+     Map<String, Object> validateLeave(
+            Long tranId,
+            LocalDate startDate,
+            LocalDate endDate,
+            Long empId,
+            String leaveType,
+            String subType,
+            Long userId
+    );
+
     Map<String, Object> handleLeaveTypeChange(String leaveType, String leaveDaysMethod);
 
     EarlierPendingLeaveCheckDto checkEarlierPendingLeaveRequests(
