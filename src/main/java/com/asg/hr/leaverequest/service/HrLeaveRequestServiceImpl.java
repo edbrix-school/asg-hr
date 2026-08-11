@@ -1182,22 +1182,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
             subType = splLeaveTypes;
         }
 
-        Map<String, Object> validationResult = repository.validateLeave(
-                transactionPoid,
-                leaveStartDate,
-                planedRejoinDate,
-                employeePoid,
-                leaveType,
-                subType,
-                UserContext.getUserPoid()
-        );
-
-        String status = (String) validationResult.get(STATUS);
-        handleValidationStatus(status);
-
-        BigDecimal leaveDays = validationResult.get(LEAVE_DAYS) != null
-                ? new BigDecimal(validationResult.get(LEAVE_DAYS).toString())
-                : BigDecimal.ZERO;
+        BigDecimal leaveDays = BigDecimal.ZERO;
         BigDecimal calendarDays = BigDecimal.valueOf(java.time.temporal.ChronoUnit.DAYS.between(leaveStartDate, planedRejoinDate));
         BigDecimal holidays = repository.getHolidayCount(leaveStartDate, planedRejoinDate);
 
@@ -1210,6 +1195,19 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         response.setLeaveDays(leaveDays);
         response.setBalanceTillRejoin(eligibleLeaveDays != null ? eligibleLeaveDays.subtract(leaveDays) : null);
         return response;
+    }
+
+    @Override
+    public Map<String, Object> validateLeave(
+            Long tranId,
+            LocalDate startDate,
+            LocalDate endDate,
+            Long empId,
+            String leaveType,
+            String subType,
+            Long userId
+    ) {
+        return repository.validateLeave(tranId, startDate, endDate, empId, leaveType, subType, userId);
     }
 
     @Override

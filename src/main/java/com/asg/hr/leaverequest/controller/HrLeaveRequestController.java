@@ -233,6 +233,29 @@ public class HrLeaveRequestController {
     }
 
     @AllowedAction(UserRolesRightsEnum.VIEW)
+    @GetMapping("/validate-leave")
+    public ResponseEntity<?> validateLeave(
+            @RequestParam(required = false) Long transactionPoid,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam Long empId,
+            @RequestParam String leaveType,
+            @RequestParam(required = false) String subType) {
+
+        Map<String, Object> response = service.validateLeave(
+                transactionPoid,
+                startDate,
+                endDate,
+                empId,
+                leaveType,
+                subType,
+                UserContext.getUserPoid()
+        );
+
+        return ApiResponse.success("Leave validation completed successfully", response);
+    }
+
+    @AllowedAction(UserRolesRightsEnum.VIEW)
     @Operation(
             summary = "Check for earlier pending leave requests",
             description = "Checks whether the employee has an earlier leave request that is still pending. "

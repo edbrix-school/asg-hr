@@ -819,7 +819,8 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     @Override
     public byte[] print(Long transactionPoid) throws JRException {
         Map<String, Object> params = printService.buildBaseParams(transactionPoid, UserContext.getDocumentId());
-        JasperReport mainReport = printService.load("EmployeeDetailsReportWithSalary.jrxml");
+        params.put("IS_ADMIN", isAdminUser());
+        JasperReport mainReport = printService.load("EmployeeDetailsReport.jrxml");
         try {
             return printService.fillReportToPdf(mainReport, params, dataSource);
         } catch (JRException e) {
@@ -827,6 +828,15 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         } catch (Exception e) {
             throw new JRException(e);
         }
+    }
+
+    private boolean isAdminUser() {
+        String userRole = UserContext.getUserRole();
+        if (StringUtils.isBlank(userRole)) {
+            return false;
+        }
+        String normalizedRole = userRole.trim().toUpperCase(java.util.Locale.ROOT);
+        return normalizedRole.equals("ADMIN ROLES");
     }
 
     @Override
