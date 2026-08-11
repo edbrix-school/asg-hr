@@ -327,7 +327,7 @@ public class HrLeaveRequestController {
                     .headers(downloadHeaderService.buildAttachmentHeaders(
                             HrLeaveRequestHdrEntity.class,
                             transactionPoid,
-                            "purchase-journal",
+                            "leave-request",
                             "pdf"))
                     .contentType(MediaType.APPLICATION_PDF)
                     .body(pdf);
