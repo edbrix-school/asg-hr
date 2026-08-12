@@ -15,6 +15,7 @@ import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.service.LovDataService;
 import com.asg.common.lib.service.PrintService;
 import com.asg.common.lib.utility.PaginationUtil;
+import com.asg.hr.common.security.EmployeeRowRestriction;
 import com.asg.hr.departmentmaster.entity.HrDepartmentMaster;
 import com.asg.hr.departmentmaster.repository.HrDepartmentMasterRepository;
 import com.asg.hr.designation.entity.HrDesignationMaster;
@@ -65,6 +66,7 @@ public class EmployeeLeaveRejoinServiceImpl implements EmployeeLeaveRejoinServic
     private final HrDepartmentMasterRepository departmentRepository;
     private final DesignationRepository designationRepository;
     private final DocumentSearchService documentSearchService;
+    private final EmployeeRowRestriction employeeRowRestriction;
     private final DocumentDeleteService documentDeleteService;
     private final LoggingService loggingService;
     private final LovDataService lovDataService;
@@ -85,18 +87,14 @@ public class EmployeeLeaveRejoinServiceImpl implements EmployeeLeaveRejoinServic
                 )
         );
 
-        if (!canAccessAllEmployees()) {
-            Long currentEmployeePoid = resolveCurrentEmployeePoid();
-            resolvedFilters.add(new FilterDto(
-                    EmployeeLeaveRejoinConstants.EMPLOYEE_POID_FIELD,
-                    String.valueOf(currentEmployeePoid != null ? currentEmployeePoid : -1L)
-            ));
-        }
+        // Users without the employee selection right only see their own records
+        EmployeeRowRestriction.ScopedSearch scoped = employeeRowRestriction.restrict(
+                resolvedFilters, documentSearchService.resolveOperator(filters));
 
         RawSearchResult raw = documentSearchService.search(
                 getRequiredDocumentId(),
-                resolvedFilters,
-                documentSearchService.resolveOperator(filters),
+                scoped.filters(),
+                scoped.operator(),
                 pageable,
                 documentSearchService.resolveIsDeleted(filters),
                 EmployeeLeaveRejoinConstants.DOC_REF_FIELD,
@@ -476,6 +474,11 @@ public class EmployeeLeaveRejoinServiceImpl implements EmployeeLeaveRejoinServic
                 .orElse(null);
     }
 
+    /**
+     * Whether the user may act on another employee's record. This is the record level check used by
+     * create/update/getById and still keys off the user's role; the list uses the employee selection
+     * right through {@link EmployeeRowRestriction}.
+     */
     private boolean canAccessAllEmployees() {
         String userRole = UserContext.getUserRole();
         if (!hasText(userRole)) {

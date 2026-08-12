@@ -15,6 +15,7 @@ import com.asg.hr.resignation.repository.HrResignationProcRepository;
 import com.asg.hr.resignation.repository.HrResignationRepository;
 import com.asg.hr.resignation.util.HrResignationConstants;
 import com.asg.hr.resignation.util.HrResignationMapper;
+import com.asg.hr.common.security.EmployeeRowRestriction;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,6 +65,9 @@ class HrResignationServiceImplTest {
     private DocumentSearchService documentService;
 
     @Mock
+    private EmployeeRowRestriction employeeRowRestriction;
+
+    @Mock
     private EntityManager entityManager;
 
     @Mock
@@ -87,6 +91,9 @@ class HrResignationServiceImplTest {
 
     @BeforeEach
     void setup() {
+        // the restriction itself is covered by EmployeeRowRestrictionTest; here it passes filters through
+        lenient().when(employeeRowRestriction.restrict(any(), any())).thenAnswer(invocation ->
+                new EmployeeRowRestriction.ScopedSearch(invocation.getArgument(0), invocation.getArgument(1)));
         pageable = PageRequest.of(0, 10);
 
         baseRequest = new HrResignationRequest();
