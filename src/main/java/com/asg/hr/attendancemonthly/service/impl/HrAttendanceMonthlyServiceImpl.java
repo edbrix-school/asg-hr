@@ -83,13 +83,18 @@ public class HrAttendanceMonthlyServiceImpl implements HrAttendanceMonthlyServic
         validatePeriod(request);
         HrAttendanceMonthlyHdr hdr = mapper.toEntity(request);
         hdr.setCompanyPoid(String.valueOf(UserContext.getCompanyPoid()));
-        HrAttendanceMonthlyHdr savedHdr = hdrRepository.saveAndFlush(hdr);
-        entityManager.refresh(hdr);
+        HrAttendanceMonthlyHdr savedHdr = hdrRepository.save(hdr);
+        Long transactionPoid = savedHdr.getTransactionPoid();
+
+        entityManager.flush();
+        entityManager.refresh(savedHdr);
+
         loggingService.createLogSummaryEntry(
                 UserContext.getDocumentId(),
-                savedHdr.getTransactionPoid().toString(),
+                transactionPoid.toString(),
                 String.format("%s %s", LogDetailsEnum.CREATED.getDescription(), savedHdr.getDocRef())
-        );        return mapper.toResponse(savedHdr);
+        );
+        return mapper.toResponse(savedHdr);
     }
 
     @Override
@@ -248,7 +253,7 @@ public class HrAttendanceMonthlyServiceImpl implements HrAttendanceMonthlyServic
                 hdr.getTransactionDate()
         );
 
-        loggingService.createLogSummaryEntry(LogDetailsEnum.DELETED, UserContext.getDocumentId(), transactionPoid.toString());
+
     }
 
     private void enrichEmployeeNames(List<HrAttendanceMonthlyDtlResponse> dtlResponses) {
@@ -301,6 +306,27 @@ public class HrAttendanceMonthlyServiceImpl implements HrAttendanceMonthlyServic
         }
 
         return HrAttendanceMonthlyDateParams.builder().build();
+    }
+
+    @Override
+    @Transactional
+    public void removeDeductionDaysRecords(Long transactionPoid) {
+        HrAttendanceMonthlyHdr hdr = getHrAttendanceMonthlyHdr(transactionPoid);
+
+        /*if ("Y".equalsIgnoreCase(hdr.getLoadedPayroll())) {
+            throw new ValidationException("Cannot remove deduction days because payroll has already been processed for this period.");
+        }*/
+
+        List<HrAttendanceMonthlyDtl> details = getHrAttendanceMonthlyDtls(transactionPoid);
+
+        details.forEach(dtl -> dtl.setDeductDays(0L));
+        dtlRepository.saveAll(details);
+
+        loggingService.createLogSummaryEntry(
+                UserContext.getDocumentId(),
+                transactionPoid.toString(),
+                "Deduct days removed for all.."
+        );
     }
 
     @Override
