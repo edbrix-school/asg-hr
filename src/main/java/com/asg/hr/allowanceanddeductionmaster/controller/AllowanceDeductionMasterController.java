@@ -21,11 +21,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.asg.common.lib.dto.response.ApiResponse.*;
 
@@ -183,5 +187,20 @@ public class AllowanceDeductionMasterController {
             log.error("Failed to delete allowance/deduction with id: {}", allowaceDeductionPoid, ex);
             return notFound(ex.getMessage());
         }
+    }
+
+    // Overrides the shared GlobalExceptionHandler's generic "Validation error occurred" message for this
+    // screen only, so the actual field-level reason (e.g. "Type must be either ALLOWANCE, DEDUCTION or
+    // PROVISION") is surfaced as the top-level message instead.
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, Object> errors = new LinkedHashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
+
+        String message = errors.values().stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining("; "));
+
+        return error(message, HttpStatus.BAD_REQUEST.value(), errors);
     }
 }
