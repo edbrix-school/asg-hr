@@ -28,4 +28,6 @@ public interface HrAttendanceMonthlyService {
     HrAttendanceMonthlyDateParams calculateDateParams(LocalDate fromDate);
 
     String uploadOtExcel(MultipartFile file);
+
+    void removeDeductionDaysRecords(Long transactionPoid);
 }
