@@ -26,6 +26,7 @@ import com.asg.hr.leaverequest.entity.HrLeaveRequestHdrEntity;
 import com.asg.hr.leaverequest.repository.HrLeaveProcedureRepository;
 import com.asg.hr.leaverequest.repository.HrLeaveRequestDtlRepository;
 import com.asg.hr.leaverequest.repository.HrLeaveRequestHdrRepository;
+import com.asg.hr.common.security.EmployeeRowRestriction;
 import net.sf.jasperreports.engine.JasperReport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -71,6 +72,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class HrLeaveRequestServiceImplTest {
@@ -104,6 +106,9 @@ class HrLeaveRequestServiceImplTest {
     private DocumentSearchService documentService;
 
     @Mock
+    private EmployeeRowRestriction employeeRowRestriction;
+
+    @Mock
     private LovDataService lovService;
 
     @Mock
@@ -119,6 +124,9 @@ class HrLeaveRequestServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        // the restriction itself is covered by EmployeeRowRestrictionTest; here it passes filters through
+        lenient().when(employeeRowRestriction.restrict(any(), any())).thenAnswer(invocation ->
+                new EmployeeRowRestriction.ScopedSearch(invocation.getArgument(0), invocation.getArgument(1)));
         entity = new HrLeaveRequestHdrEntity();
         entity.setTransactionPoid(10L);
         entity.setGroupPoid(1L);

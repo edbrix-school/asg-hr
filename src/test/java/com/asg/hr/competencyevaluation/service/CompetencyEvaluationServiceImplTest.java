@@ -28,6 +28,7 @@ import com.asg.hr.competencyevaluation.entity.HrCompetencyEvaluationHdr;
 import com.asg.hr.competencyevaluation.repository.HrCompetencyEvaluationDtlRepository;
 import com.asg.hr.competencyevaluation.repository.HrCompetencyEvaluationHdrRepository;
 import com.asg.hr.competencyevaluation.util.CompetencyEvaluationConstants;
+import com.asg.hr.common.security.EmployeeRowRestriction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -59,6 +60,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class CompetencyEvaluationServiceImplTest {
@@ -73,6 +75,9 @@ class CompetencyEvaluationServiceImplTest {
     private CompetencyMasterRepository competencyMasterRepository;
     @Mock
     private DocumentSearchService documentSearchService;
+
+    @Mock
+    private EmployeeRowRestriction employeeRowRestriction;
     @Mock
     private DocumentDeleteService documentDeleteService;
     @Mock
@@ -90,6 +95,9 @@ class CompetencyEvaluationServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        // the restriction itself is covered by EmployeeRowRestrictionTest; here it passes filters through
+        lenient().when(employeeRowRestriction.restrict(any(), any())).thenAnswer(invocation ->
+                new EmployeeRowRestriction.ScopedSearch(invocation.getArgument(0), invocation.getArgument(1)));
         LocalDate today = LocalDate.now();
         schedule = HrCompetencySchedule.builder()
                 .schedulePoid(5L)

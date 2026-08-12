@@ -28,6 +28,7 @@ import com.asg.hr.leaverejoin.repository.EmployeeLeaveRejoinProcRepository;
 import com.asg.hr.leaverejoin.repository.HrEmployeeRejoinRepository;
 import com.asg.hr.leaverejoin.service.impl.EmployeeLeaveRejoinServiceImpl;
 import com.asg.hr.leaverejoin.util.EmployeeLeaveRejoinMapper;
+import com.asg.hr.common.security.EmployeeRowRestriction;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -60,6 +61,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class EmployeeLeaveRejoinServiceImplTest {
@@ -78,6 +80,9 @@ class EmployeeLeaveRejoinServiceImplTest {
     private DesignationRepository designationRepository;
     @Mock
     private DocumentSearchService documentSearchService;
+
+    @Mock
+    private EmployeeRowRestriction employeeRowRestriction;
     @Mock
     private DocumentDeleteService documentDeleteService;
     @Mock
@@ -102,6 +107,9 @@ class EmployeeLeaveRejoinServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        // the restriction itself is covered by EmployeeRowRestrictionTest; here it passes filters through
+        lenient().when(employeeRowRestriction.restrict(any(), any())).thenAnswer(invocation ->
+                new EmployeeRowRestriction.ScopedSearch(invocation.getArgument(0), invocation.getArgument(1)));
         request = EmployeeLeaveRejoinRequest.builder()
                 .employeePoid(10L)
                 .leaveRequestPoid(20L)
@@ -344,7 +352,12 @@ class EmployeeLeaveRejoinServiceImplTest {
 
             FilterRequestDto filters = new FilterRequestDto("AND", "N", List.of(new FilterDto("DOC_REF", "LR")));
             Pageable pageable = PageRequest.of(0, 10);
-            when(employeeRepository.findByLoginUserPoid(500L)).thenReturn(Optional.of(employee));
+            // a user without the employee selection right: the restriction appends their own employee
+            when(employeeRowRestriction.restrict(any(), any())).thenAnswer(invocation -> {
+                List<FilterDto> scopedFilters = new ArrayList<>(invocation.<List<FilterDto>>getArgument(0));
+                scopedFilters.add(new FilterDto("EMPLOYEE_POID", "10"));
+                return new EmployeeRowRestriction.ScopedSearch(scopedFilters, "AND");
+            });
             when(documentSearchService.resolveDateFilters(eq(filters), eq("TRANSACTION_DATE"), any(), any()))
                     .thenReturn(new ArrayList<>(List.of(new FilterDto("DOC_REF", "LR"))));
             when(documentSearchService.resolveOperator(filters)).thenReturn("AND");

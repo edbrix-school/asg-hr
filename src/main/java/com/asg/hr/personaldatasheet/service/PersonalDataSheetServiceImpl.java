@@ -14,6 +14,7 @@ import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.PrintService;
 import com.asg.common.lib.utility.PaginationUtil;
+import com.asg.hr.common.security.EmployeeRowRestriction;
 import com.asg.hr.personaldatasheet.dto.PersonalDataSheetRequestDto;
 import com.asg.hr.personaldatasheet.dto.PersonalDataSheetResponseDto;
 import com.asg.hr.personaldatasheet.entity.*;
@@ -147,6 +148,7 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
     private final HrPersonalDataNomineeRepository nomineeRepository;
     private final HrPersonalDataPoliciesRepository policiesRepository;
     private final DocumentSearchService documentSearchService;
+    private final EmployeeRowRestriction employeeRowRestriction;
     private final DocumentDeleteService documentDeleteService;
     private final LoggingService loggingService;
     private final PersonalDataSheetValidator validator;
@@ -258,7 +260,12 @@ public class PersonalDataSheetServiceImpl implements PersonalDataSheetService {
         String isDeleted = documentSearchService.resolveIsDeleted(filters);
         List<FilterDto> filterList = documentSearchService.resolveFilters(filters);
 
-        RawSearchResult raw = documentSearchService.search(documentId, filterList, operator, pageable, isDeleted,
+        // Users without the employee selection right only see their own records
+
+        EmployeeRowRestriction.ScopedSearch scoped = employeeRowRestriction.restrict(filterList, operator);
+
+
+        RawSearchResult raw = documentSearchService.search(documentId, scoped.filters(), scoped.operator(), pageable, isDeleted,
                 EMPLOYEE_NAME_PASSPORT,
                 TRANSACTION_POID_FIELD);
         

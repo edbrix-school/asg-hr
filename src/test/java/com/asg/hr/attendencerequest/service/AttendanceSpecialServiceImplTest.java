@@ -16,6 +16,8 @@ import com.asg.hr.attendencerequest.dto.AttendanceResponseDto;
 import com.asg.hr.attendencerequest.entity.AttendanceEntity;
 import com.asg.hr.attendencerequest.repository.AttendanceRepository;
 import com.asg.hr.attendencerequest.util.AttendanceMapper;
+import com.asg.hr.common.security.EmployeeRowRestriction;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -37,6 +39,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.Mockito;
 
 @ExtendWith(MockitoExtension.class)
@@ -54,6 +58,9 @@ class AttendanceSpecialServiceImplTest {
     private DocumentSearchService documentSearchService;
 
     @Mock
+    private EmployeeRowRestriction employeeRowRestriction;
+
+    @Mock
     private DocumentDeleteService documentDeleteService;
 
     @Mock
@@ -67,6 +74,13 @@ class AttendanceSpecialServiceImplTest {
 
     @InjectMocks
     private AttendanceSpecialServiceImpl service;
+
+    @BeforeEach
+    void setUpEmployeeRowRestriction() {
+        // the restriction itself is covered by EmployeeRowRestrictionTest; here it passes filters through
+        lenient().when(employeeRowRestriction.restrict(any(), any())).thenAnswer(invocation ->
+                new EmployeeRowRestriction.ScopedSearch(invocation.getArgument(0), invocation.getArgument(1)));
+    }
 
     // ---------- CREATE ----------
     @Test

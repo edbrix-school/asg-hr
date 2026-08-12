@@ -95,6 +95,14 @@ public class HrAttendanceMonthlyController {
         return ApiResponse.success("Attendance details unloaded successfully");
     }
 
+    @Operation(summary = "Remove deduction days for all attendance detail records")
+    @AllowedAction(UserRolesRightsEnum.EDIT)
+    @PutMapping("/{id}/remove-deduction-days")
+    public ResponseEntity<?> removeDeductionDaysRecords(@PathVariable @NotNull @Positive Long id) {
+        attendanceService.removeDeductionDaysRecords(id);
+        return ApiResponse.success("Deduction days removed successfully for all records");
+    }
+
     @AllowedAction(UserRolesRightsEnum.EDIT)
     @GetMapping("/calculate-dates")
     public ResponseEntity<?> calculateDates(@RequestParam("fromDate") LocalDate fromDate) {
