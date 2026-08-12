@@ -20,7 +20,7 @@ public class AllowanceDeductionRequestDTO {
     private String variableFixed;
 
     @NotBlank(message = "Type is mandatory")
-    @Pattern(regexp = "ALLOWANCE|DEDUCTION", message = "Type must be either ALLOWANCE or DEDUCTION")
+    @Pattern(regexp = "ALLOWANCE|DEDUCTION|PROVISION", message = "Type must be either ALLOWANCE, DEDUCTION or PROVISION")
     private String type;
 
     @Size(max = 500, message = "Formula must be at most 500 characters")
