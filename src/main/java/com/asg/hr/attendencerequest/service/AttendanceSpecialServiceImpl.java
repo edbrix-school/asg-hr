@@ -10,6 +10,7 @@ import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.utility.PaginationUtil;
+import com.asg.hr.common.security.EmployeeRowRestriction;
 import com.asg.hr.attendencerequest.dto.AttendanceRequestDto;
 import com.asg.hr.attendencerequest.dto.AttendanceResponseDto;
 import com.asg.hr.attendencerequest.entity.AttendanceEntity;
@@ -35,6 +36,7 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
 
     private final AttendanceRepository repository;
     private final DocumentSearchService documentSearchService;
+    private final EmployeeRowRestriction employeeRowRestriction;
     private final DocumentDeleteService documentDeleteService;
     private final LoggingService loggingService;
     private final JdbcTemplate jdbcTemplate;
@@ -86,10 +88,15 @@ public class AttendanceSpecialServiceImpl implements AttendanceSpecialService {
         String isDeleted = documentSearchService.resolveIsDeleted(request);
         List<FilterDto> filters = documentSearchService.resolveFilters(request);
 
+        // Users without the employee selection right only see their own records
+
+        EmployeeRowRestriction.ScopedSearch scoped = employeeRowRestriction.restrict(filters, operator);
+
+
         RawSearchResult raw = documentSearchService.search(
                 docId,
-                filters,
-                operator,
+                scoped.filters(),
+                scoped.operator(),
                 pageable,
                 isDeleted,
                 ATTENDANCE_DATE_FIELD,

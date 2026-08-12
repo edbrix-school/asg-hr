@@ -16,6 +16,7 @@ import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.service.LovDataService;
 import com.asg.common.lib.utility.ASGHelperUtils;
 import com.asg.common.lib.utility.PaginationUtil;
+import com.asg.hr.common.security.EmployeeRowRestriction;
 import com.asg.hr.competency.entity.CompetencyMasterEntity;
 import com.asg.hr.competency.entity.HrCompetencySchedule;
 import com.asg.hr.competency.repository.CompetencyMasterRepository;
@@ -73,6 +74,7 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
     private final HrCompetencyScheduleRepository scheduleRepository;
     private final CompetencyMasterRepository competencyMasterRepository;
     private final DocumentSearchService documentSearchService;
+    private final EmployeeRowRestriction employeeRowRestriction;
     private final DocumentDeleteService documentDeleteService;
     private final LoggingService loggingService;
     private final LovDataService lovDataService;
@@ -177,10 +179,15 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
         String isDeleted = documentSearchService.resolveIsDeleted(filterRequest);
         List<FilterDto> filters = documentSearchService.resolveDateFilters(filterRequest, "TRANSACTION_DATE", startDate, endDate);
 
+        // Users without the employee selection right only see their own records
+
+        EmployeeRowRestriction.ScopedSearch scoped = employeeRowRestriction.restrict(filters, operator);
+
+
         RawSearchResult raw = documentSearchService.search(
                 UserContext.getDocumentId(),
-                filters,
-                operator,
+                scoped.filters(),
+                scoped.operator(),
                 pageable,
                 isDeleted,
                 DESCRIPTION_FIELD,

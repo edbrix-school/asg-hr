@@ -13,6 +13,8 @@ import com.asg.hr.personaldatasheet.dto.PersonalDataSheetRequestDto;
 import com.asg.hr.personaldatasheet.entity.*;
 import com.asg.hr.personaldatasheet.repository.*;
 import com.asg.hr.personaldatasheet.util.PersonalDataSheetValidator;
+import com.asg.hr.common.security.EmployeeRowRestriction;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -34,6 +36,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.ArgumentMatchers.any;
 
 @ExtendWith(MockitoExtension.class)
 class PersonalDataSheetServiceImplTest {
@@ -44,12 +48,20 @@ class PersonalDataSheetServiceImplTest {
     @Mock private HrPersonalDataNomineeRepository nomineeRepository;
     @Mock private HrPersonalDataPoliciesRepository policiesRepository;
     @Mock private DocumentSearchService documentSearchService;
+    @Mock private EmployeeRowRestriction employeeRowRestriction;
     @Mock private DocumentDeleteService documentDeleteService;
     @Mock private LoggingService loggingService;
     @Mock private PersonalDataSheetValidator validator;
     @Mock private PersonalDataSheetProcedureRepository procedureRepository;
 
     @InjectMocks private PersonalDataSheetServiceImpl service;
+
+    @BeforeEach
+    void setUpEmployeeRowRestriction() {
+        // the restriction itself is covered by EmployeeRowRestrictionTest; here it passes filters through
+        lenient().when(employeeRowRestriction.restrict(any(), any())).thenAnswer(invocation ->
+                new EmployeeRowRestriction.ScopedSearch(invocation.getArgument(0), invocation.getArgument(1)));
+    }
 
     @Test
     void create_success_savesEntity_setsFlags_andLogs() {

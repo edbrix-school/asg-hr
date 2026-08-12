@@ -11,6 +11,7 @@ import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.service.PrintService;
 import com.asg.common.lib.utility.PaginationUtil;
+import com.asg.hr.common.security.EmployeeRowRestriction;
 import com.asg.hr.employeetraining.dto.EmployeeTrainingDetailRequest;
 import com.asg.hr.employeetraining.dto.EmployeeTrainingRequest;
 import com.asg.hr.employeetraining.dto.EmployeeTrainingResponse;
@@ -57,6 +58,7 @@ public class EmployeeTrainingServiceImpl implements EmployeeTrainingService {
     private final EmployeeTrainingProcedureRepository procedureRepository;
     private final EmployeeTrainingMapper mapper;
     private final DocumentSearchService documentSearchService;
+    private final EmployeeRowRestriction employeeRowRestriction;
     private final LoggingService loggingService;
     private final DocumentDeleteService documentDeleteService;
     private final PrintService printService;
@@ -81,10 +83,15 @@ public class EmployeeTrainingServiceImpl implements EmployeeTrainingService {
         String isDeleted = documentSearchService.resolveIsDeleted(filterRequest);
         List<FilterDto> filters = documentSearchService.resolveDateFilters(filterRequest, "TRANSACTION_DATE", startDate, endDate);
 
+        // Users without the employee selection right only see their own records
+
+        EmployeeRowRestriction.ScopedSearch scoped = employeeRowRestriction.restrict(filters, operator);
+
+
         RawSearchResult raw = documentSearchService.search(
                 docId,
-                filters,
-                operator,
+                scoped.filters(),
+                scoped.operator(),
                 pageable,
                 isDeleted,
                 "COURSE_NAME",

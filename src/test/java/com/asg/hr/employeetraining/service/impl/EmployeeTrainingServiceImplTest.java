@@ -19,6 +19,7 @@ import com.asg.hr.employeetraining.repository.EmployeeTrainingHeaderRepository;
 import com.asg.hr.employeetraining.repository.EmployeeTrainingProcedureRepository;
 import com.asg.hr.employeetraining.util.EmployeeTrainingConstants;
 import com.asg.hr.employeetraining.util.EmployeeTrainingMapper;
+import com.asg.hr.common.security.EmployeeRowRestriction;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class EmployeeTrainingServiceImplTest {
@@ -65,6 +67,9 @@ class EmployeeTrainingServiceImplTest {
     private DocumentSearchService documentSearchService;
 
     @Mock
+    private EmployeeRowRestriction employeeRowRestriction;
+
+    @Mock
     private LoggingService loggingService;
 
     @Mock
@@ -83,6 +88,9 @@ class EmployeeTrainingServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        // the restriction itself is covered by EmployeeRowRestrictionTest; here it passes filters through
+        lenient().when(employeeRowRestriction.restrict(any(), any())).thenAnswer(invocation ->
+                new EmployeeRowRestriction.ScopedSearch(invocation.getArgument(0), invocation.getArgument(1)));
         EmployeeTrainingDetailRequest detailRequest = new EmployeeTrainingDetailRequest(
                 1,
                 "isCreated",

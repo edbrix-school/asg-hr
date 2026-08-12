@@ -13,6 +13,7 @@ import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.service.LovDataService;
 import com.asg.common.lib.service.PrintService;
 import com.asg.common.lib.utility.PaginationUtil;
+import com.asg.hr.common.security.EmployeeRowRestriction;
 import com.asg.hr.exceptions.ResourceNotFoundException;
 import com.asg.hr.exceptions.ValidationException;
 import com.asg.hr.leaverequest.dto.EarlierPendingLeaveCheckDto;
@@ -87,6 +88,7 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
     private final DataSource dataSource;
     private final DocumentDeleteService documentDeleteService;
     private final DocumentSearchService documentService;
+    private final EmployeeRowRestriction employeeRowRestriction;
     private final LovDataService lovService;
     private final LoggingService loggingService;
     private final EntityManager entityManager;
@@ -860,7 +862,10 @@ public class HrLeaveRequestServiceImpl implements HrLeaveRequestService {
         String isDeleted = documentService.resolveIsDeleted(filters);
         List<FilterDto> filterList = documentService.resolveDateFilters(filters, "TRANSACTION_DATE", startDateValue, endDateValue);
 
-        RawSearchResult raw = documentService.search(documentId, filterList, operator, pageable, isDeleted,
+        // Users without the employee selection right only see their own leave requests
+        EmployeeRowRestriction.ScopedSearch scoped = employeeRowRestriction.restrict(filterList, operator);
+
+        RawSearchResult raw = documentService.search(documentId, scoped.filters(), scoped.operator(), pageable, isDeleted,
                 "DOC_REF",   // label
                 TRANSACTION_POID);    // value
 

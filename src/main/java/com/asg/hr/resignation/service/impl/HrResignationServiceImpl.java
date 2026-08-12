@@ -11,6 +11,7 @@ import com.asg.common.lib.exception.ValidationException;
 import com.asg.common.lib.security.util.UserContext;
 import com.asg.common.lib.service.*;
 import com.asg.common.lib.utility.PaginationUtil;
+import com.asg.hr.common.security.EmployeeRowRestriction;
 import com.asg.hr.resignation.dto.*;
 import com.asg.hr.resignation.entity.HrResignationEntity;
 import com.asg.hr.resignation.repository.HrResignationProcRepository;
@@ -44,6 +45,8 @@ public class HrResignationServiceImpl implements HrResignationService {
     private final HrResignationMapper mapper;
 
     private final DocumentSearchService documentService;
+
+    private final EmployeeRowRestriction employeeRowRestriction;
     private final EntityManager entityManager;
     private final LovDataService lovDataService;
     private final LoggingService loggingService;
@@ -67,10 +70,15 @@ public class HrResignationServiceImpl implements HrResignationService {
                 endDate
         );
 
+        // Users without the employee selection right only see their own records
+
+        EmployeeRowRestriction.ScopedSearch scoped = employeeRowRestriction.restrict(resolvedFilters, operator);
+
+
         RawSearchResult raw = documentService.search(
                 docId,
-                resolvedFilters,
-                operator,
+                scoped.filters(),
+                scoped.operator(),
                 pageable,
                 isDeleted,
                 "DOC_REF",
