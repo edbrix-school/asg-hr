@@ -223,7 +223,6 @@ public class EmployeeMasterRequestDto {
     @Size(max = 100, message = "Display Name Must Be At Most 100 Characters")
     private String displayName;
 
-    @NotNull(message = "Employee Gl Is Required")
     private Long empGlPoid;
 
     @Size(max = 50, message = "Insu Nominee2 Must Be At Most 50 Characters")
