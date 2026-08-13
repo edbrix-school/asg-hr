@@ -154,13 +154,15 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         // Validate all child tables before persisting any, so logs are not written for tables that pass when a later one fails.
         validateChildTables(saved.getEmployeePoid(), requestDto);
 
+        // Log the header creation first so it appears before any child row log entries.
+        loggingService.createLogSummaryEntry(LogDetailsEnum.CREATED, UserContext.getDocumentId(), saved.getEmployeePoid().toString());
+
         // Child tables: apply row-level actionType (no audit-field assignment here).
         applyDependents(saved.getEmployeePoid(), requestDto.getDependentsDetails());
         applyLmraDetails(saved.getEmployeePoid(), requestDto.getLmraDetails());
         applyExperienceDetails(saved.getEmployeePoid(), requestDto.getExperienceDetails());
         applyDocumentDetails(saved.getEmployeePoid(), requestDto.getDocumentDetails());
 
-        loggingService.createLogSummaryEntry(LogDetailsEnum.CREATED, UserContext.getDocumentId(), saved.getEmployeePoid().toString());
         return employeeMasterMapper.toResponseDto(saved);
     }
 
