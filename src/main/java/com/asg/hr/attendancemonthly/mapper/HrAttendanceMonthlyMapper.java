@@ -35,12 +35,12 @@ public interface HrAttendanceMonthlyMapper {
 
     @Mapping(target = "transactionPoid", ignore = true)
     @Mapping(target = "detRowId", ignore = true)
-    @Mapping(target = "monthlyWokingDays", source = "monthlyWorkingDays")
+    @Mapping(target = "monthlyWokingDays", source = "monthlyWokingDays")
     HrAttendanceMonthlyDtl toDtlEntity(HrAttendanceMonthlyDtlUpdateRequest dtlRequest);
 
     @Mapping(target = "transactionPoid", ignore = true)
     @Mapping(target = "detRowId", ignore = true)
-    @Mapping(target = "monthlyWokingDays", source = "monthlyWorkingDays")
+    @Mapping(target = "monthlyWokingDays", source = "monthlyWokingDays")
     void updateDtlEntity(@MappingTarget HrAttendanceMonthlyDtl dtl, HrAttendanceMonthlyDtlUpdateRequest dtlRequest);
 
 

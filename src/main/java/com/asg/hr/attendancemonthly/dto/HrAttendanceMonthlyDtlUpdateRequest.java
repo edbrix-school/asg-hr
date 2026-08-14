@@ -18,7 +18,7 @@ public class HrAttendanceMonthlyDtlUpdateRequest {
     private BigDecimal overtimeOt2;
     private Integer weeklyOff;
     private Integer governmentOff;
-    private Integer monthlyWorkingDays;
+    private Integer monthlyWokingDays;
     private Integer deductDays;
     private BigDecimal excessHrs;
     private String remarks;
