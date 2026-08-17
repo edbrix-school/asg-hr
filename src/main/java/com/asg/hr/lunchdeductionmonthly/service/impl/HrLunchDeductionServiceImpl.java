@@ -164,8 +164,6 @@ public class HrLunchDeductionServiceImpl implements HrLunchDeductionService {
 
         documentDeleteService.deleteDocument(
                 transactionPoid, "HR_MONTHLY_LUNCH_HDR", "TRANSACTION_POID", deleteReasonDto, null);
-
-        loggingService.createLogSummaryEntry(LogDetailsEnum.DELETED, UserContext.getDocumentId(), transactionPoid.toString());
     }
 
     private void updateLunchDeductionDetails(Long transactionPoid, List<HrLunchDeductionDtlRequest> detailRequests) {
