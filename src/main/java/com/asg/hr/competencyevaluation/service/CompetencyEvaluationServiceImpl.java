@@ -14,7 +14,6 @@ import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.service.LovDataService;
-import com.asg.common.lib.utility.ASGHelperUtils;
 import com.asg.common.lib.utility.PaginationUtil;
 import com.asg.hr.common.security.EmployeeRowRestriction;
 import com.asg.hr.competency.entity.CompetencyMasterEntity;
@@ -90,7 +89,7 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
 
         HrCompetencyEvaluationHdr hdr = buildHeaderFromRequest(request);
         hdr.setDeleted(DELETED_NO);
-        hdr.setCreatedBy(ASGHelperUtils.getCurrentUser());
+        hdr.setCreatedBy(UserContext.getUserId());
         hdr.setCreatedDate(LocalDateTime.now());
         hdr = hdrRepository.save(hdr);
 
@@ -139,7 +138,7 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
         hdr.setEmployeeRemarks(request.getEmployeeRemarks());
         hdr.setReviewerComments(request.getReviewerComments());
         hdr.setTrainingNeeds(request.getTrainingNeeds());
-        hdr.setLastModifiedBy(ASGHelperUtils.getCurrentUser());
+        hdr.setLastModifiedBy(UserContext.getUserId());
         hdr.setLastModifiedDate(LocalDateTime.now());
 
         hdrRepository.save(hdr);
@@ -179,7 +178,6 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
         String isDeleted = documentSearchService.resolveIsDeleted(filterRequest);
         List<FilterDto> filters = documentSearchService.resolveDateFilters(filterRequest, "TRANSACTION_DATE", startDate, endDate);
 
-        // Users without the employee selection right only see their own records
 
         EmployeeRowRestriction.ScopedSearch scoped = employeeRowRestriction.restrict(filters, operator);
 
@@ -222,7 +220,7 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
         hdr.setTotalRating(scores.totalRating());
         hdr.setAvgRatingPercent(scores.avgRatingPercent());
         hdr.setEmployeeAgreedPercent(scores.employeeAgreedPercent());
-        hdr.setLastModifiedBy(ASGHelperUtils.getCurrentUser());
+        hdr.setLastModifiedBy(UserContext.getUserId());
         hdr.setLastModifiedDate(LocalDateTime.now());
         hdrRepository.save(hdr);
 
@@ -282,7 +280,7 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
 
     private void persistDetails(HrCompetencyEvaluationHdr hdr, List<CompetencyEvaluationRequestDto.CompetencyEvaluationDetailRequestDto> detailDtos) {
         List<Long> rowIds = assignRowIds(detailDtos);
-        String user = ASGHelperUtils.getCurrentUser();
+        String user = UserContext.getUserId();
         LocalDateTime now = LocalDateTime.now();
         for (int i = 0; i < detailDtos.size(); i++) {
             CompetencyEvaluationRequestDto.CompetencyEvaluationDetailRequestDto dto = detailDtos.get(i);
@@ -439,7 +437,7 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
             maxDetRowId = Math.max(maxDetRowId, e.getDetRowId());
         }
 
-        String user = ASGHelperUtils.getCurrentUser();
+        String user = UserContext.getUserId();
         LocalDateTime now = LocalDateTime.now();
         String docId = UserContext.getDocumentId();
         String docKeyPoid = transactionPoid.toString();

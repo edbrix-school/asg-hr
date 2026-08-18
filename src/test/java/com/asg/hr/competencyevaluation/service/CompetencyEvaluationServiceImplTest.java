@@ -13,8 +13,6 @@ import com.asg.common.lib.service.DocumentDeleteService;
 import com.asg.common.lib.service.DocumentSearchService;
 import com.asg.common.lib.service.LoggingService;
 import com.asg.common.lib.service.LovDataService;
-import jakarta.persistence.EntityManager;
-import com.asg.common.lib.utility.ASGHelperUtils;
 import com.asg.hr.competency.entity.CompetencyMasterEntity;
 import com.asg.hr.competency.entity.HrCompetencySchedule;
 import com.asg.hr.competency.repository.CompetencyMasterRepository;
@@ -29,6 +27,7 @@ import com.asg.hr.competencyevaluation.repository.HrCompetencyEvaluationDtlRepos
 import com.asg.hr.competencyevaluation.repository.HrCompetencyEvaluationHdrRepository;
 import com.asg.hr.competencyevaluation.util.CompetencyEvaluationConstants;
 import com.asg.hr.common.security.EmployeeRowRestriction;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -244,12 +243,11 @@ class CompetencyEvaluationServiceImplTest {
     @Test
     @Disabled
     void create_allowsMissingRating() {
-        try (var uc = mockStatic(UserContext.class);
-             var au = mockStatic(ASGHelperUtils.class)) {
+        try (var uc = mockStatic(UserContext.class)) {
             uc.when(UserContext::getGroupPoid).thenReturn(100L);
             uc.when(UserContext::getCompanyPoid).thenReturn(200L);
             uc.when(UserContext::getDocumentId).thenReturn("DOC800");
-            au.when(ASGHelperUtils::getCurrentUser).thenReturn("tester");
+            uc.when(UserContext::getUserId).thenReturn("tester");
 
             when(scheduleRepository.findById(5L)).thenReturn(Optional.of(schedule));
             when(competencyMasterRepository.findByIdAndGroupPoidAndNotDeleted(7L, 100L)).thenReturn(Optional.of(competency));
@@ -292,12 +290,11 @@ class CompetencyEvaluationServiceImplTest {
 
     @Test
     void create_success() {
-        try (var uc = mockStatic(UserContext.class);
-             var au = mockStatic(ASGHelperUtils.class)) {
+        try (var uc = mockStatic(UserContext.class)) {
             uc.when(UserContext::getGroupPoid).thenReturn(100L);
             uc.when(UserContext::getCompanyPoid).thenReturn(200L);
             uc.when(UserContext::getDocumentId).thenReturn("DOC800");
-            au.when(ASGHelperUtils::getCurrentUser).thenReturn("tester");
+            uc.when(UserContext::getUserId).thenReturn("tester");
 
             when(scheduleRepository.findById(5L)).thenReturn(Optional.of(schedule));
             when(competencyMasterRepository.findByIdAndGroupPoidAndNotDeleted(7L, 100L)).thenReturn(Optional.of(competency));
@@ -335,6 +332,8 @@ class CompetencyEvaluationServiceImplTest {
 
             assertNotNull(dto);
             assertEquals(99L, dto.getTransactionPoid());
+            verify(hdrRepository, atLeastOnce()).save(org.mockito.ArgumentMatchers.argThat(
+                    h -> h != null && "tester".equals(h.getCreatedBy())));
             verify(dtlRepository).save(any(HrCompetencyEvaluationDtl.class));
         }
     }
@@ -342,12 +341,11 @@ class CompetencyEvaluationServiceImplTest {
     @Test
     void create_usesTransactionDateFromRequestWhenProvided() {
         LocalDate txn = LocalDate.of(2026, 3, 15);
-        try (var uc = mockStatic(UserContext.class);
-             var au = mockStatic(ASGHelperUtils.class)) {
+        try (var uc = mockStatic(UserContext.class)) {
             uc.when(UserContext::getGroupPoid).thenReturn(100L);
             uc.when(UserContext::getCompanyPoid).thenReturn(200L);
             uc.when(UserContext::getDocumentId).thenReturn("DOC800");
-            au.when(ASGHelperUtils::getCurrentUser).thenReturn("tester");
+            uc.when(UserContext::getUserId).thenReturn("tester");
 
             when(scheduleRepository.findById(5L)).thenReturn(Optional.of(schedule));
             when(competencyMasterRepository.findByIdAndGroupPoidAndNotDeleted(7L, 100L)).thenReturn(Optional.of(competency));
@@ -418,8 +416,8 @@ class CompetencyEvaluationServiceImplTest {
         ));
         when(hdrRepository.save(any(HrCompetencyEvaluationHdr.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        try (var au = mockStatic(ASGHelperUtils.class)) {
-            au.when(ASGHelperUtils::getCurrentUser).thenReturn("tester");
+        try (var uc = mockStatic(UserContext.class)) {
+            uc.when(UserContext::getUserId).thenReturn("tester");
             CompetencyEvaluationResponseDto result = service.calculateScores(1L);
             assertNotNull(result);
             assertEquals(0, BigDecimal.ZERO.compareTo(result.getTotalRating()));
@@ -609,12 +607,11 @@ class CompetencyEvaluationServiceImplTest {
 
     @Test
     void create_allowsScheduleWithBlankDeletedFlag() {
-        try (var uc = mockStatic(UserContext.class);
-             var au = mockStatic(ASGHelperUtils.class)) {
+        try (var uc = mockStatic(UserContext.class)) {
             uc.when(UserContext::getGroupPoid).thenReturn(100L);
             uc.when(UserContext::getCompanyPoid).thenReturn(200L);
             uc.when(UserContext::getDocumentId).thenReturn("DOC800");
-            au.when(ASGHelperUtils::getCurrentUser).thenReturn("tester");
+            uc.when(UserContext::getUserId).thenReturn("tester");
 
             HrCompetencySchedule blankDeleted = HrCompetencySchedule.builder()
                     .schedulePoid(5L)
@@ -697,11 +694,10 @@ class CompetencyEvaluationServiceImplTest {
                         .build()
         ));
 
-        try (var uc = mockStatic(UserContext.class);
-             var au = mockStatic(ASGHelperUtils.class)) {
+        try (var uc = mockStatic(UserContext.class)) {
             uc.when(UserContext::getGroupPoid).thenReturn(100L);
             uc.when(UserContext::getDocumentId).thenReturn("DOC800");
-            au.when(ASGHelperUtils::getCurrentUser).thenReturn("tester");
+            uc.when(UserContext::getUserId).thenReturn("tester");
 
             when(hdrRepository.findActiveById(txnId)).thenReturn(Optional.of(hdr));
             stubScheduleAndCompetency();
@@ -808,8 +804,8 @@ class CompetencyEvaluationServiceImplTest {
         ));
         when(hdrRepository.save(any(HrCompetencyEvaluationHdr.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        try (var au = mockStatic(ASGHelperUtils.class)) {
-            au.when(ASGHelperUtils::getCurrentUser).thenReturn("tester");
+        try (var uc = mockStatic(UserContext.class)) {
+            uc.when(UserContext::getUserId).thenReturn("tester");
             CompetencyEvaluationResponseDto result = service.calculateScores(1L);
             assertNotNull(result);
             assertNotNull(result.getTotalRating());
