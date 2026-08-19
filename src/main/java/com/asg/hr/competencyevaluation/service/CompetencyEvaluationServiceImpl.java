@@ -586,14 +586,27 @@ public class CompetencyEvaluationServiceImpl implements CompetencyEvaluationServ
                 .totalRating(hdr.getTotalRating())
                 .avgRatingPercent(hdr.getAvgRatingPercent())
                 .employeeAgreedPercent(hdr.getEmployeeAgreedPercent())
-                .createdBy(hdr.getCreatedBy())
+                .createdBy(resolveAuditUser(hdr.getCreatedBy()))
                 .createdDate(hdr.getCreatedDate())
-                .lastModifiedBy(hdr.getLastModifiedBy())
+                .lastModifiedBy(resolveAuditUser(hdr.getLastModifiedBy()))
                 .lastModifiedDate(hdr.getLastModifiedDate())
                 .details(detailDtos)
                 .build();
         enrichLovDetails(response);
         return response;
+    }
+
+    private static String resolveAuditUser(String stored) {
+        if (stored == null || stored.isBlank()) {
+            return stored;
+        }
+        Long userPoid = UserContext.getUserPoid();
+        String userId = UserContext.getUserId();
+        if (userPoid != null && stored.equals(String.valueOf(userPoid))
+                && userId != null && !userId.isBlank()) {
+            return userId;
+        }
+        return stored;
     }
 
     private void enrichLovDetails(CompetencyEvaluationResponseDto response) {
