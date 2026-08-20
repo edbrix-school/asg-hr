@@ -29,6 +29,7 @@ import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperReport;
 import oracle.jdbc.OracleTypes;
 import org.apache.poi.ss.usermodel.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import com.asg.hr.employeemaster.enums.ActionType;
 import com.asg.hr.employeemaster.repository.*;
@@ -51,6 +52,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 
 import javax.sql.DataSource;
 import java.sql.Types;
@@ -110,7 +114,7 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
     private final PrintService printService;
     private final DataSource dataSource;
     private final JdbcTemplate jdbcTemplate;
-
+    private final EmployeeGlCreationService employeeGlCreationService;
     @Override
     @Transactional(readOnly = true)
     public Map<String, Object> listEmployees(String docId, FilterRequestDto filters, Pageable pageable, LocalDate fromDate, LocalDate toDate) {
@@ -148,9 +152,6 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
 
         HrEmployeeMaster saved = masterRepository.save(entity);
 
-        // Legacy: if EMP_GL_POID isn't set, backend creates it via PROC_GL_MASTER_CREATION after save.
-        createEmployeeGlIfMissing(saved.getEmployeePoid());
-
         // Validate all child tables before persisting any, so logs are not written for tables that pass when a later one fails.
         validateChildTables(saved.getEmployeePoid(), requestDto);
 
@@ -163,10 +164,22 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         applyExperienceDetails(saved.getEmployeePoid(), requestDto.getExperienceDetails());
         applyDocumentDetails(saved.getEmployeePoid(), requestDto.getDocumentDetails());
 
+        // Legacy: if EMP_GL_POID isn't set, backend creates it via PROC_GL_MASTER_CREATION after commit.
+        Long createdPoid = saved.getEmployeePoid();
+        Long groupPoid = UserContext.getGroupPoid();
+        Long companyPoid = UserContext.getCompanyPoid();
+        String userId = UserContext.getUserId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                employeeGlCreationService.createEmployeeGlIfMissing(createdPoid, groupPoid, companyPoid, userId);
+            }
+        });
+
         return employeeMasterMapper.toResponseDto(saved);
     }
 
-    @Override
+@Override
     public EmployeeMasterResponseDto updateEmployee(Long employeePoid, EmployeeMasterRequestDto requestDto) {
 
         HrEmployeeMaster existing = masterRepository.findByEmployeePoid(employeePoid).orElseThrow(() -> new ResourceNotFoundException(EMPLOYEE, HR_EMPLOYEE_MASTER_POID_FIELD, employeePoid));
@@ -182,9 +195,6 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
 
         HrEmployeeMaster saved = masterRepository.save(existing);
 
-        // Legacy: if EMP_GL_POID isn't set, backend creates it via PROC_GL_MASTER_CREATION after save.
-        createEmployeeGlIfMissing(saved.getEmployeePoid());
-
         // Validate all child tables before persisting any, so logs are not written for tables that pass when a later one fails.
         validateChildTables(saved.getEmployeePoid(), requestDto);
 
@@ -195,6 +205,19 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         applyDocumentDetails(saved.getEmployeePoid(), requestDto.getDocumentDetails());
 
         loggingService.logChanges(oldEntity, saved, HrEmployeeMaster.class, UserContext.getDocumentId(), employeePoid.toString(), LogDetailsEnum.MODIFIED, HR_EMPLOYEE_MASTER_POID_FIELD);
+
+        // Legacy: if EMP_GL_POID isn't set, backend creates it via PROC_GL_MASTER_CREATION after commit.
+        Long updatedPoid = saved.getEmployeePoid();
+        Long groupPoid = UserContext.getGroupPoid();
+        Long companyPoid = UserContext.getCompanyPoid();
+        String userId = UserContext.getUserId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                employeeGlCreationService.createEmployeeGlIfMissing(updatedPoid, groupPoid, companyPoid, userId);
+            }
+        });
+
         return employeeMasterMapper.toResponseDto(saved);
     }
 
@@ -436,55 +459,6 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                     .orElse(defaultValue);
         } catch (Exception ex) {
             return defaultValue;
-        }
-    }
-
-    public String createEmployeeGlIfMissing(Long employeePoid) {
-        HrEmployeeMaster current = masterRepository.findByEmployeePoid(employeePoid).orElseThrow(() -> new ResourceNotFoundException(EMPLOYEE, HR_EMPLOYEE_MASTER_POID_FIELD, employeePoid));
-
-        if (current.getEmpGlPoid() != null) {
-            return "GL already created";
-        }
-
-        String empCode = current.getEmployeeCode();
-        String empName = StringUtils.trimToEmpty(current.getEmployeeName());
-        if (StringUtils.isNotBlank(current.getEmployeeName2())) {
-            empName = (empName + " " + current.getEmployeeName2()).trim();
-        }
-
-        try {
-            SimpleJdbcCall jdbcCall = new SimpleJdbcCall(jdbcTemplate)
-                    .withProcedureName("PROC_GL_MASTER_CREATION")
-                    .declareParameters(
-                            new SqlParameter("P_TRAN_ID", Types.NUMERIC),
-                            new SqlParameter(P_LOGIN_GROUP_POID, Types.NUMERIC),
-                            new SqlParameter(P_LOGIN_COMPANY_POID, Types.NUMERIC),
-                            new SqlParameter(P_LOGIN_USER, Types.VARCHAR),
-                            new SqlParameter("P_DOCID", Types.VARCHAR),
-                            new SqlParameter("P_CODE", Types.VARCHAR),
-                            new SqlParameter("P_NAME", Types.VARCHAR),
-                            new SqlParameter("P_GLTYPE", Types.VARCHAR),
-                            new SqlOutParameter(P_STATUS, Types.VARCHAR)
-                    );
-
-            Map<String, Object> result = jdbcCall.execute(new MapSqlParameterSource()
-                    .addValue("P_TRAN_ID", employeePoid)
-                    .addValue(P_LOGIN_GROUP_POID, UserContext.getGroupPoid())
-                    .addValue(P_LOGIN_COMPANY_POID, UserContext.getCompanyPoid())
-                    .addValue(P_LOGIN_USER, UserContext.getUserId())
-                    .addValue("P_DOCID", DOC_ID_EMPLOYEE_MASTER)
-                    .addValue("P_CODE", empCode)
-                    .addValue("P_NAME", empName)
-                    .addValue("P_GLTYPE", GL_TYPE_EMPLOYEE)
-            );
-
-            String status = (String) result.get(P_STATUS);
-            if (status != null && status.toUpperCase().contains(ERROR)) {
-                throw new ValidationException(status);
-            }
-            return status;
-        } catch (DataAccessException ex) {
-            throw new ValidationException("PROC_GL_MASTER_CREATION failed: " + ex.getMostSpecificCause().getMessage());
         }
     }
 
@@ -1116,6 +1090,16 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
                 .status(status)
                 .lmraDetails(lmraDetails)
                 .build();
+    }
+
+    @Override
+    public String createEmployeeGlIfMissing(Long employeePoid) {
+        return employeeGlCreationService.createEmployeeGlIfMissing(
+                employeePoid,
+                UserContext.getGroupPoid(),
+                UserContext.getCompanyPoid(),
+                UserContext.getUserId()
+        );
     }
 }
 
