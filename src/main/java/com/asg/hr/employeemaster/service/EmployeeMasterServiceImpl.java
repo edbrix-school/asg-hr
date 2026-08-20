@@ -25,6 +25,7 @@ import com.asg.hr.employeemaster.dto.*;
 import com.asg.hr.employeemaster.entity.*;
 import com.asg.hr.employeemaster.util.EmployeeMasterMapper;
 import com.asg.hr.exceptions.CustomException;
+import lombok.extern.slf4j.Slf4j;
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperReport;
 import oracle.jdbc.OracleTypes;
@@ -61,12 +62,14 @@ import java.sql.Types;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.LongPredicate;
 
 
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class EmployeeMasterServiceImpl implements EmployeeMasterService {
 
     private static final String HR_EMPLOYEE_MASTER_TABLE = "HR_EMPLOYEE_MASTER";
@@ -172,7 +175,13 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                employeeGlCreationService.createEmployeeGlIfMissing(createdPoid, groupPoid, companyPoid, userId);
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        employeeGlCreationService.createEmployeeGlIfMissing(createdPoid, groupPoid, companyPoid, userId);
+                    } catch (Exception e) {
+                        log.error("GL creation failed asynchronously", e);
+                    }
+                });
             }
         });
 
@@ -214,7 +223,13 @@ public class EmployeeMasterServiceImpl implements EmployeeMasterService {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                employeeGlCreationService.createEmployeeGlIfMissing(updatedPoid, groupPoid, companyPoid, userId);
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        employeeGlCreationService.createEmployeeGlIfMissing(updatedPoid, groupPoid, companyPoid, userId);
+                    } catch (Exception e) {
+                        log.error("GL creation failed asynchronously", e);
+                    }
+                });
             }
         });
 
