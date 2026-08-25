@@ -168,8 +168,9 @@ class EmployeeInductionServiceImplTest {
         assertNotNull(result);
         assertEquals(1L, result.getPoid());
         verify(hdrRepository).save(any(HrEmployeeInductionHdr.class));
-        verify(loggingService, times(2))
+        verify(loggingService, times(1))
                 .logChanges(any(), any(), any(), any(), any(), any(LogDetailsEnum.class), any());
+        verify(loggingService, times(1)).createLogBatch(anyList());
     }
 
     @Test

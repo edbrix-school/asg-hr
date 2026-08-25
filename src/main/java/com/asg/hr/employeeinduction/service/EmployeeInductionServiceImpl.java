@@ -5,6 +5,7 @@ import com.asg.common.lib.dto.FilterDto;
 import com.asg.common.lib.dto.FilterRequestDto;
 import com.asg.common.lib.dto.LovGetListDto;
 import com.asg.common.lib.dto.RawSearchResult;
+import com.asg.common.lib.dto.request.LogRequestDto;
 import com.asg.common.lib.enums.LogDetailsEnum;
 import com.asg.common.lib.exception.CustomException;
 import com.asg.common.lib.exception.ResourceNotFoundException;
@@ -99,7 +100,11 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
             header.setDetails(details);
         }
 
-        loggingService.createLogSummaryEntry(LogDetailsEnum.CREATED, UserContext.getDocumentId(), header.getPoid().toString());
+        loggingService.createLogSummaryEntry(
+                UserContext.getDocumentId(),
+                header.getTransactionPoid().toString(),
+                String.format("%s %s", LogDetailsEnum.CREATED.getDescription(), header.getDocRef())
+        );
         log.info("Successfully created employee induction with id: {}", header.getPoid());
         return mapToResponseDto(header);
     }
@@ -330,9 +335,19 @@ public class EmployeeInductionServiceImpl implements EmployeeInductionService {
         existing.setLastModifiedDate(LocalDateTime.now());
         dtlRepository.save(existing);
 
-        loggingService.logChanges(oldEntity, existing, HrEmployeeInductionDtl.class,
-                               UserContext.getDocumentId(), header.getTransactionPoid().toString(),
-                                LogDetailsEnum.MODIFIED, "DET_ROW_ID");
+        String logDetail = String.format(
+                "KeyId = TRANSACTION_POID:%s DET_ROW_ID:%s",
+                header.getTransactionPoid(),
+                detailDto.getDetRowId()
+        );
+        loggingService.createLogBatch(List.of(new LogRequestDto<>(
+                oldEntity,
+                existing,
+                HrEmployeeInductionDtl.class,
+                UserContext.getDocumentId(),
+                header.getTransactionPoid().toString(),
+                logDetail
+        )));
     }
 
     private void createDetail(HrEmployeeInductionHdr header,
