@@ -218,6 +218,33 @@ class HolidayMasterServiceImplTest {
     }
 
     @Test
+    void update_WhenLockedByAnotherUser_ThrowsValidationException() {
+        HolidayMasterRequest updateRequest = new HolidayMasterRequest();
+        updateRequest.setHolidayReason("Updated");
+
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
+
+        try (MockedStatic<UserContext> userContext = Mockito.mockStatic(UserContext.class);
+             MockedConstruction<SimpleJdbcCall> mockedConstruction = Mockito.mockConstruction(
+                     SimpleJdbcCall.class,
+                     (mock, context) -> {
+                         when(mock.withFunctionName(anyString())).thenReturn(mock);
+                         when(mock.declareParameters(any(SqlParameter[].class))).thenReturn(mock);
+                         when(mock.executeFunction(eq(String.class), anyMap()))
+                                 .thenReturn("Locked By :- OTHER_USER, Locked Date :- 2026-09-10");
+                     })) {
+
+            userContext.when(UserContext::getUserId).thenReturn("CURRENT_USER");
+            userContext.when(UserContext::getDocumentId).thenReturn("800-011");
+
+            ValidationException ex = assertThrows(ValidationException.class,
+                    () -> service.update(1L, updateRequest));
+
+            assertTrue(ex.getMessage().contains("Document is currently locked by another user"));
+        }
+    }
+
+    @Test
     void delete_WhenSuccess_CallsDocumentDeleteService() {
         DeleteReasonDto deleteReasonDto = new DeleteReasonDto();
         when(repository.findById(1L)).thenReturn(Optional.of(entity));

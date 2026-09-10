@@ -127,6 +127,8 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
             throw new ValidationException("Holiday record is already deleted");
         }
 
+        verifyDocumentLock(holidayPoid);
+
         if (request.getHolidayDate() != null
                 && !request.getHolidayDate().equals(entity.getHolidayDate())
                 && repository.existsByHolidayDate(request.getHolidayDate())) {
@@ -199,6 +201,47 @@ public class HolidayMasterServiceImpl implements HolidayMasterService {
         } catch (DataAccessException ex) {
             log.error("Error while executing PROC_HR_CREATE_HOLIDAYS", ex);
             throw new ValidationException("Error while creating holidays: " + ex.getMostSpecificCause().getMessage());
+        }
+    }
+
+    private void verifyDocumentLock(Long holidayPoid) {
+        String userId = UserContext.getUserId();
+        String docId = UserContext.getDocumentId() != null ? UserContext.getDocumentId() : "800-011";
+        if (userId == null || userId.isBlank()) {
+            return;
+        }
+        try {
+            SimpleJdbcCall lockCall = new SimpleJdbcCall(jdbcTemplate)
+                    .withFunctionName("RTN_GLOBAL_USER_RECORD_LOCK")
+                    .declareParameters(
+                            new SqlOutParameter("RETURN", Types.VARCHAR),
+                            new SqlParameter("P_USER_ID", Types.VARCHAR),
+                            new SqlParameter("P_SESSION_DETAILS", Types.VARCHAR),
+                            new SqlParameter("P_DOC_ID", Types.VARCHAR),
+                            new SqlParameter("P_DOC_NAME", Types.VARCHAR),
+                            new SqlParameter("P_DOC_KEY_POID", Types.NUMERIC),
+                            new SqlParameter("P_TYPE", Types.VARCHAR)
+                    );
+
+            Map<String, Object> inParams = Map.of(
+                    "P_USER_ID", userId,
+                    "P_SESSION_DETAILS", "SESSION",
+                    "P_DOC_ID", docId,
+                    "P_DOC_NAME", HolidayMasterConstants.HOLIDAY_MASTER,
+                    "P_DOC_KEY_POID", holidayPoid,
+                    "P_TYPE", "E"
+            );
+
+            String status = lockCall.executeFunction(String.class, inParams);
+            log.info("Lock check status for holidayPoid {}: {}", holidayPoid, status);
+
+            if (status != null && status.trim().startsWith("Locked By") && !status.trim().contains(userId)) {
+                throw new ValidationException("Document is currently locked by another user: " + status.trim());
+            }
+        } catch (ValidationException ve) {
+            throw ve;
+        } catch (Exception ex) {
+            log.warn("Document lock check skipped/failed for holidayPoid {}: {}", holidayPoid, ex.getMessage());
         }
     }
 

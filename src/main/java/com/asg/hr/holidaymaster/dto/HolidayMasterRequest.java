@@ -20,7 +20,6 @@ public class HolidayMasterRequest {
     private Long holidayPoid; // for update
 
     @NotNull(message = "Holiday date is mandatory")
-    @FutureOrPresent(message = "Holiday date cannot be in the past")
     private LocalDate holidayDate;
 
     @NotBlank(message = "Holiday reason is mandatory")
